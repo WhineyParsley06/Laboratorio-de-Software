@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Perfil - Librería Pereira</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav>
+        <a href="index.html">Inicio</a>
+        <a href="perfil.html">Mi Perfil</a>
+        <a href="login.html">Cerrar Sesión</a>
+    </nav>
+
+    <div class="container">
+        <h2>Configuración de Perfil</h2>
+        <form>
+            <div class="input-group">
+                <label>Temas Literarios Preferidos:</label>
+                <select multiple style="height: 80px;">
+                    <option>Ciencia Ficción</option>
+                    <option>Novela Histórica</option>
+                    <option>Desarrollo de Software</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Notificaciones:</label>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <label style="font-weight: normal;">
+                        <input type="checkbox" style="width: auto;"> Recibir catálogo de nuevos libros
+                    </label>
+                    <label style="font-weight: normal;">
+                        <input type="checkbox" style="width: auto;"> Recibir bono de cumpleaños
+                    </label>
+                </div>
+            </div>
+
+            <button type="button" onclick="alert('Preferencias actualizadas')">Guardar Cambios</button>
+        </form>
+    </div>
+</body>
+</html>

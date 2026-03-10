@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Login - Librería</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/script.js" defer></script>
 </head>
 <body>
     <nav>
@@ -11,19 +13,22 @@
         <a href="registro.html">Registro</a>
         <a href="login.html" style="background-color: var(--secundario);">Login</a>
     </nav>
-    <div class="container">
-        <h2>Iniciar Sesión</h2>
-        <form>
-            <div class="input-group">
-                <label>Usuario</label>
-                <input type="text" required>
-            </div>
-            <div class="input-group">
-                <label>Contraseña</label>
-                <input type="password" required>
-            </div>
-            <button type="submit">Entrar</button>
-        </form>
-    </div>
+    <div class="container" style="max-width: 400px;">
+    <h2>Iniciar Sesión</h2>
+    <form onsubmit="simularLogin(event)">
+        <div class="input-group">
+            <label>Usuario o Correo</label>
+            <input type="text" id="userLogin" required>
+        </div>
+        <div class="input-group">
+            <label>Contraseña</label>
+            <input type="password" id="passLogin" required>
+        </div>
+        <p style="font-size: 0.8rem; text-align: right;">
+            <a href="#" style="color: var(--primario);">¿Olvidaste tu contraseña?</a>
+        </p>
+        <button type="submit">Entrar al Sistema</button>
+    </form>
+</div>
 </body>
 </html>
