@@ -1,43 +1,425 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Mi Perfil - Librería Pereira</title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Perfil — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .pref-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .pref-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--borde);
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--texto-suave);
+      background: var(--fondo-input);
+      transition: all var(--transicion);
+      user-select: none;
+    }
+
+    .pref-chip input { display: none; }
+
+    .pref-chip.selected {
+      border-color: var(--primario);
+      background: rgba(184,50,39,0.06);
+      color: var(--primario);
+    }
+
+    .pref-chip:hover {
+      border-color: var(--secundario);
+      color: var(--texto);
+    }
+
+    .section-sep {
+      border: none;
+      border-top: 1px solid var(--borde);
+      margin: 28px 0;
+    }
+  </style>
 </head>
 <body>
-    <nav>
-        <a href="index.html">Inicio</a>
-        <a href="perfil.html">Mi Perfil</a>
-        <a href="login.html">Cerrar Sesión</a>
-    </nav>
 
-    <div class="container">
-        <h2>Configuración de Perfil</h2>
-        <form>
-            <div class="input-group">
-                <label>Temas Literarios Preferidos:</label>
-                <select multiple style="height: 80px;">
-                    <option>Ciencia Ficción</option>
-                    <option>Novela Histórica</option>
-                    <option>Desarrollo de Software</option>
-                </select>
-            </div>
+  <nav>
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="perfil.html" class="active">Mi Perfil</a>
+    <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
+  </nav>
 
-            <div class="input-group">
-                <label>Notificaciones:</label>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <label style="font-weight: normal;">
-                        <input type="checkbox" style="width: auto;"> Recibir catálogo de nuevos libros
-                    </label>
-                    <label style="font-weight: normal;">
-                        <input type="checkbox" style="width: auto;"> Recibir bono de cumpleaños
-                    </label>
-                </div>
-            </div>
+  <div class="container container-wide" style="margin-top:40px;">
 
-            <button type="button" onclick="alert('Preferencias actualizadas')">Guardar Cambios</button>
-        </form>
+    <!-- Cabecera de perfil -->
+    <div class="profile-card" id="profileCard">
+      <div class="avatar" id="avatarInicial">👤</div>
+      <div class="profile-info">
+        <h3 id="nombreDisplay">Cargando...</h3>
+        <p id="correoDisplay">·</p>
+        <span class="badge badge-orange" id="rolDisplay">cliente</span>
+      </div>
     </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('datos', this)">👤 Datos personales</button>
+      <button class="tab-btn" onclick="showTab('preferencias', this)">📚 Preferencias</button>
+      <button class="tab-btn" onclick="showTab('seguridad', this)">🔒 Seguridad</button>
+    </div>
+
+    <!-- TAB: Datos personales -->
+    <div id="tab-datos">
+      <div id="alertPerfil"></div>
+      <form onsubmit="guardarDatos(event)">
+        <div class="input-row">
+          <div class="input-group">
+            <label for="pNombre">Nombre completo</label>
+            <input type="text" id="pNombre" placeholder="Juan Pérez">
+          </div>
+          <div class="input-group">
+            <label for="pCorreo">Correo electrónico</label>
+            <input type="email" id="pCorreo" placeholder="juan@correo.com">
+          </div>
+        </div>
+        <div class="input-row">
+          <div class="input-group">
+            <label for="pFecha">Fecha de nacimiento</label>
+            <input type="date" id="pFecha">
+          </div>
+          <div class="input-group">
+            <label for="pDireccion">Dirección de envío</label>
+            <input type="text" id="pDireccion" placeholder="Calle 123, Pereira">
+          </div>
+        </div>
+        <button type="submit">💾 Guardar cambios</button>
+      </form>
+    </div>
+
+    <!-- TAB: Preferencias -->
+    <div id="tab-preferencias" style="display:none;">
+      <div id="alertPref"></div>
+
+      <div class="input-group">
+        <label>Temas literarios de preferencia</label>
+        <div class="pref-grid" id="temasGrid">
+          <!-- Generado por JS -->
+        </div>
+      </div>
+
+      <hr class="section-sep">
+
+      <div class="input-group">
+        <label>Notificaciones</label>
+        <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="notifCatalogo" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span style="font-size: 0.9rem;">📬 Recibir catálogo de nuevos libros</span>
+          </div>
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="notifCumple" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span style="font-size: 0.9rem;">🎂 Recibir bono de cumpleaños</span>
+          </div>
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="suscripcionNoticias" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span style="font-size: 0.9rem;">📰 Suscripción al boletín de noticias</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="section-sep">
+      <button onclick="guardarPreferencias()" type="button">💾 Guardar preferencias</button>
+    </div>
+
+    <!-- TAB: Seguridad -->
+    <div id="tab-seguridad" style="display:none;">
+      <div id="alertSeg"></div>
+      <form onsubmit="cambiarPassword(event)">
+        <div class="input-group">
+          <label for="passActual">Contraseña actual</label>
+          <input type="password" id="passActual" placeholder="••••••••" required>
+        </div>
+        <div class="input-group">
+          <label for="passNueva">Nueva contraseña</label>
+          <input type="password" id="passNueva" placeholder="••••••••" required>
+          <div class="pass-strength"><div class="pass-strength-bar" id="strengthBarPerfil"></div></div>
+          <p class="pass-hint" id="passHintPerfil"></p>
+        </div>
+        <div class="input-group">
+          <label for="passConfirm">Confirmar nueva contraseña</label>
+          <input type="password" id="passConfirm" placeholder="••••••••" required>
+        </div>
+        <button type="submit">🔒 Actualizar contraseña</button>
+      </form>
+
+      <hr class="section-sep">
+
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 20px;">
+        <h3 style="color: #dc2626; font-size: 1rem; margin-bottom: 8px;">⚠️ Zona de peligro</h3>
+        <p style="font-size: 0.85rem; color: #7f1d1d; margin-bottom: 16px;">
+          Una vez eliminada tu cuenta, todos tus datos serán borrados permanentemente.
+        </p>
+        <button onclick="confirmarEliminarCuenta()" type="button" 
+                style="background: #dc2626; box-shadow: 0 4px 12px rgba(220,38,38,0.25); width:auto; padding: 10px 20px;">
+          🗑️ Eliminar mi cuenta
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Session timer -->
+  <div class="session-bar" id="sessionBar">
+    <div class="session-dot"></div>
+    Sesión activa · <span id="sessionCount">60s</span>
+  </div>
+
+  <footer>
+    <strong>Librería Pereira</strong> &copy; 2026 · Ley 1581 de 2012
+  </footer>
+
+  <script src="js/script.js"></script>
+  <script>
+    const TEMAS = [
+      { val: 'ciencia_ficcion', label: '🚀 Ciencia Ficción' },
+      { val: 'fantasia',        label: '🧙 Fantasía' },
+      { val: 'novela_historica',label: '🏛️ Novela Histórica' },
+      { val: 'misterio',        label: '🔎 Misterio' },
+      { val: 'romance',         label: '❤️ Romance' },
+      { val: 'poesia',          label: '🖊️ Poesía' },
+      { val: 'historia',        label: '📜 Historia' },
+      { val: 'software',        label: '💻 Desarrollo de Software' },
+      { val: 'biografia',       label: '👤 Biografía' },
+      { val: 'terror',          label: '👻 Terror' },
+    ];
+
+    // Verificar sesión
+    const sesion = requireSession();
+    if (!sesion) throw new Error('no session');
+
+    // Mostrar info de sesión
+    document.getElementById('nombreDisplay').textContent = sesion.nombre_completo;
+    document.getElementById('correoDisplay').textContent = sesion.correo;
+    document.getElementById('rolDisplay').textContent = sesion.rol;
+    const iniciales = sesion.nombre_completo.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
+    document.getElementById('avatarInicial').textContent = iniciales || '👤';
+
+    // Inicializar fortaleza de contraseña en tab seguridad
+    initPasswordStrength('passNueva', 'strengthBarPerfil', 'passHintPerfil');
+
+    // Timer de sesión
+    initSessionTimer();
+
+    // ── Cargar datos del usuario desde Supabase ──
+    async function cargarDatos() {
+      const { data, error } = await client
+        .from('usuarios')
+        .select('*')
+        .eq('id', sesion.id)
+        .single();
+
+      if (error || !data) return;
+
+      document.getElementById('pNombre').value   = data.nombre_completo || '';
+      document.getElementById('pCorreo').value   = data.correo || '';
+      document.getElementById('pFecha').value    = data.fecha_nacimiento || '';
+      document.getElementById('pDireccion').value= data.direccion || '';
+
+      // Preferencias de notificaciones
+      if (data.notif_catalogo !== undefined)
+        document.getElementById('notifCatalogo').checked = data.notif_catalogo;
+      if (data.notif_cumple !== undefined)
+        document.getElementById('notifCumple').checked = data.notif_cumple;
+      if (data.suscripcion_noticias !== undefined)
+        document.getElementById('suscripcionNoticias').checked = data.suscripcion_noticias;
+
+      // Temas
+      const temasUsuario = data.temas_preferidos || [];
+      renderTemas(temasUsuario);
+    }
+
+    function renderTemas(seleccionados) {
+      const grid = document.getElementById('temasGrid');
+      grid.innerHTML = '';
+      TEMAS.forEach(t => {
+        const chip = document.createElement('label');
+        chip.className = 'pref-chip' + (seleccionados.includes(t.val) ? ' selected' : '');
+        chip.innerHTML = `<input type="checkbox" value="${t.val}" ${seleccionados.includes(t.val) ? 'checked' : ''}>${t.label}`;
+        chip.addEventListener('click', () => {
+          chip.classList.toggle('selected');
+        });
+        grid.appendChild(chip);
+      });
+    }
+
+    // ── Tabs ──
+    function showTab(name, btn) {
+      ['datos','preferencias','seguridad'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+      });
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // ── Guardar datos personales ──
+    async function guardarDatos(event) {
+      event.preventDefault();
+      const btn = event.submitter;
+      setLoading(btn, true);
+
+      const { error } = await client
+        .from('usuarios')
+        .update({
+          nombre_completo: document.getElementById('pNombre').value.trim(),
+          correo:          document.getElementById('pCorreo').value.trim(),
+          fecha_nacimiento:document.getElementById('pFecha').value,
+          direccion:       document.getElementById('pDireccion').value.trim(),
+        })
+        .eq('id', sesion.id);
+
+      setLoading(btn, false);
+
+      if (error) {
+        showAlert('alertPerfil', 'Error al guardar: ' + error.message, 'error');
+      } else {
+        showAlert('alertPerfil', '¡Datos actualizados correctamente!', 'success');
+        // Actualizar nombre en sesión
+        sesion.nombre_completo = document.getElementById('pNombre').value.trim();
+        sessionStorage.setItem('sesion', JSON.stringify(sesion));
+      }
+    }
+
+    // ── Guardar preferencias ──
+    async function guardarPreferencias() {
+      const temas = Array.from(document.querySelectorAll('.pref-chip.selected input'))
+                         .map(i => i.value);
+
+      const { error } = await client
+        .from('usuarios')
+        .update({
+          temas_preferidos:       temas,
+          notif_catalogo:         document.getElementById('notifCatalogo').checked,
+          notif_cumple:           document.getElementById('notifCumple').checked,
+          suscripcion_noticias:   document.getElementById('suscripcionNoticias').checked,
+        })
+        .eq('id', sesion.id);
+
+      if (error) {
+        showAlert('alertPref', 'Error al guardar preferencias: ' + error.message, 'error');
+      } else {
+        showAlert('alertPref', '¡Preferencias guardadas!', 'success');
+      }
+    }
+
+    // ── Cambiar contraseña ──
+    async function cambiarPassword(event) {
+      event.preventDefault();
+      const btn = event.submitter;
+
+      const actual  = document.getElementById('passActual').value;
+      const nueva   = document.getElementById('passNueva').value;
+      const confirm = document.getElementById('passConfirm').value;
+
+      if (!isPasswordStrong(nueva)) {
+        showAlert('alertSeg', 'La contraseña nueva debe tener 8+ caracteres, mayúscula, número y símbolo.', 'error');
+        return;
+      }
+
+      if (nueva !== confirm) {
+        showAlert('alertSeg', 'Las contraseñas nuevas no coinciden.', 'error');
+        return;
+      }
+
+      setLoading(btn, true);
+
+      // Verificar contraseña actual
+      const { data, error: errCheck } = await client
+        .from('usuarios')
+        .select('password')
+        .eq('id', sesion.id)
+        .single();
+
+      if (errCheck || !data || data.password !== actual) {
+        setLoading(btn, false);
+        showAlert('alertSeg', 'La contraseña actual es incorrecta.', 'error');
+        return;
+      }
+
+      const { error } = await client
+        .from('usuarios')
+        .update({ password: nueva })
+        .eq('id', sesion.id);
+
+      setLoading(btn, false);
+
+      if (error) {
+        showAlert('alertSeg', 'Error al actualizar: ' + error.message, 'error');
+      } else {
+        showAlert('alertSeg', '¡Contraseña actualizada correctamente!', 'success');
+        event.target.reset();
+      }
+    }
+
+    // ── Eliminar cuenta ──
+    function confirmarEliminarCuenta() {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'deleteModal';
+      overlay.innerHTML = `
+        <div class="modal">
+          <div style="font-size:2rem; text-align:center; margin-bottom:12px;">⚠️</div>
+          <h3 style="text-align:center; color:#dc2626;">Eliminar cuenta</h3>
+          <p style="text-align:center;">Esta acción es irreversible. Todos tus datos, compras e historial serán eliminados permanentemente.</p>
+          <div class="modal-actions">
+            <button onclick="document.getElementById('deleteModal').remove()" 
+                    style="background:transparent; color:var(--texto-suave); border:1.5px solid var(--borde); box-shadow:none; width:auto; flex:1;">
+              Cancelar
+            </button>
+            <button onclick="eliminarCuenta()" 
+                    style="background:#dc2626; box-shadow:none; width:auto; flex:1;">
+              Sí, eliminar
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    async function eliminarCuenta() {
+      const { error } = await client
+        .from('usuarios')
+        .delete()
+        .eq('id', sesion.id);
+
+      if (error) {
+        alert('Error al eliminar cuenta: ' + error.message);
+      } else {
+        sessionStorage.removeItem('sesion');
+        window.location.href = 'login.html';
+      }
+    }
+
+    // Cargar datos al iniciar
+    cargarDatos();
+  </script>
 </body>
 </html>

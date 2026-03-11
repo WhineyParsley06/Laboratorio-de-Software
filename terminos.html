@@ -1,30 +1,65 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Términos y Condiciones - Librería Pereira</title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Términos y Condiciones — Librería Pereira</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <nav>
-        <a href="index.html">Inicio</a>
-        <a href="registro.html">Registro</a>
-        <a href="login.html">Login</a>
-    </nav>
 
-    <div class="container" style="max-width: 800px;">
-        <h2>Términos y Condiciones</h2>
-        <div style="text-align: justify; line-height: 1.6; color: #444;">
-            <p><strong>1. Introducción:</strong> Al usar este sistema de la Librería con sede en Pereira, usted acepta cumplir con nuestros lineamientos de compra y reserva.</p>
-            
-            <p><strong>2. Tratamiento de Datos (Ley 1581 de 2012):</strong> Sus datos personales (DNI, fecha de nacimiento, etc.) serán usados exclusivamente para la gestión de pedidos y el envío de bonos de cumpleaños.</p>
-            
-            <p><strong>3. Devoluciones:</strong> Según la política de protección al consumidor, cuenta con 8 días después de recibir el producto para solicitar devoluciones bajo las causales estipuladas.</p>
-            
-            <p><strong>4. Reservas:</strong> Las reservas de libros tienen una duración máxima de 24 horas.</p>
-        </div>
-        <br>
-        <button onclick="window.history.back()">Volver al Registro</button>
+  <nav>
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="registro.html">Registro</a>
+    <a href="login.html">Iniciar Sesión</a>
+  </nav>
+
+  <div class="container container-wide" style="max-width:780px; margin-top:40px;">
+
+    <div class="form-header">
+      <div class="icon">📋</div>
+      <h2>Términos y Condiciones</h2>
+      <p class="subtitle">Última actualización: Enero 2026</p>
     </div>
+
+    <div style="line-height: 1.8; color: var(--texto-suave); font-size: 0.93rem;">
+
+      <div style="background: var(--fondo); border-radius:12px; padding:20px; margin-bottom:20px; border-left: 3px solid var(--primario);">
+        <strong style="color: var(--primario);">1. Introducción</strong>
+        <p style="margin-top:8px;">Al usar el sistema de la Librería con sede principal en Pereira, usted acepta cumplir con nuestros lineamientos de compra, reserva y tratamiento de datos personales.</p>
+      </div>
+
+      <div style="background: var(--fondo); border-radius:12px; padding:20px; margin-bottom:20px; border-left: 3px solid var(--secundario);" id="datos">
+        <strong style="color: var(--secundario-dk);">2. Tratamiento de Datos (Ley 1581 de 2012)</strong>
+        <p style="margin-top:8px;">Sus datos personales (DNI, fecha de nacimiento, correo, dirección) serán usados exclusivamente para la gestión de pedidos, envío de comunicaciones autorizadas y el envío de bonos de cumpleaños. No serán compartidos con terceros sin su consentimiento expreso.</p>
+      </div>
+
+      <div style="background: var(--fondo); border-radius:12px; padding:20px; margin-bottom:20px; border-left: 3px solid #3b82f6;">
+        <strong style="color: #2563eb;">3. Devoluciones y Protección al Consumidor</strong>
+        <p style="margin-top:8px;">Conforme a la política de protección al consumidor, dispone de <strong>8 días</strong> después de recibir el producto para solicitar devoluciones bajo las causales: producto en mal estado, no llenó las expectativas, o pedido con demora superior a la estipulada.</p>
+      </div>
+
+      <div style="background: var(--fondo); border-radius:12px; padding:20px; margin-bottom:20px; border-left: 3px solid #22c55e;">
+        <strong style="color: #16a34a;">4. Reservas</strong>
+        <p style="margin-top:8px;">Las reservas de libros tienen una duración máxima de <strong>24 horas</strong>. Pasado este tiempo, la reserva se libera automáticamente. Se permiten hasta 5 libros diferentes y hasta 3 del mismo ejemplar por reserva.</p>
+      </div>
+
+      <div style="background: var(--fondo); border-radius:12px; padding:20px; margin-bottom:20px; border-left: 3px solid #8b5cf6;">
+        <strong style="color: #7c3aed;">5. Seguridad</strong>
+        <p style="margin-top:8px;">La sesión se cerrará automáticamente tras <strong>60 segundos de inactividad</strong>. Sus contraseñas deben cumplir requisitos de seguridad: mínimo 8 caracteres, mayúsculas, números y caracteres especiales.</p>
+      </div>
+
+    </div>
+
+    <br>
+    <button onclick="window.history.back()" type="button">← Volver</button>
+
+  </div>
+
+  <footer>
+    <strong>Librería Pereira</strong> &copy; 2026 · Ley 1581 de 2012
+  </footer>
+
 </body>
 </html>
