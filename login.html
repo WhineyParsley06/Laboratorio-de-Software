@@ -1,29 +1,42 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Login - Librería</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<title>Login - Librería</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
-    <nav>
-        <a href="index.html">Inicio</a>
-        <a href="registro.html">Registro</a>
-        <a href="login.html" style="background-color: var(--secundario);">Login</a>
-    </nav>
-    <div class="container">
-        <h2>Iniciar Sesión</h2>
-        <form>
-            <div class="input-group">
-                <label>Usuario</label>
-                <input type="text" required>
-            </div>
-            <div class="input-group">
-                <label>Contraseña</label>
-                <input type="password" required>
-            </div>
-            <button type="submit">Entrar</button>
-        </form>
-    </div>
+
+<nav>
+<a href="index.html">Inicio</a>
+<a href="registro.html">Registro</a>
+<a href="login.html" style="background-color: var(--secundario);">Login</a>
+</nav>
+
+<div class="container">
+
+<h2>Iniciar Sesión</h2>
+
+<form id="loginForm">
+
+<div class="input-group">
+<label>Usuario</label>
+<input type="text" id="usuario" required>
+</div>
+
+<div class="input-group">
+<label>Contraseña</label>
+<input type="password" id="password" required>
+</div>
+
+<button type="submit">Ingresar</button>
+
+</form>
+
+</div>
+
+<script src="js/login.js"></script>
+
 </body>
 </html>
