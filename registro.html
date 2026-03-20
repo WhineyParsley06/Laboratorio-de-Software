@@ -12,8 +12,7 @@
   <nav>
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html">Inicio</a>
-    <a href="registro.html" class="active">Registro</a>
-    <a href="login.html">Iniciar Sesión</a>
+    <a href="login.html" class="nav-cta">Iniciar sesión</a>
   </nav>
 
   <div class="container container-wide" style="margin-top: 40px;">
@@ -28,43 +27,81 @@
 
     <form onsubmit="simularRegistro(event)" novalidate>
 
-      <!-- Fila 1: Nombre + DNI -->
+      <!-- ── 1. Datos personales ── -->
+      <p style="font-size:0.75rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">
+        Datos personales
+      </p>
+
       <div class="input-row">
-        <div class="input-group" style="flex:2;">
-          <label for="nombre">Nombre completo *</label>
-          <input type="text" id="nombre" placeholder="Juan Pérez" required>
+        <div class="input-group" style="flex:1;">
+          <label for="nombre">Nombre(s) *</label>
+          <input type="text" id="nombre" placeholder="Juan" required>
         </div>
         <div class="input-group" style="flex:1;">
-          <label for="dni">Cédula / DNI *</label>
-          <input type="number" id="dni" placeholder="123456..." required>
+          <label for="apellidos">Apellidos *</label>
+          <input type="text" id="apellidos" placeholder="Pérez García" required>
         </div>
       </div>
 
-      <!-- Fila 2: Correo + Fecha -->
       <div class="input-row">
-        <div class="input-group">
-          <label for="correo">Correo electrónico *</label>
-          <input type="email" id="correo" placeholder="juan@correo.com" required>
+        <div class="input-group" style="flex:1;">
+          <label for="dni">Cédula / DNI *</label>
+          <input type="number" id="dni" placeholder="123456789" required>
         </div>
-        <div class="input-group">
+        <div class="input-group" style="flex:1;">
+          <label for="genero">Género *</label>
+          <select id="genero" required>
+            <option value="" disabled selected>Seleccionar...</option>
+            <option value="masculino">Masculino</option>
+            <option value="femenino">Femenino</option>
+            <option value="no_binario">No binario</option>
+            <option value="prefiero_no_decir">Prefiero no decir</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="input-row">
+        <div class="input-group" style="flex:1;">
           <label for="fecha_nacimiento">Fecha de nacimiento *</label>
           <input type="date" id="fecha_nacimiento" required>
         </div>
+        <div class="input-group" style="flex:1;">
+          <label for="lugar_nacimiento">Lugar de nacimiento *</label>
+          <input type="text" id="lugar_nacimiento" placeholder="Pereira, Risaralda" required>
+        </div>
       </div>
 
-      <!-- Fila 3: Usuario + Dirección -->
+      <!-- ── 2. Contacto ── -->
+      <p style="font-size:0.75rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 12px;">
+        Contacto y dirección
+      </p>
+
       <div class="input-row">
-        <div class="input-group">
-          <label for="usuario">Nombre de usuario *</label>
-          <input type="text" id="usuario" placeholder="juanito_99" required>
+        <div class="input-group" style="flex:1;">
+          <label for="correo">Correo electrónico *</label>
+          <input type="email" id="correo" placeholder="juan@correo.com" required>
         </div>
-        <div class="input-group">
-          <label for="direccion">Dirección de envío</label>
-          <input type="text" id="direccion" placeholder="Calle 123, Pereira" value="Pereira, Colombia">
+        <div class="input-group" style="flex:1;">
+          <label for="telefono">Teléfono</label>
+          <input type="tel" id="telefono" placeholder="300 123 4567">
         </div>
       </div>
 
-      <!-- Fila 4: Contraseña + Confirmar -->
+      <div class="input-group">
+        <label for="direccion">Dirección de correspondencia / envío *</label>
+        <input type="text" id="direccion" placeholder="Calle 123 # 45-67, Pereira, Risaralda" required>
+      </div>
+
+      <!-- ── 3. Datos de acceso ── -->
+      <p style="font-size:0.75rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 12px;">
+        Datos de acceso
+      </p>
+
+      <div class="input-group">
+        <label for="usuario">Nombre de usuario *</label>
+        <input type="text" id="usuario" placeholder="juanito_99" required>
+      </div>
+
       <div class="input-row">
         <div class="input-group">
           <label for="password">Contraseña *</label>
@@ -86,10 +123,10 @@
       </div>
 
       <!-- Términos -->
-      <div style="margin-bottom: 24px;">
+      <div style="margin-bottom:24px;">
         <label class="check-label">
-          <input type="checkbox" required>
-          Acepto los <a href="terminos.html" target="_blank">Términos y Condiciones</a> 
+          <input type="checkbox" id="aceptaTerminos" required>
+          Acepto los <a href="terminos.html" target="_blank">Términos y Condiciones</a>
           y la <a href="terminos.html#datos" target="_blank">Política de Tratamiento de Datos</a>
         </label>
       </div>

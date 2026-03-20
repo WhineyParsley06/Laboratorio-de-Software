@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Monedero — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* ── Tarjeta bancaria visual ─────────────────────────── */
+    .bank-card {
+      width: 100%;
+      max-width: 340px;
+      aspect-ratio: 1.586;
+      border-radius: 18px;
+      padding: 22px 24px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      margin: 0 auto;
+    }
+
+    .bank-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.2);
+    }
+
+    .bank-card.credito {
+      background: linear-gradient(135deg, #b83227 0%, #8e2118 50%, #6b1510 100%);
+    }
+
+    .bank-card.debito {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+
+    .bank-card::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .bank-card::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: -30px;
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .card-chip {
+      width: 36px;
+      height: 28px;
+      background: linear-gradient(135deg, #f5c842, #e0a800);
+      border-radius: 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-chip::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 22px; height: 16px;
+      border: 1.5px solid rgba(0,0,0,0.2);
+      border-radius: 3px;
+    }
+
+    .card-type-badge {
+      position: absolute;
+      top: 20px; right: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.12);
+      padding: 4px 10px;
+      border-radius: 99px;
+      z-index: 1;
+    }
+
+    .card-number {
+      font-size: 1.1rem;
+      letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.92);
+      font-weight: 600;
+      z-index: 1;
+      font-family: 'Courier New', monospace;
+    }
+
+    .card-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      z-index: 1;
+    }
+
+    .card-holder { font-size: 0.8rem; color: rgba(255,255,255,0.7); letter-spacing: 0.06em; text-transform: uppercase; }
+    .card-holder strong { display: block; color: #fff; font-size: 0.95rem; letter-spacing: 0.04em; margin-top: 2px; }
+
+    .card-saldo {
+      text-align: right;
+    }
+    .card-saldo span { font-size: 0.7rem; color: rgba(255,255,255,0.6); letter-spacing: 0.04em; }
+    .card-saldo strong { display: block; font-size: 1.1rem; color: #fff; letter-spacing: 0.02em; }
+
+    /* ── Carrusel de tarjetas ────────────────────────────── */
+    .cards-carousel {
+      position: relative;
+      min-height: 220px;
+    }
+
+    .cards-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .nav-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--borde);
+      cursor: pointer;
+      transition: all var(--transicion);
+    }
+
+    .nav-dot.active {
+      background: var(--primario);
+      width: 22px;
+      border-radius: 99px;
+    }
+
+    .cards-nav button {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--fondo-card);
+      border: 1.5px solid var(--borde);
+      box-shadow: none;
+      font-size: 1rem;
+      padding: 0;
+      cursor: pointer;
+      color: var(--texto);
+      transition: all var(--transicion);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cards-nav button:hover {
+      border-color: var(--primario);
+      color: var(--primario);
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ── Resumen de saldo total ──────────────────────────── */
+    .saldo-total {
+      background: linear-gradient(135deg, var(--primario-dark), var(--primario));
+      border-radius: 16px;
+      padding: 20px 24px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px var(--primario-glow);
+    }
+
+    .saldo-total .label { font-size: 0.82rem; opacity: 0.75; margin-bottom: 4px; }
+    .saldo-total .amount { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; }
+    .saldo-total .icon-wallet { font-size: 2.5rem; opacity: 0.35; }
+
+    /* ── Lista de tarjetas (modo compacto) ───────────────── */
+    .card-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 1.5px solid var(--borde);
+      border-radius: 12px;
+      background: var(--fondo-card);
+      transition: all var(--transicion);
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    .card-item:hover {
+      border-color: var(--secundario);
+      box-shadow: var(--sombra-card);
+    }
+
+    .card-item.selected {
+      border-color: var(--primario);
+      background: rgba(184,50,39,0.03);
+    }
+
+    .card-mini-icon {
+      width: 44px; height: 30px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .card-mini-icon.credito { background: linear-gradient(135deg, #b83227, #8e2118); }
+    .card-mini-icon.debito  { background: linear-gradient(135deg, #1a1a2e, #0f3460); }
+
+    .card-item-info { flex: 1; min-width: 0; }
+    .card-item-num  { font-size: 0.88rem; font-weight: 600; color: var(--texto); }
+    .card-item-meta { font-size: 0.78rem; color: var(--texto-suave); }
+    .card-item-saldo { font-weight: 700; font-size: 0.95rem; color: var(--primario); white-space: nowrap; }
+
+    .card-actions { display: flex; gap: 6px; }
+    .icon-btn {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      background: var(--fondo);
+      border: 1px solid var(--borde);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all var(--transicion);
+      box-shadow: none; width: 30px; padding: 0;
+    }
+
+    .icon-btn:hover { border-color: var(--primario); transform: none; box-shadow: none; }
+    .icon-btn.danger:hover { border-color: #dc2626; background: #fef2f2; }
+
+    /* ── Modal agregar tarjeta ───────────────────────────── */
+    .card-preview-mini {
+      width: 100%;
+      height: 90px;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.4s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card-preview-mini.credito {
+      background: linear-gradient(135deg, #b83227, #8e2118);
+    }
+
+    .card-preview-mini.debito {
+      background: linear-gradient(135deg, #1a1a2e, #0f3460);
+    }
+
+    .preview-number {
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.85);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .preview-name {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.65);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--texto-suave);
+    }
+
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="tarjetas.html" class="active">Mi Monedero</a>
+    <a href="perfil.html">Perfil</a>
+    <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
+  </nav>
+
+  <div class="container container-wide" style="margin-top: 36px;">
+
+    <div class="form-header">
+      <div class="icon">💳</div>
+      <h2>Mi Monedero</h2>
+      <p class="subtitle">Gestiona tus tarjetas y saldo simulado</p>
+    </div>
+
+    <!-- Saldo total -->
+    <div class="saldo-total">
+      <div>
+        <div class="label">Saldo total disponible</div>
+        <div class="amount" id="saldoTotal">$ 0</div>
+      </div>
+      <div class="icon-wallet">💰</div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('vista', this)">🎴 Mis tarjetas</button>
+      <button class="tab-btn" onclick="showTab('agregar', this)">➕ Agregar tarjeta</button>
+    </div>
+
+    <div id="alertTarjetas"></div>
+
+    <!-- ── TAB: Mis tarjetas ── -->
+    <div id="tab-vista">
+
+      <!-- Tarjeta grande (carrusel) -->
+      <div class="cards-carousel" id="carouselWrap">
+        <div id="carouselCard">
+          <div class="empty-state">
+            <div class="empty-icon">💳</div>
+            <p>Aún no tienes tarjetas registradas.<br>Agrega una para empezar a comprar.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cards-nav" id="carouselNav" style="display:none;">
+        <button onclick="prevCard()">‹</button>
+        <div id="dotsContainer"></div>
+        <button onclick="nextCard()">›</button>
+      </div>
+
+      <!-- Lista compacta -->
+      <div style="margin-top: 28px;">
+        <p style="font-size:0.82rem; font-weight:600; color:var(--texto-suave); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:12px;">
+          Todas las tarjetas
+        </p>
+        <div id="listaCards"></div>
+      </div>
+
+    </div>
+
+    <!-- ── TAB: Agregar tarjeta ── -->
+    <div id="tab-agregar" style="display:none;">
+
+      <!-- Preview de la tarjeta -->
+      <div class="card-preview-mini credito" id="cardPreview">
+        <div class="preview-number" id="previewNum">**** **** **** ****</div>
+        <div class="preview-name" id="previewName">Titular de la tarjeta</div>
+      </div>
+
+      <form onsubmit="agregarTarjeta(event)" novalidate>
+
+        <!-- Tipo -->
+        <div class="input-group">
+          <label>Tipo de tarjeta</label>
+          <div style="display:flex; gap:10px;">
+            <label class="pref-chip" id="chipCredito" style="flex:1; justify-content:center; cursor:pointer;"
+                   onclick="seleccionarTipo('credito')">
+              💳 Crédito
+            </label>
+            <label class="pref-chip" id="chipDebito" style="flex:1; justify-content:center; cursor:pointer;"
+                   onclick="seleccionarTipo('debito')">
+              🏦 Débito
+            </label>
+          </div>
+          <input type="hidden" id="tipoTarjeta" value="credito">
+        </div>
+
+        <!-- Titular -->
+        <div class="input-group">
+          <label for="titular">Nombre del titular</label>
+          <input type="text" id="titular" placeholder="Como aparece en la tarjeta"
+                 oninput="document.getElementById('previewName').textContent = this.value || 'Titular de la tarjeta'"
+                 required>
+        </div>
+
+        <!-- Número -->
+        <div class="input-group">
+          <label for="numero">Número de tarjeta</label>
+          <input type="text" id="numero" placeholder="0000 0000 0000 0000"
+                 maxlength="19" inputmode="numeric" required
+                 oninput="formatCardNumber(this)">
+        </div>
+
+        <!-- CVV + Saldo inicial -->
+        <div class="input-row">
+          <div class="input-group">
+            <label for="cvv">Código CVV</label>
+            <input type="text" id="cvv" placeholder="•••" maxlength="4"
+                   inputmode="numeric" required>
+          </div>
+          <div class="input-group">
+            <label for="saldoInicial">Saldo inicial (COP)</label>
+            <input type="number" id="saldoInicial" placeholder="500000" min="0" step="1000" required>
+          </div>
+        </div>
+
+        <button type="submit" id="btnAgregar">💳 Registrar tarjeta</button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Modal editar saldo -->
+  <div id="modalSaldo" style="display:none;">
+    <div class="modal-overlay">
+      <div class="modal">
+        <h3>💰 Ajustar saldo</h3>
+        <p id="modalSaldoDesc">Tarjeta seleccionada</p>
+        <div class="input-group">
+          <label for="nuevoSaldo">Nuevo saldo (COP)</label>
+          <input type="number" id="nuevoSaldo" placeholder="500000" min="0" step="1000">
+        </div>
+        <div class="modal-actions">
+          <button onclick="cerrarModalSaldo()"
+                  style="background:transparent;color:var(--texto-suave);border:1.5px solid var(--borde);box-shadow:none;width:auto;flex:1;">
+            Cancelar
+          </button>
+          <button onclick="guardarSaldo()" style="width:auto;flex:1;">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session timer -->
+  <div class="session-bar" id="sessionBar">
+    <div class="session-dot"></div>
+    Sesión activa · <span id="sessionCount">60s</span>
+  </div>
+
+  <footer>
+    <strong>Librería Pereira</strong> &copy; 2026 · Saldo simulado — no representa dinero real
+  </footer>
+
+  <script src="js/script.js"></script>
+  <script>
+    // ── Estado ──────────────────────────────────────────────────
+    const sesion = requireSession();
+    if (!sesion) throw new Error('no session');
+
+    initSessionTimer();
+
+    let tarjetas = [];
+    let cardIndex = 0;
+    let editandoId = null;
+
+    // Tipo seleccionado por defecto
+    document.getElementById('chipCredito').classList.add('selected');
+
+    // ── Cargar tarjetas ─────────────────────────────────────────
+    async function cargarTarjetas() {
+      const { data, error } = await client
+        .from('tarjetas')
+        .select('*')
+        .eq('usuario_id', sesion.id)
+        .order('creado_en', { ascending: true });
+
+      if (error) {
+        showAlert('alertTarjetas', 'Error al cargar tarjetas: ' + error.message, 'error');
+        return;
+      }
+
+      tarjetas = data || [];
+      renderTodo();
+    }
+
+    // ── Render completo ─────────────────────────────────────────
+    function renderTodo() {
+      renderSaldoTotal();
+      renderCarrusel();
+      renderLista();
+    }
+
+    function renderSaldoTotal() {
+      const total = tarjetas.reduce((s, t) => s + parseFloat(t.saldo || 0), 0);
+      document.getElementById('saldoTotal').textContent =
+        '$ ' + total.toLocaleString('es-CO', { minimumFractionDigits: 0 });
+    }
+
+    function renderCarrusel() {
+      const wrap = document.getElementById('carouselCard');
+      const nav  = document.getElementById('carouselNav');
+      const dots = document.getElementById('dotsContainer');
+
+      if (tarjetas.length === 0) {
+        wrap.innerHTML = `<div class="empty-state">
+          <div class="empty-icon">💳</div>
+          <p>Aún no tienes tarjetas registradas.<br>Agrega una para empezar a comprar.</p>
+        </div>`;
+        nav.style.display = 'none';
+        return;
+      }
+
+      cardIndex = Math.min(cardIndex, tarjetas.length - 1);
+      const t = tarjetas[cardIndex];
+
+      wrap.innerHTML = buildCardHTML(t);
+      nav.style.display = 'flex';
+
+      dots.innerHTML = tarjetas.map((_, i) =>
+        `<div class="nav-dot ${i === cardIndex ? 'active' : ''}"
+              onclick="goToCard(${i})"></div>`
+      ).join('');
+    }
+
+    function buildCardHTML(t) {
+      const num = t.numero.replace(/\d(?=\d{4})/g, '•');
+      const saldo = parseFloat(t.saldo).toLocaleString('es-CO', { minimumFractionDigits: 0 });
+      return `
+        <div class="bank-card ${t.tipo}">
+          <div>
+            <div class="card-chip"></div>
+            <div class="card-type-badge">${t.tipo === 'credito' ? 'Crédito' : 'Débito'}</div>
+          </div>
+          <div class="card-number">${num}</div>
+          <div class="card-bottom">
+            <div class="card-holder">
+              <span>Titular</span>
+              <strong>${t.titular.toUpperCase()}</strong>
+            </div>
+            <div class="card-saldo">
+              <span>Saldo disponible</span>
+              <strong>$ ${saldo}</strong>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function renderLista() {
+      const lista = document.getElementById('listaCards');
+      if (tarjetas.length === 0) { lista.innerHTML = ''; return; }
+
+      lista.innerHTML = tarjetas.map((t, i) => {
+        const num   = '**** ' + t.numero.slice(-4);
+        const saldo = parseFloat(t.saldo).toLocaleString('es-CO', { minimumFractionDigits: 0 });
+        return `
+          <div class="card-item ${i === cardIndex ? 'selected' : ''}" onclick="goToCard(${i})">
+            <div class="card-mini-icon ${t.tipo}">💳</div>
+            <div class="card-item-info">
+              <div class="card-item-num">${num}</div>
+              <div class="card-item-meta">${t.titular} · ${t.tipo === 'credito' ? 'Crédito' : 'Débito'}</div>
+            </div>
+            <div class="card-item-saldo">$ ${saldo}</div>
+            <div class="card-actions">
+              <button class="icon-btn" title="Ajustar saldo"
+                      onclick="event.stopPropagation(); abrirModalSaldo('${t.id}', '${t.titular}', ${t.saldo})">
+                💰
+              </button>
+              <button class="icon-btn danger" title="Eliminar"
+                      onclick="event.stopPropagation(); eliminarTarjeta('${t.id}')">
+                🗑️
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Navegación carrusel ─────────────────────────────────────
+    function goToCard(i) {
+      cardIndex = i;
+      renderCarrusel();
+      renderLista();
+    }
+
+    function nextCard() { goToCard((cardIndex + 1) % tarjetas.length); }
+    function prevCard() { goToCard((cardIndex - 1 + tarjetas.length) % tarjetas.length); }
+
+    // ── Tabs ─────────────────────────────────────────────────────
+    function showTab(name, btn) {
+      document.getElementById('tab-vista').style.display    = name === 'vista'   ? 'block' : 'none';
+      document.getElementById('tab-agregar').style.display  = name === 'agregar' ? 'block' : 'none';
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // ── Selector tipo ────────────────────────────────────────────
+    function seleccionarTipo(tipo) {
+      document.getElementById('tipoTarjeta').value = tipo;
+      document.getElementById('chipCredito').classList.toggle('selected', tipo === 'credito');
+      document.getElementById('chipDebito').classList.toggle('selected',  tipo === 'debito');
+      document.getElementById('cardPreview').className = 'card-preview-mini ' + tipo;
+    }
+
+    // ── Formatear número de tarjeta ──────────────────────────────
+    function formatCardNumber(input) {
+      let val = input.value.replace(/\D/g, '').substring(0, 16);
+      input.value = val.replace(/(.{4})/g, '$1 ').trim();
+      const displayVal = val.padEnd(16, '*');
+      document.getElementById('previewNum').textContent =
+        displayVal.replace(/(.{4})/g, '$1 ').trim();
+    }
+
+    // ── Agregar tarjeta ──────────────────────────────────────────
+    async function agregarTarjeta(event) {
+      event.preventDefault();
+      const btn = document.getElementById('btnAgregar');
+      setLoading(btn, true);
+
+      const numero = document.getElementById('numero').value.trim();
+      const cvv    = document.getElementById('cvv').value.trim();
+      const saldo  = parseFloat(document.getElementById('saldoInicial').value) || 0;
+
+      if (numero.replace(/\s/g, '').length < 16) {
+        showAlert('alertTarjetas', 'El número de tarjeta debe tener 16 dígitos.', 'error');
+        setLoading(btn, false);
+        return;
+      }
+
+      if (cvv.length < 3) {
+        showAlert('alertTarjetas', 'El CVV debe tener 3 o 4 dígitos.', 'error');
+        setLoading(btn, false);
+        return;
+      }
+
+      const { error } = await client.from('tarjetas').insert([{
+        usuario_id: sesion.id,
+        tipo:       document.getElementById('tipoTarjeta').value,
+        titular:    document.getElementById('titular').value.trim(),
+        numero:     numero,
+        codigo_cvv: cvv,
+        saldo:      saldo
+      }]);
+
+      setLoading(btn, false);
+
+      if (error) {
+        showAlert('alertTarjetas', 'Error al registrar tarjeta: ' + error.message, 'error');
+        return;
+      }
+
+      showAlert('alertTarjetas', '¡Tarjeta registrada exitosamente!', 'success');
+      event.target.reset();
+      document.getElementById('previewNum').textContent  = '**** **** **** ****';
+      document.getElementById('previewName').textContent = 'Titular de la tarjeta';
+      seleccionarTipo('credito');
+
+      await cargarTarjetas();
+
+      // Ir a vista de tarjetas
+      const tabBtn = document.querySelector('.tab-btn');
+      showTab('vista', tabBtn);
+      cardIndex = tarjetas.length - 1;
+      renderTodo();
+    }
+
+    // ── Eliminar tarjeta ─────────────────────────────────────────
+    function eliminarTarjeta(id) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'delCardModal';
+      overlay.innerHTML = `
+        <div class="modal">
+          <div style="font-size:2rem;text-align:center;margin-bottom:12px;">🗑️</div>
+          <h3 style="text-align:center;">¿Eliminar tarjeta?</h3>
+          <p style="text-align:center;">Esta acción no se puede deshacer. El saldo asociado se perderá.</p>
+          <div class="modal-actions">
+            <button onclick="document.getElementById('delCardModal').remove()"
+                    style="background:transparent;color:var(--texto-suave);border:1.5px solid var(--borde);box-shadow:none;width:auto;flex:1;">
+              Cancelar
+            </button>
+            <button onclick="confirmarEliminar('${id}')"
+                    style="background:#dc2626;box-shadow:none;width:auto;flex:1;">
+              Eliminar
+            </button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    async function confirmarEliminar(id) {
+      document.getElementById('delCardModal')?.remove();
+      const { error } = await client.from('tarjetas').delete().eq('id', id);
+      if (error) {
+        showAlert('alertTarjetas', 'Error al eliminar: ' + error.message, 'error');
+      } else {
+        showAlert('alertTarjetas', 'Tarjeta eliminada.', 'success');
+        cardIndex = 0;
+        await cargarTarjetas();
+      }
+    }
+
+    // ── Ajustar saldo ────────────────────────────────────────────
+    function abrirModalSaldo(id, titular, saldoActual) {
+      editandoId = id;
+      document.getElementById('modalSaldoDesc').textContent =
+        `Titular: ${titular} · Saldo actual: $ ${parseFloat(saldoActual).toLocaleString('es-CO')}`;
+      document.getElementById('nuevoSaldo').value = saldoActual;
+      document.getElementById('modalSaldo').style.display = 'block';
+    }
+
+    function cerrarModalSaldo() {
+      document.getElementById('modalSaldo').style.display = 'none';
+      editandoId = null;
+    }
+
+    async function guardarSaldo() {
+      const nuevo = parseFloat(document.getElementById('nuevoSaldo').value);
+      if (isNaN(nuevo) || nuevo < 0) {
+        showAlert('alertTarjetas', 'Ingresa un saldo válido.', 'error');
+        return;
+      }
+
+      const { error } = await client
+        .from('tarjetas')
+        .update({ saldo: nuevo })
+        .eq('id', editandoId);
+
+      cerrarModalSaldo();
+
+      if (error) {
+        showAlert('alertTarjetas', 'Error al actualizar saldo: ' + error.message, 'error');
+      } else {
+        showAlert('alertTarjetas', '¡Saldo actualizado correctamente!', 'success');
+        await cargarTarjetas();
+      }
+    }
+
+    // Cerrar modal saldo al hacer clic fuera
+    document.getElementById('modalSaldo').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalSaldo')) cerrarModalSaldo();
+    });
+
+    // ── Iniciar ──────────────────────────────────────────────────
+    cargarTarjetas();
+  </script>
+</body>
+</html>

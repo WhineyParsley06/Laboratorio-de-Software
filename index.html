@@ -3,170 +3,305 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inicio — Librería Pereira</title>
+  <title>Librería Pereira — Inicio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/style.css">
   <style>
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin: 40px auto;
-      max-width: 900px;
-      padding: 0 20px;
-    }
+    /* ── Ocultar secciones por defecto hasta que JS decida ── */
+    #nav-visitante, #nav-usuario,
+    #hero-visitante, #hero-usuario,
+    #seccion-visitante, #seccion-usuario { display: none; }
 
+    /* ── Feature cards ── */
     .feature-card {
       background: var(--fondo-card);
       border: 1px solid var(--borde);
       border-radius: 16px;
-      padding: 28px 24px;
+      padding: 24px 20px;
       text-align: center;
       transition: all var(--transicion);
-      cursor: default;
     }
-
     .feature-card:hover {
       transform: translateY(-4px);
       box-shadow: var(--sombra);
       border-color: var(--secundario);
     }
-
-    .feature-card .f-icon {
-      font-size: 2.2rem;
-      margin-bottom: 14px;
-      display: block;
-    }
-
+    .feature-card .f-icon { font-size: 2rem; margin-bottom: 12px; display: block; }
     .feature-card h3 {
       font-family: 'Playfair Display', serif;
-      font-size: 1rem;
-      color: var(--primario);
-      margin-bottom: 8px;
+      font-size: 0.95rem; color: var(--primario); margin-bottom: 6px;
     }
+    .feature-card p { font-size: 0.8rem; color: var(--texto-suave); line-height: 1.5; }
 
-    .feature-card p {
-      font-size: 0.83rem;
-      color: var(--texto-suave);
-      line-height: 1.5;
-    }
+    .feature-card.locked { opacity: 0.55; cursor: not-allowed; }
+    .feature-card.locked:hover { transform: none; box-shadow: none; border-color: var(--borde); }
 
+    /* ── Quick links ── */
     .quick-links {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: 0 20px;
-      margin-bottom: 40px;
+      display: flex; gap: 10px; flex-wrap: wrap;
+      justify-content: center; padding: 0 20px; margin-bottom: 36px;
     }
-
     .quick-links a {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--fondo-card);
-      border: 1.5px solid var(--borde);
-      border-radius: 10px;
-      padding: 10px 18px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--texto);
-      transition: all var(--transicion);
-      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 7px;
+      background: var(--fondo-card); border: 1.5px solid var(--borde);
+      border-radius: 10px; padding: 9px 16px; font-size: 0.85rem;
+      font-weight: 500; color: var(--texto);
+      transition: all var(--transicion); text-decoration: none;
+    }
+    .quick-links a:hover {
+      border-color: var(--secundario); color: var(--primario);
+      transform: translateY(-2px); box-shadow: var(--sombra-card);
     }
 
-    .quick-links a:hover {
-      border-color: var(--secundario);
-      color: var(--primario);
-      transform: translateY(-2px);
-      box-shadow: var(--sombra-card);
+    /* ── Banner "únete" para visitantes ── */
+    .join-banner {
+      background: linear-gradient(135deg, var(--primario-dark), var(--primario));
+      border-radius: 16px;
+      padding: 32px 36px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
     }
+    .join-banner h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      margin-bottom: 6px;
+    }
+    .join-banner p { font-size: 0.88rem; opacity: 0.85; }
+    .join-btns { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
+    .join-btns a {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 11px 22px; border-radius: 9px; font-size: 0.9rem;
+      font-weight: 600; text-decoration: none; transition: all var(--transicion);
+    }
+    .join-btns .btn-login {
+      background: rgba(255,255,255,0.15);
+      color: #fff; border: 1.5px solid rgba(255,255,255,0.35);
+    }
+    .join-btns .btn-login:hover { background: rgba(255,255,255,0.25); }
+    .join-btns .btn-reg {
+      background: #fff; color: var(--primario);
+    }
+    .join-btns .btn-reg:hover { background: var(--fondo-suave); transform: translateY(-1px); }
+
+    /* ── Novedades visitante ── */
+    .novedad-card {
+      background: var(--fondo-card);
+      border: 1px solid var(--borde);
+      border-radius: 12px;
+      padding: 18px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: all var(--transicion);
+    }
+    .novedad-card:hover { box-shadow: var(--sombra-card); border-color: var(--secundario); }
+    .novedad-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--primario), var(--secundario));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+    .novedad-card h4 { font-size: 0.9rem; font-weight: 600; color: var(--texto); margin-bottom: 4px; }
+    .novedad-card p  { font-size: 0.8rem; color: var(--texto-suave); line-height: 1.5; }
   </style>
 </head>
 <body>
 
-  <nav>
+  <!-- ══════════════════════════════════════════
+       NAV VISITANTE
+  ══════════════════════════════════════════ -->
+  <nav id="nav-visitante">
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html" class="active">Inicio</a>
+    <a href="login.html">Iniciar sesión</a>
+    <a href="registro.html" class="nav-cta">Registrarse</a>
+  </nav>
+
+  <!-- ══════════════════════════════════════════
+       NAV USUARIO LOGUEADO
+  ══════════════════════════════════════════ -->
+  <nav id="nav-usuario">
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html" class="active">Inicio</a>
+    <a href="tarjetas.html">💳 Monedero</a>
     <a href="perfil.html">Mi Perfil</a>
     <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
   </nav>
 
-  <!-- Hero Banner -->
-  <div class="hero">
-    <h1 id="saludoHero">Bienvenido a la Librería</h1>
+  <!-- ══════════════════════════════════════════
+       HERO VISITANTE
+  ══════════════════════════════════════════ -->
+  <div class="hero" id="hero-visitante">
+    <h1>Bienvenido a Librería Pereira</h1>
+    <p>Descubre, reserva y compra libros desde Pereira para el mundo. Más de miles de títulos disponibles.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;">
+      <a href="catalogo.html"
+         style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--primario);padding:13px 28px;border-radius:9px;font-weight:700;font-size:1rem;text-decoration:none;transition:all 0.2s;">
+        🔍 Explorar catálogo
+      </a>
+      <a href="registro.html"
+         style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.4);padding:13px 28px;border-radius:9px;font-weight:600;font-size:1rem;text-decoration:none;transition:all 0.2s;">
+        ✨ Crear cuenta gratis
+      </a>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       HERO USUARIO LOGUEADO
+  ══════════════════════════════════════════ -->
+  <div class="hero" id="hero-usuario">
+    <h1 id="saludoHero">Bienvenido de vuelta</h1>
     <p>Tu espacio para descubrir, reservar y comprar libros desde Pereira para el mundo.</p>
-    <a href="catalogo.html" class="btn btn-primary" style="display:inline-flex; width:auto; padding:13px 32px; font-size:1rem;">
+    <a href="catalogo.html"
+       style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--primario);padding:13px 28px;border-radius:9px;font-weight:700;font-size:1rem;text-decoration:none;position:relative;">
       🔍 Explorar catálogo
     </a>
   </div>
 
-  <!-- Accesos rápidos -->
-  <div class="quick-links" style="margin-top: 36px;">
-    <a href="catalogo.html">📚 Catálogo</a>
-    <a href="carrito.html">🛒 Mi carrito</a>
-    <a href="historial.html">📋 Mis compras</a>
-    <a href="perfil.html">👤 Mi perfil</a>
-    <a href="noticias.html">📰 Noticias</a>
-    <a href="mensajes.html">💬 Mensajes</a>
+  <!-- ══════════════════════════════════════════
+       SECCIÓN VISITANTE
+  ══════════════════════════════════════════ -->
+  <div id="seccion-visitante">
+
+    <div class="container container-wide" style="margin-top:36px;">
+
+      <!-- Banner únete -->
+      <div class="join-banner">
+        <div>
+          <h3>¿Aún no tienes cuenta?</h3>
+          <p>Regístrate gratis y accede a reservas, compras, recomendaciones personalizadas y bonos de cumpleaños.</p>
+        </div>
+        <div class="join-btns">
+          <a href="login.html" class="btn-login">Iniciar sesión</a>
+          <a href="registro.html" class="btn-reg">✨ Crear cuenta</a>
+        </div>
+      </div>
+
+      <!-- Qué puede hacer un visitante -->
+      <div style="text-align:center; margin-bottom:20px;">
+        <h2 style="font-size:1.3rem; margin-bottom:4px;">Explora sin registrarte</h2>
+        <p style="color:var(--texto-suave); font-size:0.88rem;">Estas funciones están disponibles para todos</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:36px;">
+        <a href="catalogo.html" style="text-decoration:none;">
+          <div class="feature-card">
+            <span class="f-icon">📚</span>
+            <h3>Catálogo</h3>
+            <p>Busca libros por título, autor, género y más</p>
+          </div>
+        </a>
+        <a href="noticias.html" style="text-decoration:none;">
+          <div class="feature-card">
+            <span class="f-icon">📰</span>
+            <h3>Noticias</h3>
+            <p>Novedades y nuevos títulos disponibles</p>
+          </div>
+        </a>
+        <a href="terminos.html" style="text-decoration:none;">
+          <div class="feature-card">
+            <span class="f-icon">📋</span>
+            <h3>Términos</h3>
+            <p>Condiciones de uso y política de datos</p>
+          </div>
+        </a>
+        <div class="feature-card locked" title="Requiere iniciar sesión">
+          <span class="f-icon">🔒</span>
+          <h3>Reservar</h3>
+          <p>Inicia sesión para reservar libros</p>
+        </div>
+        <div class="feature-card locked" title="Requiere iniciar sesión">
+          <span class="f-icon">🔒</span>
+          <h3>Comprar</h3>
+          <p>Inicia sesión para usar el carrito</p>
+        </div>
+        <div class="feature-card locked" title="Requiere iniciar sesión">
+          <span class="f-icon">🔒</span>
+          <h3>Mi monedero</h3>
+          <p>Inicia sesión para gestionar tarjetas</p>
+        </div>
+      </div>
+
+      <!-- Novedades recientes (estáticas por ahora, dinámicas en Iter 3) -->
+      <div style="text-align:center; margin-bottom:20px;">
+        <h2 style="font-size:1.3rem; margin-bottom:4px;">Últimas novedades</h2>
+        <p style="color:var(--texto-suave); font-size:0.88rem;">Los libros más recientes en nuestra librería</p>
+      </div>
+
+      <div id="novedadesGrid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin-bottom:16px;">
+        <!-- Se llena dinámicamente desde Supabase -->
+        <div style="text-align:center; padding:32px; color:var(--texto-suave); grid-column:1/-1;" id="novedadesLoading">
+          Cargando novedades...
+        </div>
+      </div>
+
+      <div style="text-align:center; margin-bottom:8px;">
+        <a href="catalogo.html"
+           style="font-size:0.88rem; font-weight:600; color:var(--secundario); text-decoration:none;">
+          Ver catálogo completo →
+        </a>
+      </div>
+
+    </div>
   </div>
 
-  <!-- Tarjeta de sesión del usuario -->
-  <div class="container container-wide" style="margin-top: 0;">
-    <div class="profile-card" id="userCard" style="display:none;">
-      <div class="avatar" id="userAvatar">👤</div>
-      <div class="profile-info">
-        <h3 id="userName">Cargando...</h3>
-        <p id="userEmail">·</p>
-        <span class="badge badge-orange" id="userRol">cliente</span>
-      </div>
+  <!-- ══════════════════════════════════════════
+       SECCIÓN USUARIO LOGUEADO
+  ══════════════════════════════════════════ -->
+  <div id="seccion-usuario">
+
+    <!-- Accesos rápidos -->
+    <div class="quick-links" style="margin-top:32px;">
+      <a href="catalogo.html">📚 Catálogo</a>
+      <a href="carrito.html">🛒 Mi carrito</a>
+      <a href="historial.html">📋 Mis compras</a>
+      <a href="tarjetas.html">💳 Mi monedero</a>
+      <a href="perfil.html">👤 Mi perfil</a>
+      <a href="noticias.html">📰 Noticias</a>
+      <a href="mensajes.html">💬 Mensajes</a>
     </div>
 
-    <!-- Features -->
-    <div style="text-align:center; margin-bottom: 28px;">
-      <h2 style="font-size:1.4rem; margin-bottom: 4px;">¿Qué puedes hacer?</h2>
-      <p style="color: var(--texto-suave); font-size:0.9rem;">Todo lo que necesitas en un solo lugar</p>
-    </div>
+    <div class="container container-wide" style="margin-top:0;">
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
-      <div class="feature-card">
-        <span class="f-icon">🔍</span>
-        <h3>Buscar libros</h3>
-        <p>Por título, autor, género y más criterios</p>
+      <!-- Tarjeta sesión -->
+      <div class="profile-card" id="userCard">
+        <div class="avatar" id="userAvatar">👤</div>
+        <div class="profile-info">
+          <h3 id="userName">Cargando...</h3>
+          <p id="userEmail">·</p>
+          <span class="badge badge-orange" id="userRol">cliente</span>
+        </div>
       </div>
-      <div class="feature-card">
-        <span class="f-icon">📌</span>
-        <h3>Reservar</h3>
-        <p>Aparta hasta 5 libros por 24 horas</p>
+
+      <div style="text-align:center; margin-bottom:24px;">
+        <h2 style="font-size:1.4rem; margin-bottom:4px;">¿Qué puedes hacer?</h2>
+        <p style="color:var(--texto-suave); font-size:0.9rem;">Todo lo que necesitas en un solo lugar</p>
       </div>
-      <div class="feature-card">
-        <span class="f-icon">🛒</span>
-        <h3>Comprar</h3>
-        <p>Carrito de compras con saldo simulado</p>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px;">
+        <div class="feature-card"><span class="f-icon">🔍</span><h3>Buscar libros</h3><p>Por título, autor, género y más</p></div>
+        <div class="feature-card"><span class="f-icon">📌</span><h3>Reservar</h3><p>Aparta hasta 5 libros por 24 horas</p></div>
+        <div class="feature-card"><span class="f-icon">🛒</span><h3>Comprar</h3><p>Carrito con saldo simulado</p></div>
+        <div class="feature-card"><span class="f-icon">💳</span><h3>Monedero</h3><p>Gestiona tus tarjetas y saldo</p></div>
+        <div class="feature-card"><span class="f-icon">🔄</span><h3>Devoluciones</h3><p>Hasta 8 días tras recibir</p></div>
+        <div class="feature-card"><span class="f-icon">🤖</span><h3>Recomendaciones</h3><p>Chatbot IA según tu historial</p></div>
+        <div class="feature-card"><span class="f-icon">🎂</span><h3>Bono cumpleaños</h3><p>Descuento especial en tu día</p></div>
+        <div class="feature-card"><span class="f-icon">💬</span><h3>Mensajería</h3><p>Chatea con administradores</p></div>
       </div>
-      <div class="feature-card">
-        <span class="f-icon">🔄</span>
-        <h3>Devoluciones</h3>
-        <p>Hasta 8 días después de recibir</p>
-      </div>
-      <div class="feature-card">
-        <span class="f-icon">🤖</span>
-        <h3>Recomendaciones</h3>
-        <p>Chatbot con IA basado en tu historial</p>
-      </div>
-      <div class="feature-card">
-        <span class="f-icon">🎂</span>
-        <h3>Bono cumpleaños</h3>
-        <p>Descuento especial en tu día</p>
-      </div>
+
     </div>
 
   </div>
 
-  <!-- Session timer bar -->
-  <div class="session-bar" id="sessionBar">
+  <!-- Session timer (solo usuarios logueados) -->
+  <div class="session-bar" id="sessionBar" style="display:none;">
     <div class="session-dot"></div>
-    Sesión activa · <span id="sessionCount">60s</span>
+    Sesión activa · <span id="sessionCount">300s</span>
   </div>
 
   <footer>
@@ -175,28 +310,77 @@
 
   <script src="js/script.js"></script>
   <script>
-    // Verificar sesión activa
-    const sesion = requireSession();
+    const sesion = getSesion(); // No redirige — solo consulta
+
     if (sesion) {
-      // Saludo en hero
-      const hora = new Date().getHours();
+      // ── MODO USUARIO LOGUEADO ──────────────────────────────────
+      document.getElementById('nav-usuario').style.display    = 'flex';
+      document.getElementById('hero-usuario').style.display   = 'block';
+      document.getElementById('seccion-usuario').style.display = 'block';
+      document.getElementById('sessionBar').style.display     = 'flex';
+
+      // Saludo personalizado
+      const hora   = new Date().getHours();
       const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
-      document.getElementById('saludoHero').textContent = `${saludo}, ${sesion.nombre_completo.split(' ')[0]} 👋`;
+      document.getElementById('saludoHero').textContent =
+        `${saludo}, ${sesion.nombre_completo.split(' ')[0]} 👋`;
 
       // Tarjeta de usuario
-      const card = document.getElementById('userCard');
-      card.style.display = 'flex';
-      document.getElementById('userName').textContent = sesion.nombre_completo;
+      document.getElementById('userName').textContent  = sesion.nombre_completo;
       document.getElementById('userEmail').textContent = sesion.correo;
-      document.getElementById('userRol').textContent = sesion.rol;
-
-      // Iniciales en avatar
+      document.getElementById('userRol').textContent   = sesion.rol;
       const iniciales = sesion.nombre_completo
         .split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
       document.getElementById('userAvatar').textContent = iniciales || '👤';
 
-      // Timer de sesión
       initSessionTimer();
+
+    } else {
+      // ── MODO VISITANTE ─────────────────────────────────────────
+      document.getElementById('nav-visitante').style.display    = 'flex';
+      document.getElementById('hero-visitante').style.display   = 'block';
+      document.getElementById('seccion-visitante').style.display = 'block';
+
+      // Cargar últimas novedades desde Supabase (libros recientes)
+      cargarNovedades();
+    }
+
+    async function cargarNovedades() {
+      const { data, error } = await client
+        .from('libros')
+        .select('id, titulo, autor, genero, precio, imagen_url, creado_en')
+        .eq('agotado', false)
+        .order('creado_en', { ascending: false })
+        .limit(4);
+
+      const grid    = document.getElementById('novedadesGrid');
+      const loading = document.getElementById('novedadesLoading');
+
+      if (loading) loading.remove();
+
+      if (error || !data || data.length === 0) {
+        grid.innerHTML = `
+          <div style="text-align:center;padding:32px;color:var(--texto-suave);grid-column:1/-1;">
+            <div style="font-size:2rem;margin-bottom:8px;">📚</div>
+            <p style="font-size:0.88rem;">Próximamente habrá novedades disponibles.</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = data.map(libro => `
+        <a href="catalogo.html?id=${libro.id}" style="text-decoration:none;">
+          <div class="novedad-card">
+            <div class="novedad-icon">📖</div>
+            <div>
+              <h4>${libro.titulo}</h4>
+              <p>${libro.autor}${libro.genero ? ' · ' + libro.genero : ''}</p>
+              <p style="margin-top:6px; font-weight:600; color:var(--primario); font-size:0.85rem;">
+                $ ${parseFloat(libro.precio).toLocaleString('es-CO', { minimumFractionDigits: 0 })}
+              </p>
+            </div>
+          </div>
+        </a>
+      `).join('');
     }
   </script>
 </body>

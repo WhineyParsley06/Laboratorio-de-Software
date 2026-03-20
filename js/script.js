@@ -1,5 +1,3 @@
-
-
 // ============================================
 //  LIBRERÍA PEREIRA — script.js
 //  Supabase + CAPTCHA simulado + Sesión
@@ -71,7 +69,7 @@ function initPasswordStrength(inputId, barId, hintId) {
   if (!input || !bar) return;
 
   input.addEventListener('input', () => {
-    const val = input.value;
+    const val   = input.value;
     const score = getPasswordScore(val);
     const configs = [
       { width: '0%',   color: '#e5e7eb', text: '' },
@@ -81,7 +79,7 @@ function initPasswordStrength(inputId, barId, hintId) {
       { width: '100%', color: '#22c55e', text: '🟢 Contraseña fuerte ✓' },
     ];
     const cfg = configs[score];
-    bar.style.width = cfg.width;
+    bar.style.width      = cfg.width;
     bar.style.background = cfg.color;
     if (hint) hint.textContent = cfg.text;
   });
@@ -90,9 +88,9 @@ function initPasswordStrength(inputId, barId, hintId) {
 function getPasswordScore(pass) {
   if (!pass) return 0;
   let score = 0;
-  if (pass.length >= 8) score++;
-  if (/[A-Z]/.test(pass)) score++;
-  if (/[0-9]/.test(pass)) score++;
+  if (pass.length >= 8)        score++;
+  if (/[A-Z]/.test(pass))      score++;
+  if (/[0-9]/.test(pass))      score++;
   if (/[^A-Za-z0-9]/.test(pass)) score++;
   return score;
 }
@@ -104,11 +102,10 @@ function isPasswordStrong(pass) {
     /[^A-Za-z0-9]/.test(pass);
 }
 
-// ── SESIÓN — BLOQUEO TRAS 60s INACTIVA ───────────────────────────────────────
+// ── SESIÓN — BLOQUEO TRAS INACTIVIDAD ────────────────────────────────────────
 
 let sessionTimer = null;
-let sessionWarnTimer = null;
-const SESSION_TIMEOUT = 60; // segundos
+const SESSION_TIMEOUT = 90;
 
 function initSessionTimer() {
   const bar = document.getElementById('sessionBar');
@@ -125,7 +122,7 @@ function initSessionTimer() {
   function updateBar() {
     const el = bar.querySelector('#sessionCount');
     if (el) el.textContent = remaining + 's';
-    if (remaining <= 15) bar.classList.add('warn');
+    if (remaining <= 30) bar.classList.add('warn');
     else bar.classList.remove('warn');
   }
 
@@ -147,22 +144,20 @@ function initSessionTimer() {
 }
 
 function forceLogout() {
-  // Mostrar modal de sesión expirada
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal" style="text-align:center;">
-      <div style="font-size:2.5rem; margin-bottom:12px;">⏱️</div>
+      <div style="font-size:2.5rem;margin-bottom:12px;">⏱️</div>
       <h3>Sesión expirada</h3>
       <p>Tu sesión se cerró automáticamente por inactividad.</p>
-      <button onclick="window.location.href='login.html'" class="btn btn-primary" style="width:100%;">
+      <button onclick="window.location.href='login.html'"
+              style="margin-top:4px;">
         Iniciar sesión nuevamente
       </button>
     </div>
   `;
   document.body.appendChild(overlay);
-
-  // Limpiar sesión
   sessionStorage.removeItem('sesion');
 }
 
@@ -174,16 +169,16 @@ function logout() {
   overlay.id = 'logoutModal';
   overlay.innerHTML = `
     <div class="modal">
-      <div style="font-size:2rem; margin-bottom:12px; text-align:center;">👋</div>
+      <div style="font-size:2rem;margin-bottom:12px;text-align:center;">👋</div>
       <h3 style="text-align:center;">¿Cerrar sesión?</h3>
       <p style="text-align:center;">Deberás iniciar sesión nuevamente para acceder al sistema.</p>
       <div class="modal-actions">
-        <button onclick="document.getElementById('logoutModal').remove()" 
-                style="background: transparent; color: var(--texto-suave); border: 1.5px solid var(--borde); box-shadow:none; width:auto; flex:1;">
+        <button onclick="document.getElementById('logoutModal').remove()"
+                style="background:transparent;color:var(--texto-suave);border:1.5px solid var(--borde);box-shadow:none;width:auto;flex:1;">
           Cancelar
         </button>
-        <button onclick="confirmarLogout()" 
-                style="background: var(--primario); box-shadow: none; width:auto; flex:1;">
+        <button onclick="confirmarLogout()"
+                style="background:var(--primario);box-shadow:none;width:auto;flex:1;">
           Sí, cerrar sesión
         </button>
       </div>
@@ -197,7 +192,7 @@ function confirmarLogout() {
   window.location.href = 'login.html';
 }
 
-// ── PROTEGER PÁGINAS (redirigir si no hay sesión) ─────────────────────────────
+// ── PROTEGER PÁGINAS ──────────────────────────────────────────────────────────
 
 function requireSession() {
   const sesion = getSesion();
@@ -209,12 +204,11 @@ function requireSession() {
 }
 
 function getSesion() {
-  try {
-    return JSON.parse(sessionStorage.getItem('sesion'));
-  } catch { return null; }
+  try { return JSON.parse(sessionStorage.getItem('sesion')); }
+  catch { return null; }
 }
 
-// ── REGISTRO ──────────────────────────────────────────────────────────────────
+// ── REGISTRO (HU #1) ─────────────────────────────────────────────────────────
 
 async function simularRegistro(event) {
   event.preventDefault();
@@ -225,7 +219,6 @@ async function simularRegistro(event) {
   }
 
   const password = document.getElementById('password').value;
-
   if (!isPasswordStrong(password)) {
     showAlert('alertReg', 'La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial.', 'error');
     return;
@@ -237,27 +230,32 @@ async function simularRegistro(event) {
     return;
   }
 
+  const nombre    = document.getElementById('nombre').value.trim();
+  const apellidos = document.getElementById('apellidos')?.value.trim() || '';
+  const nombreCompleto = (nombre + ' ' + apellidos).trim();
+
   const btn = event.submitter || document.querySelector('button[type="submit"]');
   setLoading(btn, true);
 
   const datosUsuario = {
-    id_dni:          document.getElementById('dni').value.trim(),
-    nombre_completo: document.getElementById('nombre').value.trim(),
-    correo:          document.getElementById('correo').value.trim().toLowerCase(),
-    fecha_nacimiento:document.getElementById('fecha_nacimiento').value,
-    direccion:       document.getElementById('direccion').value || 'Pereira, Colombia',
-    username:        document.getElementById('usuario').value.trim(),
-    password:        password, // En producción: hashear con bcrypt en edge function
-    rol:             'cliente',
-    suscripcion_noticias: true // Historia #4.5: automático
+    id_dni:           document.getElementById('dni').value.trim(),
+    nombre_completo:  nombreCompleto,
+    apellidos:        apellidos,
+    correo:           document.getElementById('correo').value.trim().toLowerCase(),
+    fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
+    lugar_nacimiento: document.getElementById('lugar_nacimiento')?.value.trim() || '',
+    genero:           document.getElementById('genero')?.value || '',
+    telefono:         document.getElementById('telefono')?.value.trim() || '',
+    direccion:        document.getElementById('direccion').value.trim() || 'Pereira, Colombia',
+    username:         document.getElementById('usuario').value.trim(),
+    password:         password,
+    rol:              'cliente',
+    suscripcion_noticias: true,
+    notif_catalogo:   true,
+    notif_cumple:     true,
   };
 
-  console.log('Registrando usuario:', datosUsuario.username);
-
-  const { data, error } = await client
-    .from('usuarios')
-    .insert([datosUsuario]);
-
+  const { error } = await client.from('usuarios').insert([datosUsuario]);
   setLoading(btn, false);
 
   if (error) {
@@ -271,7 +269,7 @@ async function simularRegistro(event) {
   }
 }
 
-// ── LOGIN ─────────────────────────────────────────────────────────────────────
+// ── LOGIN (HU #2) ─────────────────────────────────────────────────────────────
 
 async function simularLogin(event) {
   event.preventDefault();
@@ -281,13 +279,12 @@ async function simularLogin(event) {
     return;
   }
 
-  const btn = event.submitter || document.querySelector('button[type="submit"]');
-  setLoading(btn, true);
-
+  const btn      = event.submitter || document.querySelector('button[type="submit"]');
   const userInput = document.getElementById('userLogin').value.trim();
   const pass      = document.getElementById('passLogin').value;
 
-  // Buscar por username o correo
+  setLoading(btn, true);
+
   const isEmail = userInput.includes('@');
   const campo   = isEmail ? 'correo' : 'username';
 
@@ -309,7 +306,6 @@ async function simularLogin(event) {
     return;
   }
 
-  // Guardar sesión en sessionStorage (no localStorage)
   sessionStorage.setItem('sesion', JSON.stringify({
     id:              data.id,
     nombre_completo: data.nombre_completo,
@@ -322,25 +318,3 @@ async function simularLogin(event) {
   showAlert('alertLogin', `¡Bienvenido, ${data.nombre_completo}! Redirigiendo...`, 'success');
   setTimeout(() => { window.location.href = 'index.html'; }, 1200);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
