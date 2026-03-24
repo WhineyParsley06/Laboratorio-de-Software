@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifica tu cuenta — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .code-inputs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 24px 0;
+    }
+
+    .code-inputs input {
+      width: 46px;
+      height: 56px;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      border: 2px solid var(--borde);
+      border-radius: 10px;
+      background: var(--fondo-input);
+      color: var(--texto);
+      transition: all var(--transicion);
+      padding: 0;
+    }
+
+    .code-inputs input:focus {
+      border-color: var(--secundario);
+      box-shadow: 0 0 0 3px rgba(224,117,32,0.15);
+      background: #fff;
+      outline: none;
+    }
+
+    .code-inputs input.filled {
+      border-color: var(--primario);
+      background: rgba(184,50,39,0.04);
+    }
+
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 24px rgba(34,197,94,0.25);
+      animation: popIn 0.5s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .resend-btn {
+      background: none;
+      border: none;
+      box-shadow: none;
+      color: var(--secundario);
+      font-size: 0.85rem;
+      width: auto;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: color var(--transicion);
+      display: inline;
+    }
+
+    .resend-btn:disabled {
+      color: var(--texto-suave);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .resend-btn:hover:not(:disabled) {
+      color: var(--primario);
+      transform: none;
+      box-shadow: none;
+    }
+
+    .email-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--fondo);
+      border: 1px solid var(--borde);
+      border-radius: 99px;
+      padding: 5px 14px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--texto);
+      margin: 8px 0 0;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="login.html" class="nav-cta">Iniciar sesión</a>
+  </nav>
+
+  <div class="container" style="margin-top: 60px;">
+
+    <!-- Panel verificación -->
+    <div id="panelVerificar">
+      <div class="form-header">
+        <div class="icon">✉️</div>
+        <h2>Verifica tu cuenta</h2>
+        <p class="subtitle">Ingresa el código que enviamos a tu correo</p>
+        <div class="email-badge">
+          <span>📧</span>
+          <span id="correoMostrado">tu correo</span>
+        </div>
+      </div>
+
+      <div id="alertVer"></div>
+
+      <p style="font-size:0.85rem; color:var(--texto-suave); text-align:center; margin-bottom:4px;">
+        Revisa también tu carpeta de spam.
+      </p>
+
+      <!-- Inputs del código -->
+      <div class="code-inputs" id="codeInputs">
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+      </div>
+
+      <button onclick="verificarCodigo()" id="btnVerificar">
+        Verificar cuenta →
+      </button>
+
+      <div style="text-align:center; margin-top:16px; display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap;">
+        <span style="font-size:0.83rem; color:var(--texto-suave);">¿No llegó el correo?</span>
+        <button class="resend-btn" id="btnReenviar" onclick="reenviarCodigo()" disabled>
+          🔄 Reenviar código
+        </button>
+        <span style="font-size:0.83rem; color:var(--texto-suave);" id="countdownTxt"></span>
+      </div>
+    </div>
+
+    <!-- Panel éxito -->
+    <div id="panelExito" style="display:none; text-align:center; padding:20px 0;">
+      <div class="success-icon">✓</div>
+      <h2 style="margin-bottom:8px;">¡Cuenta verificada!</h2>
+      <p style="color:var(--texto-suave); font-size:0.9rem; margin-bottom:28px;">
+        Tu cuenta está activa. Ya puedes iniciar sesión y disfrutar de todos los beneficios.
+      </p>
+      <a href="login.html"
+         style="display:inline-flex; align-items:center; gap:8px; background:linear-gradient(135deg,var(--primario),var(--secundario)); color:#fff; padding:13px 32px; border-radius:9px; font-weight:700; font-size:1rem; text-decoration:none; box-shadow:0 4px 14px rgba(184,50,39,0.3);">
+        Iniciar sesión →
+      </a>
+    </div>
+
+  </div>
+
+  <footer>
+    <strong>Librería Pereira</strong> &copy; 2026 · Ley 1581 de 2012
+  </footer>
+
+  <script src="js/script.js"></script>
+  <script>
+    // ── Recuperar datos del usuario pendiente ─────────────────────
+    const pendiente = JSON.parse(sessionStorage.getItem('pendiente_verificacion') || 'null');
+
+    if (!pendiente) {
+      // Si no hay datos, redirigir al registro
+      window.location.href = 'registro.html';
+    } else {
+      document.getElementById('correoMostrado').textContent = pendiente.correo;
+    }
+
+    // ── Auto-avance entre inputs ──────────────────────────────────
+    const inputs = document.querySelectorAll('.code-inputs input');
+
+    inputs.forEach((input, i, all) => {
+      input.addEventListener('input', e => {
+        const val = e.target.value.replace(/\D/g, '');
+        e.target.value = val;
+        if (val) {
+          e.target.classList.add('filled');
+          if (i < all.length - 1) all[i + 1].focus();
+        } else {
+          e.target.classList.remove('filled');
+        }
+      });
+
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !input.value && i > 0) {
+          all[i - 1].focus();
+          all[i - 1].classList.remove('filled');
+        }
+      });
+
+      input.addEventListener('paste', e => {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData)
+          .getData('text').replace(/\D/g, '');
+        [...pasted].slice(0, 7).forEach((ch, idx) => {
+          if (all[idx]) {
+            all[idx].value = ch;
+            all[idx].classList.add('filled');
+          }
+        });
+        const nextEmpty = [...all].findIndex(el => !el.value);
+        if (nextEmpty !== -1) all[nextEmpty].focus();
+        else all[6].focus();
+      });
+    });
+
+    // Foco automático al cargar
+    inputs[0].focus();
+
+    // ── Verificar código ──────────────────────────────────────────
+    async function verificarCodigo() {
+      const ingresado = [...inputs].map(i => i.value).join('');
+
+      if (ingresado.length < 7) {
+        showAlert('alertVer', 'Por favor ingresa los 7 dígitos del código.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btnVerificar');
+      setLoading(btn, true);
+
+      const { data, error } = await client
+        .from('usuarios')
+        .select('verification_code, verification_expires_at')
+        .eq('id', pendiente.id)
+        .single();
+
+      setLoading(btn, false);
+
+      if (error || !data) {
+        showAlert('alertVer', 'Error al verificar. Intenta de nuevo.', 'error');
+        return;
+      }
+
+      const expirado = new Date(data.verification_expires_at) < new Date();
+      if (expirado) {
+        showAlert('alertVer', 'El código expiró. Solicita uno nuevo.', 'error');
+        return;
+      }
+
+      if (data.verification_code !== ingresado) {
+        showAlert('alertVer', 'Código incorrecto. Verifica e intenta de nuevo.', 'error');
+        return;
+      }
+
+      // Marcar cuenta como verificada
+      const { error: errUpdate } = await client
+        .from('usuarios')
+        .update({
+          verificado:              true,
+          verification_code:       null,
+          verification_expires_at: null,
+        })
+        .eq('id', pendiente.id);
+
+      if (errUpdate) {
+        showAlert('alertVer', 'Error al activar cuenta: ' + errUpdate.message, 'error');
+        return;
+      }
+
+      // Limpiar sessionStorage y mostrar éxito
+      sessionStorage.removeItem('pendiente_verificacion');
+      document.getElementById('panelVerificar').style.display = 'none';
+      document.getElementById('panelExito').style.display     = 'block';
+    }
+
+    // ── Reenviar código ───────────────────────────────────────────
+    async function reenviarCodigo() {
+      const btn = document.getElementById('btnReenviar');
+      btn.disabled = true;
+
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-verification-email`, {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'apikey':        SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+        },
+        body: JSON.stringify({ usuario_id: pendiente.id }),
+      });
+
+      const resultado = await res.json();
+
+      if (!res.ok || resultado.error) {
+        showAlert('alertVer', 'No se pudo reenviar el código. Intenta más tarde.', 'error');
+        return;
+      }
+
+      showAlert('alertVer', '📧 Nuevo código enviado. Revisa tu correo.', 'success');
+      iniciarCountdown(120);
+
+      inputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
+      inputs[0].focus();
+    }
+
+    // ── Countdown reenvío ─────────────────────────────────────────
+    let countdownInterval = null;
+
+    function iniciarCountdown(segundos) {
+      const btn = document.getElementById('btnReenviar');
+      const txt = document.getElementById('countdownTxt');
+      btn.disabled = true;
+      clearInterval(countdownInterval);
+
+      countdownInterval = setInterval(() => {
+        segundos--;
+        const m = Math.floor(segundos / 60);
+        const s = segundos % 60;
+        txt.textContent = `(${m}:${s.toString().padStart(2,'0')})`;
+        if (segundos <= 0) {
+          clearInterval(countdownInterval);
+          btn.disabled = false;
+          txt.textContent = '';
+        }
+      }, 1000);
+    }
+
+    // Iniciar countdown al cargar (el correo ya fue enviado desde registro)
+    iniciarCountdown(120);
+  </script>
+</body>
+</html>

@@ -105,7 +105,7 @@ function isPasswordStrong(pass) {
 // ── SESIÓN — BLOQUEO TRAS INACTIVIDAD ────────────────────────────────────────
 
 let sessionTimer = null;
-const SESSION_TIMEOUT = 90;
+const SESSION_TIMEOUT = 300; // 5 minutos — cómodo para demos
 
 function initSessionTimer() {
   const bar = document.getElementById('sessionBar');
@@ -255,18 +255,44 @@ async function simularRegistro(event) {
     notif_cumple:     true,
   };
 
-  const { error } = await client.from('usuarios').insert([datosUsuario]);
-  setLoading(btn, false);
+  const { data: insertData, error } = await client
+    .from('usuarios')
+    .insert([datosUsuario])
+    .select('id')
+    .single();
 
   if (error) {
+    setLoading(btn, false);
     const msg = error.message.includes('duplicate') || error.message.includes('unique')
       ? 'Este correo o usuario ya está registrado.'
       : 'Error al registrar: ' + error.message;
     showAlert('alertReg', msg, 'error');
-  } else {
-    showAlert('alertReg', '¡Registro exitoso! Redirigiendo al inicio de sesión...', 'success');
-    setTimeout(() => { window.location.href = 'login.html'; }, 1800);
+    return;
   }
+
+  // Llamar Edge Function para enviar correo de verificación
+  showAlert('alertReg', '✅ Cuenta creada. Enviando correo de verificación...', 'success');
+
+  await fetch(`${SUPABASE_URL}/functions/v1/send-verification-email`, {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'apikey':        SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({ usuario_id: insertData.id }),
+  });
+
+  setLoading(btn, false);
+
+  // Guardar correo en sessionStorage para usarlo en verificar.html
+  sessionStorage.setItem('pendiente_verificacion', JSON.stringify({
+    id:     insertData.id,
+    correo: datosUsuario.correo,
+    nombre: datosUsuario.nombre_completo,
+  }));
+
+  setTimeout(() => { window.location.href = 'verificar.html'; }, 1200);
 }
 
 // ── LOGIN (HU #2) ─────────────────────────────────────────────────────────────
@@ -285,13 +311,15 @@ async function simularLogin(event) {
 
   setLoading(btn, true);
 
-  const isEmail = userInput.includes('@');
-  const campo   = isEmail ? 'correo' : 'username';
+  const isEmail   = userInput.includes('@');
+  const campo     = isEmail ? 'correo' : 'username';
+  // Solo convertir a minúsculas si es correo — el username se guarda tal cual
+  const valorBuscar = isEmail ? userInput.toLowerCase() : userInput;
 
   const { data, error } = await client
     .from('usuarios')
     .select('*')
-    .eq(campo, userInput.toLowerCase())
+    .eq(campo, valorBuscar)
     .single();
 
   setLoading(btn, false);
@@ -303,6 +331,31 @@ async function simularLogin(event) {
 
   if (data.password !== pass) {
     showAlert('alertLogin', 'Contraseña incorrecta.', 'error');
+    return;
+  }
+
+  // Verificar que la cuenta esté verificada
+  if (!data.verificado) {
+    // Reenviar correo de verificación y redirigir
+    sessionStorage.setItem('pendiente_verificacion', JSON.stringify({
+      id:     data.id,
+      correo: data.correo,
+      nombre: data.nombre_completo,
+    }));
+    await fetch(`${SUPABASE_URL}/functions/v1/send-verification-email`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      },
+      body: JSON.stringify({ usuario_id: data.id }),
+    });
+    showAlert('alertLogin',
+      '⚠️ Tu cuenta no está verificada. Te reenviamos el código al correo.',
+      'error'
+    );
+    setTimeout(() => { window.location.href = 'verificar.html'; }, 2000);
     return;
   }
 
