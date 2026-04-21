@@ -130,6 +130,7 @@
     <a href="index.html" class="active">Inicio</a>
     <a href="tarjetas.html">💳 Monedero</a>
     <a href="perfil.html">Mi Perfil</a>
+    <a href="admin.html" id="nav-admin" style="display:none;background:rgba(255,255,255,0.15);border-radius:6px;padding:4px 10px;">🛠️ Admin</a>
     <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
   </nav>
 
@@ -334,6 +335,11 @@
       document.getElementById('userAvatar').textContent = iniciales || '👤';
 
       initSessionTimer();
+
+      // Mostrar enlace admin si corresponde
+      if (sesion.rol === 'administrador') {
+        document.getElementById('nav-admin').style.display = 'inline-block';
+      }
 
     } else {
       // ── MODO VISITANTE ─────────────────────────────────────────
