@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Admin — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* ── Layout admin ─────────────────────────────── */
+    .admin-header {
+      background: linear-gradient(135deg, #1e1a17 0%, #3b2a20 100%);
+      color: #fff;
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .admin-header h1 { font-size: 1.15rem; margin: 0; font-weight: 700; letter-spacing: 0.02em; }
+    .admin-header p  { margin: 2px 0 0; font-size: 0.78rem; opacity: 0.7; }
+    .badge-admin {
+      background: var(--primario);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 99px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .admin-wrap {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 20px;
+    }
+
+    /* ── Barra acciones ───────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .toolbar-left { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .search-input {
+      padding: 9px 14px;
+      border: 1.5px solid var(--borde);
+      border-radius: 8px;
+      background: var(--fondo-input);
+      color: var(--texto);
+      font-size: 0.88rem;
+      width: 240px;
+    }
+    .search-input:focus { outline: none; border-color: var(--borde-focus); }
+    .btn-add {
+      padding: 9px 18px;
+      background: linear-gradient(135deg, var(--primario), #c0392b);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-add:hover { opacity: 0.88; }
+    .stat-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .stat-chip {
+      background: var(--fondo-card);
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      color: var(--texto-suave);
+    }
+    .stat-chip strong { color: var(--texto); }
+
+    /* ── Tabla ────────────────────────────────────── */
+    .table-wrap {
+      background: var(--fondo-card);
+      border: 1px solid var(--borde);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #f5ede6; }
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.73rem;
+      font-weight: 700;
+      color: var(--texto-suave);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    td {
+      padding: 13px 16px;
+      font-size: 0.88rem;
+      color: var(--texto);
+      border-top: 1px solid var(--borde);
+      vertical-align: middle;
+    }
+    tr:hover td { background: #fdf6f0; }
+    .td-titulo { font-weight: 600; max-width: 200px; }
+    .td-precio { font-weight: 700; color: var(--primario); }
+    .td-stock  { font-weight: 600; }
+    .stock-low  { color: #dc2626; }
+    .stock-ok   { color: #16a34a; }
+    .badge-genero {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 99px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: #f0e6dc;
+      color: var(--primario-dark);
+    }
+    .td-acciones { display: flex; gap: 8px; }
+    .btn-icon {
+      border: none;
+      border-radius: 7px;
+      padding: 6px 11px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-icon:hover { opacity: 0.78; }
+    .btn-edit   { background: #eff6ff; color: #1d4ed8; }
+    .btn-delete { background: #fef2f2; color: #dc2626; }
+    .btn-toggle { background: #f0fdf4; color: #16a34a; }
+    .btn-toggle.inactive { background: #fef9c3; color: #92400e; }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--texto-suave);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* ── Modal ────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(3px);
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-admin {
+      background: var(--fondo-card);
+      border-radius: 18px;
+      padding: 32px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+    }
+    .modal-admin h3 {
+      margin: 0 0 22px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--texto);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-admin .input-group { margin-bottom: 16px; }
+    .modal-admin label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--texto-suave);
+    }
+    .modal-admin input,
+    .modal-admin select,
+    .modal-admin textarea {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid var(--borde);
+      border-radius: 8px;
+      background: var(--fondo-input);
+      color: var(--texto);
+      font-size: 0.88rem;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .modal-admin textarea { resize: vertical; min-height: 80px; }
+    .modal-admin input:focus,
+    .modal-admin select:focus,
+    .modal-admin textarea:focus {
+      outline: none;
+      border-color: var(--borde-focus);
+    }
+    .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .btn-cancel {
+      flex: 1;
+      padding: 11px;
+      background: transparent;
+      border: 1.5px solid var(--borde);
+      border-radius: 8px;
+      color: var(--texto-suave);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-save {
+      flex: 2;
+      padding: 11px;
+      background: linear-gradient(135deg, var(--primario), #c0392b);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-save:hover { opacity: 0.9; }
+
+    /* ── Confirm delete ───────────────────────────── */
+    .modal-confirm { max-width: 380px; text-align: center; }
+    .modal-confirm .icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .modal-confirm p { color: var(--texto-suave); font-size: 0.9rem; margin: 8px 0 24px; }
+    .btn-danger {
+      flex: 1;
+      padding: 11px;
+      background: #dc2626;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ── Toast ────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 13px 20px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #fff;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { background: #16a34a; }
+    #toast.error   { background: #dc2626; }
+
+    /* ── Responsive ───────────────────────────────── */
+    @media (max-width: 640px) {
+      .modal-row { grid-template-columns: 1fr; }
+      .search-input { width: 100%; }
+      td, th { padding: 10px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
+  </nav>
+
+  <!-- Session timer -->
+  <div class="session-bar" id="sessionBar" style="display:none;">
+    <div class="session-dot"></div>
+    Sesión activa · <span id="sessionCount">300s</span>
+  </div>
+
+  <!-- Header del panel -->
+  <div class="admin-header">
+    <div>
+      <h1>🛠️ Panel de Administración</h1>
+      <p id="adminWelcome">Cargando...</p>
+    </div>
+    <span class="badge-admin">Administrador</span>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="admin-wrap">
+
+    <div id="alertAdmin"></div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input class="search-input" type="search" id="searchLibros"
+               placeholder="🔍 Buscar por título o autor..." oninput="filtrarTabla()">
+        <div class="stat-chips">
+          <div class="stat-chip">Total: <strong id="statTotal">—</strong></div>
+          <div class="stat-chip">Stock bajo: <strong id="statBajo">—</strong></div>
+          <div class="stat-chip">Ocultos: <strong id="statOcultos">—</strong></div>
+        </div>
+      </div>
+      <button class="btn-add" onclick="abrirModal()">＋ Agregar libro</button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-wrap">
+      <table id="tablaLibros">
+        <thead>
+          <tr>
+            <th>Título / Autor</th>
+            <th>Género</th>
+            <th>Precio</th>
+            <th>Stock</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyLibros">
+          <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--texto-suave);">Cargando libros...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <footer>
+    <strong>Librería Pereira</strong> &copy; 2026 · Panel de Administración
+  </footer>
+
+  <script src="js/script.js"></script>
+  <script>
+    // ── Proteger: solo administradores ───────────────────────────
+    const sesion = requireSession();
+    if (sesion && sesion.rol !== 'administrador') {
+      alert('⛔ Acceso denegado. Esta sección es solo para administradores.');
+      window.location.href = 'index.html';
+    }
+
+    document.getElementById('adminWelcome').textContent =
+      `Bienvenido, ${sesion?.nombre_completo || 'Admin'} · Gestión de catálogo`;
+
+    document.getElementById('sessionBar').style.display = 'flex';
+    initSessionTimer();
+
+    // ── Estado global ─────────────────────────────────────────────
+    let libros = [];
+    let editandoId = null;
+
+    // ── Cargar libros ─────────────────────────────────────────────
+    async function cargarLibros() {
+      const { data, error } = await client
+        .from('libros')
+        .select('*')
+        .order('titulo', { ascending: true });
+
+      if (error) {
+        showAlert('alertAdmin', 'Error al cargar libros: ' + error.message, 'error');
+        return;
+      }
+      libros = data || [];
+      actualizarStats();
+      renderTabla(libros);
+    }
+
+    function actualizarStats() {
+      document.getElementById('statTotal').textContent   = libros.length;
+      document.getElementById('statBajo').textContent    = libros.filter(l => (l.stock ?? 0) < 5).length;
+      document.getElementById('statOcultos').textContent = libros.filter(l => l.disponible === false).length;
+    }
+
+    // ── Renderizar tabla ──────────────────────────────────────────
+    function renderTabla(lista) {
+      const tbody = document.getElementById('tbodyLibros');
+      if (!lista.length) {
+        tbody.innerHTML = `
+          <tr><td colspan="6">
+            <div class="empty-state">
+              <div class="icon">📭</div>
+              <p>No hay libros que coincidan con la búsqueda.</p>
+            </div>
+          </td></tr>`;
+        return;
+      }
+      tbody.innerHTML = lista.map(l => {
+        const stockClass = (l.stock ?? 0) < 5 ? 'stock-low' : 'stock-ok';
+        const activo     = l.disponible !== false;
+        return `
+          <tr data-id="${l.id}">
+            <td class="td-titulo">
+              ${escHtml(l.titulo)}
+              <div style="font-size:0.78rem;color:var(--texto-suave);font-weight:400;margin-top:2px;">
+                ${escHtml(l.autor || '—')}
+              </div>
+            </td>
+            <td><span class="badge-genero">${escHtml(l.genero || '—')}</span></td>
+            <td class="td-precio">$${parseFloat(l.precio || 0).toLocaleString('es-CO', { minimumFractionDigits: 0 })}</td>
+            <td class="td-stock ${stockClass}">${l.stock ?? 0}</td>
+            <td>
+              <span class="badge-genero" style="background:${activo ? '#dcfce7' : '#fef9c3'};color:${activo ? '#166534' : '#78350f'};">
+                ${activo ? 'Activo' : 'Oculto'}
+              </span>
+            </td>
+            <td>
+              <div class="td-acciones">
+                <button class="btn-icon btn-edit"   onclick="abrirModal('${l.id}')">✏️ Editar</button>
+                <button class="btn-icon btn-toggle ${activo ? '' : 'inactive'}"
+                        onclick="toggleDisponible('${l.id}', ${activo})">
+                  ${activo ? '👁️ Ocultar' : '✅ Activar'}
+                </button>
+                <button class="btn-icon btn-delete" onclick="confirmarEliminar('${l.id}', '${escAttr(l.titulo)}')">🗑️</button>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ── Filtro de búsqueda ────────────────────────────────────────
+    function filtrarTabla() {
+      const q = document.getElementById('searchLibros').value.toLowerCase().trim();
+      if (!q) { renderTabla(libros); return; }
+      const filtrado = libros.filter(l =>
+        (l.titulo || '').toLowerCase().includes(q) ||
+        (l.autor  || '').toLowerCase().includes(q)
+      );
+      renderTabla(filtrado);
+    }
+
+    // ── Modal CREAR / EDITAR ──────────────────────────────────────
+    function abrirModal(id = null) {
+      editandoId = id;
+      const libro = id ? libros.find(l => l.id == id) : null;
+      const titulo = libro ? '✏️ Editar libro' : '＋ Nuevo libro';
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'modalLibro';
+      overlay.innerHTML = `
+        <div class="modal-admin">
+          <h3>${titulo}</h3>
+          <div id="alertModal"></div>
+
+          <div class="input-group">
+            <label>Título *</label>
+            <input type="text" id="mTitulo" placeholder="Ej: Cien años de soledad"
+                   value="${escAttr(libro?.titulo || '')}">
+          </div>
+          <div class="input-group">
+            <label>Autor *</label>
+            <input type="text" id="mAutor" placeholder="Ej: Gabriel García Márquez"
+                   value="${escAttr(libro?.autor || '')}">
+          </div>
+          <div class="modal-row">
+            <div class="input-group">
+              <label>Género</label>
+              <select id="mGenero">
+                ${['','Novela','Cuento','Poesía','Ensayo','Historia','Ciencia','Infantil','Fantasía','Terror','Romance','Autoayuda','Biografía','Derecho','Educación','Arte','Otro']
+                  .map(g => `<option value="${g}" ${(libro?.genero||'')==g?'selected':''}>${g||'Seleccionar...'}</option>`)
+                  .join('')}
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Idioma</label>
+              <input type="text" id="mIdioma" placeholder="Español"
+                     value="${escAttr(libro?.idioma || 'Español')}">
+            </div>
+          </div>
+          <div class="modal-row">
+            <div class="input-group">
+              <label>Precio (COP) *</label>
+              <input type="number" id="mPrecio" min="0" step="500"
+                     placeholder="25000" value="${libro?.precio || ''}">
+            </div>
+            <div class="input-group">
+              <label>Stock *</label>
+              <input type="number" id="mStock" min="0" step="1"
+                     placeholder="10" value="${libro?.stock ?? ''}">
+            </div>
+          </div>
+          <div class="modal-row">
+            <div class="input-group">
+              <label>ISBN</label>
+              <input type="text" id="mIsbn" placeholder="978-xxxxxxxxxx"
+                     value="${escAttr(libro?.isbn || '')}">
+            </div>
+            <div class="input-group">
+              <label>Año de publicación</label>
+              <input type="number" id="mAnio" min="1000" max="2099"
+                     placeholder="${new Date().getFullYear()}"
+                     value="${libro?.anio_publicacion || ''}">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>URL de imagen (portada)</label>
+            <input type="url" id="mImagen" placeholder="https://..."
+                   value="${escAttr(libro?.imagen_url || '')}">
+          </div>
+          <div class="input-group">
+            <label>Descripción / Sinopsis</label>
+            <textarea id="mDescripcion">${escHtml(libro?.descripcion || '')}</textarea>
+          </div>
+          <div class="input-group">
+            <label>Disponible en catálogo</label>
+            <select id="mDisponible">
+              <option value="true"  ${(libro?.disponible!==false)?'selected':''}>Sí — visible para clientes</option>
+              <option value="false" ${(libro?.disponible===false)?'selected':''}>No — oculto</option>
+            </select>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="cerrarModal('modalLibro')">Cancelar</button>
+            <button class="btn-save" onclick="guardarLibro()">
+              ${libro ? '💾 Guardar cambios' : '✨ Crear libro'}
+            </button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    function cerrarModal(id) {
+      const m = document.getElementById(id);
+      if (m) m.remove();
+    }
+
+    // ── Guardar (crear o editar) ───────────────────────────────────
+    async function guardarLibro() {
+      const titulo = document.getElementById('mTitulo').value.trim();
+      const autor  = document.getElementById('mAutor').value.trim();
+      const precio = parseFloat(document.getElementById('mPrecio').value);
+      const stock  = parseInt(document.getElementById('mStock').value);
+
+      if (!titulo || !autor) {
+        showAlert('alertModal', 'Título y autor son obligatorios.', 'error'); return;
+      }
+      if (isNaN(precio) || precio < 0) {
+        showAlert('alertModal', 'Ingresa un precio válido.', 'error'); return;
+      }
+      if (isNaN(stock) || stock < 0) {
+        showAlert('alertModal', 'Ingresa un stock válido.', 'error'); return;
+      }
+
+      const payload = {
+        titulo,
+        autor,
+        genero:           document.getElementById('mGenero').value || null,
+        idioma:           document.getElementById('mIdioma').value.trim() || 'Español',
+        precio,
+        stock,
+        isbn:             document.getElementById('mIsbn').value.trim() || null,
+        anio_publicacion: parseInt(document.getElementById('mAnio').value) || null,
+        imagen_url:       document.getElementById('mImagen').value.trim() || null,
+        descripcion:      document.getElementById('mDescripcion').value.trim() || null,
+        disponible:       document.getElementById('mDisponible').value === 'true',
+      };
+
+      let error;
+      if (editandoId) {
+        ({ error } = await client.from('libros').update(payload).eq('id', editandoId));
+      } else {
+        ({ error } = await client.from('libros').insert([payload]));
+      }
+
+      if (error) {
+        showAlert('alertModal', 'Error: ' + error.message, 'error'); return;
+      }
+
+      cerrarModal('modalLibro');
+      toast(editandoId ? '✅ Libro actualizado' : '✅ Libro creado', 'success');
+      await cargarLibros();
+    }
+
+    // ── Toggle disponible ─────────────────────────────────────────
+    async function toggleDisponible(id, estadoActual) {
+      const { error } = await client
+        .from('libros').update({ disponible: !estadoActual }).eq('id', id);
+      if (error) { toast('Error: ' + error.message, 'error'); return; }
+      toast(estadoActual ? '👁️ Libro ocultado' : '✅ Libro activado', 'success');
+      await cargarLibros();
+    }
+
+    // ── Confirmar eliminar ────────────────────────────────────────
+    function confirmarEliminar(id, titulo) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'modalConfirm';
+      overlay.innerHTML = `
+        <div class="modal-admin modal-confirm">
+          <div class="icon">🗑️</div>
+          <h3 style="justify-content:center;">Eliminar libro</h3>
+          <p>¿Seguro que deseas eliminar <strong>"${escHtml(titulo)}"</strong>?<br>
+             Esta acción no se puede deshacer.</p>
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="cerrarModal('modalConfirm')">Cancelar</button>
+            <button class="btn-danger" onclick="eliminarLibro('${id}')">Sí, eliminar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    async function eliminarLibro(id) {
+      const { error } = await client.from('libros').delete().eq('id', id);
+      cerrarModal('modalConfirm');
+      if (error) { toast('Error: ' + error.message, 'error'); return; }
+      toast('🗑️ Libro eliminado', 'success');
+      await cargarLibros();
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────
+    function toast(msg, tipo = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className   = `show ${tipo}`;
+      setTimeout(() => { t.className = ''; }, 3000);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function escAttr(str) {
+      return String(str).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // ── Init ──────────────────────────────────────────────────────
+    cargarLibros();
+  </script>
+</body>
+</html>
