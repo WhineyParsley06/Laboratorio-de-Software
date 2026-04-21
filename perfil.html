@@ -148,8 +148,22 @@
             <input type="date" id="pFecha">
           </div>
           <div class="input-group" style="flex:1;">
-            <label for="pLugar">Lugar de nacimiento</label>
-            <input type="text" id="pLugar" placeholder="Pereira, Risaralda">
+            <label for="pDepResidencia">Departamento de residencia</label>
+            <select id="pDepResidencia" onchange="cargarCiudadesPerfil()">
+              <option value="" disabled selected>Seleccionar departamento...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <div class="input-group" style="flex:1;">
+            <label for="pCiudadResidencia">Ciudad de residencia</label>
+            <select id="pCiudadResidencia" disabled>
+              <option value="" disabled selected>Primero selecciona un departamento</option>
+            </select>
+          </div>
+          <div class="input-group" style="flex:1;">
+            <!-- espacio de grilla -->
           </div>
         </div>
 
@@ -356,7 +370,12 @@
       document.getElementById('pApellidos').value = data.apellidos || '';
       document.getElementById('pCorreo').value    = data.correo || '';
       document.getElementById('pFecha').value     = data.fecha_nacimiento || '';
-      document.getElementById('pLugar').value     = data.lugar_nacimiento || '';
+      // Restaurar departamento y ciudad de residencia
+      if (data.dep_residencia) {
+        const selDep = document.getElementById('pDepResidencia');
+        selDep.value = data.dep_residencia;
+        cargarCiudadesPerfil(data.ciudad_residencia);
+      }
       document.getElementById('pDireccion').value = data.direccion || '';
       document.getElementById('pTelefono').value  = data.telefono || '';
       if (data.genero) document.getElementById('pGenero').value = data.genero;
@@ -381,7 +400,8 @@
         { label: 'Correo',               value: d.correo },
         { label: 'Teléfono',             value: d.telefono || '—' },
         { label: 'Fecha de nacimiento',  value: d.fecha_nacimiento ? new Date(d.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' }) : '—' },
-        { label: 'Lugar de nacimiento',  value: d.lugar_nacimiento || '—' },
+        { label: 'Departamento de residencia', value: d.dep_residencia || '—' },
+        { label: 'Ciudad de residencia', value: d.ciudad_residencia || '—' },
         { label: 'Género',               value: GENERO_LABEL[d.genero] || '—' },
         { label: 'Dirección de envío',   value: d.direccion || '—' },
         { label: 'Rol en el sistema',    value: d.rol },
@@ -435,7 +455,8 @@
         apellidos:        apellidos,
         correo:           document.getElementById('pCorreo').value.trim(),
         fecha_nacimiento: document.getElementById('pFecha').value,
-        lugar_nacimiento: document.getElementById('pLugar').value.trim(),
+        dep_residencia:   document.getElementById('pDepResidencia').value,
+        ciudad_residencia: document.getElementById('pCiudadResidencia').value,
         genero:           document.getElementById('pGenero').value,
         telefono:         document.getElementById('pTelefono').value.trim(),
         direccion:        document.getElementById('pDireccion').value.trim(),
@@ -579,6 +600,71 @@
     }
 
     cargarDatos();
+
+    // ── Departamentos y ciudades de Colombia ──────────────────────
+    const DEPARTAMENTOS_COLOMBIA = {
+      "Amazonas": ["Leticia", "Puerto Nariño"],
+      "Antioquia": ["Medellín", "Bello", "Itagüí", "Envigado", "Apartadó", "Turbo", "Rionegro", "Caucasia", "Sabaneta", "La Estrella"],
+      "Arauca": ["Arauca", "Arauquita", "Saravena", "Tame"],
+      "Atlántico": ["Barranquilla", "Soledad", "Malambo", "Sabanalarga", "Baranoa"],
+      "Bolívar": ["Cartagena", "Magangué", "Turbaco", "El Carmen de Bolívar"],
+      "Boyacá": ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá"],
+      "Caldas": ["Manizales", "Villamaría", "La Dorada", "Chinchiná", "Riosucio"],
+      "Caquetá": ["Florencia", "San Vicente del Caguán", "Puerto Rico"],
+      "Casanare": ["Yopal", "Aguazul", "Villanueva", "Tauramena"],
+      "Cauca": ["Popayán", "Santander de Quilichao", "Puerto Tejada"],
+      "Cesar": ["Valledupar", "Aguachica", "Bosconia", "La Jagua de Ibirico"],
+      "Chocó": ["Quibdó", "Istmina", "Tadó", "Riosucio"],
+      "Córdoba": ["Montería", "Lorica", "Sahagún", "Cereté", "Montelíbano"],
+      "Cundinamarca": ["Bogotá D.C.", "Soacha", "Facatativá", "Zipaquirá", "Chía", "Mosquera", "Fusagasugá", "Madrid", "Funza"],
+      "Guainía": ["Inírida"],
+      "Guaviare": ["San José del Guaviare"],
+      "Huila": ["Neiva", "Pitalito", "Garzón", "La Plata"],
+      "La Guajira": ["Riohacha", "Maicao", "Uribia", "San Juan del Cesar"],
+      "Magdalena": ["Santa Marta", "Ciénaga", "Fundación"],
+      "Meta": ["Villavicencio", "Acacías", "Restrepo", "Granada"],
+      "Nariño": ["Pasto", "Tumaco", "Ipiales", "Túquerres"],
+      "Norte de Santander": ["Cúcuta", "Ocaña", "Pamplona", "Villa del Rosario"],
+      "Putumayo": ["Mocoa", "Puerto Asís", "Orito"],
+      "Quindío": ["Armenia", "Calarcá", "Montenegro", "Quimbaya"],
+      "Risaralda": ["Pereira", "Dosquebradas", "Santa Rosa de Cabal", "La Virginia", "Quinchía"],
+      "San Andrés y Providencia": ["San Andrés", "Providencia"],
+      "Santander": ["Bucaramanga", "Floridablanca", "Girón", "Piedecuesta", "Barrancabermeja"],
+      "Sucre": ["Sincelejo", "Corozal", "Sampués"],
+      "Tolima": ["Ibagué", "Espinal", "Melgar", "Honda"],
+      "Valle del Cauca": ["Cali", "Buenaventura", "Palmira", "Tuluá", "Buga", "Cartago", "Jamundí"],
+      "Vaupés": ["Mitú"],
+      "Vichada": ["Puerto Carreño"]
+    };
+
+    // Poblar select de departamentos al cargar
+    (function poblarDepartamentosPerfil() {
+      const selDep = document.getElementById('pDepResidencia');
+      Object.keys(DEPARTAMENTOS_COLOMBIA).sort().forEach(dep => {
+        const opt = document.createElement('option');
+        opt.value = dep;
+        opt.textContent = dep;
+        selDep.appendChild(opt);
+      });
+    })();
+
+    function cargarCiudadesPerfil(ciudadSeleccionada) {
+      const dep = document.getElementById('pDepResidencia').value;
+      const selCiudad = document.getElementById('pCiudadResidencia');
+      selCiudad.innerHTML = '<option value="" disabled selected>Seleccionar ciudad...</option>';
+      if (dep && DEPARTAMENTOS_COLOMBIA[dep]) {
+        DEPARTAMENTOS_COLOMBIA[dep].forEach(ciudad => {
+          const opt = document.createElement('option');
+          opt.value = ciudad;
+          opt.textContent = ciudad;
+          if (ciudadSeleccionada && ciudad === ciudadSeleccionada) opt.selected = true;
+          selCiudad.appendChild(opt);
+        });
+        selCiudad.disabled = false;
+      } else {
+        selCiudad.disabled = true;
+      }
+    }
   </script>
 </body>
 </html>
