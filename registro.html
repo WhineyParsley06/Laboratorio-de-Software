@@ -66,8 +66,22 @@
           <input type="date" id="fecha_nacimiento" required>
         </div>
         <div class="input-group" style="flex:1;">
-          <label for="lugar_nacimiento">Lugar de nacimiento *</label>
-          <input type="text" id="lugar_nacimiento" placeholder="Pereira, Risaralda" required>
+          <label for="dep_residencia">Departamento de residencia *</label>
+          <select id="dep_residencia" required onchange="cargarCiudadesReg()">
+            <option value="" disabled selected>Seleccionar departamento...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="input-row">
+        <div class="input-group" style="flex:1;">
+          <label for="ciudad_residencia">Ciudad de residencia *</label>
+          <select id="ciudad_residencia" required disabled>
+            <option value="" disabled selected>Primero selecciona un departamento</option>
+          </select>
+        </div>
+        <div class="input-group" style="flex:1;">
+          <!-- espacio reservado para mantener la grilla -->
         </div>
       </div>
 
@@ -149,6 +163,70 @@
   <script>
     initCaptcha('captchaReg');
     initPasswordStrength('password', 'strengthBar', 'passHint');
+
+    // ── Departamentos y ciudades de Colombia ──────────────────────
+    const DEPARTAMENTOS_COLOMBIA = {
+      "Amazonas": ["Leticia", "Puerto Nariño"],
+      "Antioquia": ["Medellín", "Bello", "Itagüí", "Envigado", "Apartadó", "Turbo", "Rionegro", "Caucasia", "Sabaneta", "La Estrella"],
+      "Arauca": ["Arauca", "Arauquita", "Saravena", "Tame"],
+      "Atlántico": ["Barranquilla", "Soledad", "Malambo", "Sabanalarga", "Baranoa"],
+      "Bolívar": ["Cartagena", "Magangué", "Turbaco", "El Carmen de Bolívar"],
+      "Boyacá": ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá"],
+      "Caldas": ["Manizales", "Villamaría", "La Dorada", "Chinchiná", "Riosucio"],
+      "Caquetá": ["Florencia", "San Vicente del Caguán", "Puerto Rico"],
+      "Casanare": ["Yopal", "Aguazul", "Villanueva", "Tauramena"],
+      "Cauca": ["Popayán", "Santander de Quilichao", "Puerto Tejada"],
+      "Cesar": ["Valledupar", "Aguachica", "Bosconia", "La Jagua de Ibirico"],
+      "Chocó": ["Quibdó", "Istmina", "Tadó", "Riosucio"],
+      "Córdoba": ["Montería", "Lorica", "Sahagún", "Cereté", "Montelíbano"],
+      "Cundinamarca": ["Bogotá D.C.", "Soacha", "Facatativá", "Zipaquirá", "Chía", "Mosquera", "Fusagasugá", "Madrid", "Funza"],
+      "Guainía": ["Inírida"],
+      "Guaviare": ["San José del Guaviare"],
+      "Huila": ["Neiva", "Pitalito", "Garzón", "La Plata"],
+      "La Guajira": ["Riohacha", "Maicao", "Uribia", "San Juan del Cesar"],
+      "Magdalena": ["Santa Marta", "Ciénaga", "Fundación"],
+      "Meta": ["Villavicencio", "Acacías", "Restrepo", "Granada"],
+      "Nariño": ["Pasto", "Tumaco", "Ipiales", "Túquerres"],
+      "Norte de Santander": ["Cúcuta", "Ocaña", "Pamplona", "Villa del Rosario"],
+      "Putumayo": ["Mocoa", "Puerto Asís", "Orito"],
+      "Quindío": ["Armenia", "Calarcá", "Montenegro", "Quimbaya"],
+      "Risaralda": ["Pereira", "Dosquebradas", "Santa Rosa de Cabal", "La Virginia", "Quinchía"],
+      "San Andrés y Providencia": ["San Andrés", "Providencia"],
+      "Santander": ["Bucaramanga", "Floridablanca", "Girón", "Piedecuesta", "Barrancabermeja"],
+      "Sucre": ["Sincelejo", "Corozal", "Sampués"],
+      "Tolima": ["Ibagué", "Espinal", "Melgar", "Honda"],
+      "Valle del Cauca": ["Cali", "Buenaventura", "Palmira", "Tuluá", "Buga", "Cartago", "Jamundí"],
+      "Vaupés": ["Mitú"],
+      "Vichada": ["Puerto Carreño"]
+    };
+
+    // Poblar select de departamentos al cargar
+    (function poblarDepartamentos() {
+      const selDep = document.getElementById('dep_residencia');
+      Object.keys(DEPARTAMENTOS_COLOMBIA).sort().forEach(dep => {
+        const opt = document.createElement('option');
+        opt.value = dep;
+        opt.textContent = dep;
+        selDep.appendChild(opt);
+      });
+    })();
+
+    function cargarCiudadesReg() {
+      const dep = document.getElementById('dep_residencia').value;
+      const selCiudad = document.getElementById('ciudad_residencia');
+      selCiudad.innerHTML = '<option value="" disabled selected>Seleccionar ciudad...</option>';
+      if (dep && DEPARTAMENTOS_COLOMBIA[dep]) {
+        DEPARTAMENTOS_COLOMBIA[dep].forEach(ciudad => {
+          const opt = document.createElement('option');
+          opt.value = ciudad;
+          opt.textContent = ciudad;
+          selCiudad.appendChild(opt);
+        });
+        selCiudad.disabled = false;
+      } else {
+        selCiudad.disabled = true;
+      }
+    }
   </script>
 </body>
 </html>
