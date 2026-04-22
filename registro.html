@@ -3,80 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mi Perfil — Librería Pereira</title>
+  <title>Crear Cuenta — Librería Pereira</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/style.css">
   <style>
-    .pref-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 10px;
-      margin-top: 8px;
+    /* ── Validación inline por campo ── */
+    .field-error {
+      display: block;
+      font-size: 0.75rem;
+      color: #e53e3e;
+      margin-top: 4px;
+      min-height: 1rem;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
     }
-
-    .pref-chip {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      border: 1.5px solid var(--borde);
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: var(--texto-suave);
-      background: var(--fondo-input);
-      transition: all var(--transicion);
-      user-select: none;
+    .field-error.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
-
-    .pref-chip input { display: none; }
-
-    .pref-chip.selected {
-      border-color: var(--primario);
-      background: rgba(184,50,39,0.06);
-      color: var(--primario);
+    .input-group input.invalid,
+    .input-group select.invalid {
+      border-color: #e53e3e !important;
+      background-color: #fff5f5 !important;
+      box-shadow: 0 0 0 3px rgba(229,62,62,0.12) !important;
     }
-
-    .pref-chip:hover {
-      border-color: var(--secundario);
-      color: var(--texto);
+    .input-group input.valid,
+    .input-group select.valid {
+      border-color: #38a169 !important;
+      box-shadow: 0 0 0 3px rgba(56,161,105,0.10) !important;
     }
-
-    .section-sep {
-      border: none;
-      border-top: 1px solid var(--borde);
-      margin: 28px 0;
-    }
-
-    /* Vista de solo lectura (HU #8) */
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 14px;
-      margin-bottom: 24px;
-    }
-
-    .info-field {
-      background: var(--fondo);
-      border: 1px solid var(--borde);
-      border-radius: 10px;
-      padding: 12px 16px;
-    }
-
-    .info-field .label {
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--texto-suave);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+    #err-captcha,
+    #err-aceptaTerminos {
+      margin-top: 6px;
       margin-bottom: 4px;
-    }
-
-    .info-field .value {
-      font-size: 0.92rem;
-      color: var(--texto);
-      font-weight: 500;
     }
   </style>
 </head>
@@ -85,234 +45,160 @@
   <nav>
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html">Inicio</a>
-    <a href="tarjetas.html">💳 Monedero</a>
-    <a href="perfil.html" class="active">Mi Perfil</a>
-    <a href="admin.html" id="nav-admin-perfil" style="display:none;background:rgba(255,255,255,0.15);border-radius:6px;padding:4px 10px;">🛠️ Admin</a>
-    <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
+    <a href="login.html" class="nav-cta">Iniciar sesión</a>
   </nav>
 
-  <div class="container container-wide" style="margin-top:40px;">
+  <div class="container container-wide" style="margin-top: 40px;">
 
-    <!-- Cabecera de perfil -->
-    <div class="profile-card" id="profileCard">
-      <div class="avatar" id="avatarInicial">👤</div>
-      <div class="profile-info">
-        <h3 id="nombreDisplay">Cargando...</h3>
-        <p id="correoDisplay">·</p>
-        <span class="badge badge-orange" id="rolDisplay">cliente</span>
+    <div class="form-header">
+      <div class="icon">📖</div>
+      <h2>Crea tu cuenta</h2>
+      <p class="subtitle">Únete a nuestra comunidad y disfruta beneficios exclusivos</p>
+    </div>
+
+    <form onsubmit="simularRegistro(event)" novalidate>
+
+      <!-- ── 1. Datos personales ── -->
+      <p style="font-size:0.75rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">
+        Datos personales
+      </p>
+
+      <div class="input-row">
+        <div class="input-group" style="flex:1;">
+          <label for="nombre">Nombre(s) *</label>
+          <input type="text" id="nombre" placeholder="Juan" required>
+          <span class="field-error" id="err-nombre"></span>
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label for="apellidos">Apellidos *</label>
+          <input type="text" id="apellidos" placeholder="Pérez García" required>
+          <span class="field-error" id="err-apellidos"></span>
+        </div>
       </div>
-    </div>
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="showTab('vista',        this)">👤 Mi perfil</button>
-      <button class="tab-btn"        onclick="showTab('datos',        this)">✏️ Editar</button>
-      <button class="tab-btn"        onclick="showTab('preferencias', this)">📚 Preferencias</button>
-      <button class="tab-btn"        onclick="showTab('monedero',     this)">💳 Monedero</button>
-      <button class="tab-btn"        onclick="showTab('seguridad',    this)">🔒 Seguridad</button>
-    </div>
-
-    <!-- ── TAB: Vista de solo lectura (HU #8) ── -->
-    <div id="tab-vista">
-      <div class="info-grid" id="infoGrid">
-        <!-- Generado por JS -->
+      <div class="input-row">
+        <div class="input-group" style="flex:1;">
+          <label for="dni">Cédula / DNI *</label>
+          <input type="number" id="dni" placeholder="123456789" required>
+          <span class="field-error" id="err-dni"></span>
+        </div>
+        <div class="input-group" style="flex:1;">
+          <label for="genero">Género *</label>
+          <select id="genero" required>
+            <option value="" disabled selected>Seleccionar...</option>
+            <option value="masculino">Masculino</option>
+            <option value="femenino">Femenino</option>
+            <option value="no_binario">No binario</option>
+            <option value="prefiero_no_decir">Prefiero no decir</option>
+          </select>
+          <span class="field-error" id="err-genero"></span>
+        </div>
       </div>
-      <button type="button" onclick="showTab('datos', document.querySelectorAll('.tab-btn')[1])"
-              style="width:auto; padding:11px 24px;">
-        ✏️ Editar mis datos
-      </button>
-    </div>
 
-    <!-- ── TAB: Editar datos (HU #4) ── -->
-    <div id="tab-datos" style="display:none;">
-      <div id="alertPerfil"></div>
-      <form onsubmit="guardarDatos(event)">
-
-        <p style="font-size:0.75rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">
-          Datos personales
-        </p>
-
-        <div class="input-row">
-          <div class="input-group" style="flex:1;">
-            <label for="pNombre">Nombre(s)</label>
-            <input type="text" id="pNombre" placeholder="Juan">
-          </div>
-          <div class="input-group" style="flex:1;">
-            <label for="pApellidos">Apellidos</label>
-            <input type="text" id="pApellidos" placeholder="Pérez García">
-          </div>
+      <div class="input-row">
+        <div class="input-group" style="flex:1;">
+          <label for="fecha_nacimiento">Fecha de nacimiento *</label>
+          <input type="date" id="fecha_nacimiento" required>
+          <span class="field-error" id="err-fecha_nacimiento"></span>
         </div>
-
-        <div class="input-row">
-          <div class="input-group" style="flex:1;">
-            <label for="pFecha">Fecha de nacimiento</label>
-            <input type="date" id="pFecha">
-          </div>
-          <div class="input-group" style="flex:1;">
-            <label for="pDepResidencia">Departamento de residencia</label>
-            <select id="pDepResidencia" onchange="cargarCiudadesPerfil()">
-              <option value="" disabled selected>Seleccionar departamento...</option>
-            </select>
-          </div>
+        <div class="input-group" style="flex:1;">
+          <label for="dep_residencia">Departamento de residencia *</label>
+          <select id="dep_residencia" required onchange="cargarCiudadesReg()">
+            <option value="" disabled selected>Seleccionar departamento...</option>
+          </select>
+          <span class="field-error" id="err-dep_residencia"></span>
         </div>
+      </div>
 
-        <div class="input-row">
-          <div class="input-group" style="flex:1;">
-            <label for="pCiudadResidencia">Ciudad de residencia</label>
-            <select id="pCiudadResidencia" disabled>
-              <option value="" disabled selected>Primero selecciona un departamento</option>
-            </select>
-          </div>
-          <div class="input-group" style="flex:1;">
-            <!-- espacio de grilla -->
-          </div>
+      <div class="input-row">
+        <div class="input-group" style="flex:1;">
+          <label for="ciudad_residencia">Ciudad de residencia *</label>
+          <select id="ciudad_residencia" required disabled>
+            <option value="" disabled selected>Primero selecciona un departamento</option>
+          </select>
+          <span class="field-error" id="err-ciudad_residencia"></span>
         </div>
-
-        <div class="input-row">
-          <div class="input-group" style="flex:1;">
-            <label for="pGenero">Género</label>
-            <select id="pGenero">
-              <option value="" disabled>Seleccionar...</option>
-              <option value="masculino">Masculino</option>
-              <option value="femenino">Femenino</option>
-              <option value="no_binario">No binario</option>
-              <option value="prefiero_no_decir">Prefiero no decir</option>
-            </select>
-          </div>
-          <div class="input-group" style="flex:1;">
-            <label for="pTelefono">Teléfono</label>
-            <input type="tel" id="pTelefono" placeholder="300 123 4567">
-          </div>
+        <div class="input-group" style="flex:1;">
+          <!-- espacio reservado para mantener la grilla -->
         </div>
+      </div>
 
-        <p style="font-size:0.75rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 12px;">
-          Contacto
-        </p>
+      <!-- ── 2. Contacto ── -->
+      <p style="font-size:0.75rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 12px;">
+        Contacto y dirección
+      </p>
 
-        <div class="input-row">
-          <div class="input-group" style="flex:1;">
-            <label for="pCorreo">Correo electrónico</label>
-            <input type="email" id="pCorreo" placeholder="juan@correo.com">
-          </div>
-          <div class="input-group" style="flex:1;">
-            <label for="pDireccion">Dirección de envío</label>
-            <input type="text" id="pDireccion" placeholder="Calle 123, Pereira">
-          </div>
+      <div class="input-row">
+        <div class="input-group" style="flex:1;">
+          <label for="correo">Correo electrónico *</label>
+          <input type="email" id="correo" placeholder="juan@correo.com" required>
+          <span class="field-error" id="err-correo"></span>
         </div>
-
-        <button type="submit">💾 Guardar cambios</button>
-      </form>
-    </div>
-
-    <!-- ── TAB: Preferencias ── -->
-    <div id="tab-preferencias" style="display:none;">
-      <div id="alertPref"></div>
+        <div class="input-group" style="flex:1;">
+          <label for="telefono">Teléfono</label>
+          <input type="tel" id="telefono" placeholder="300 123 4567">
+          <span class="field-error" id="err-telefono"></span>
+        </div>
+      </div>
 
       <div class="input-group">
-        <label>Temas literarios de preferencia</label>
-        <div class="pref-grid" id="temasGrid"></div>
+        <label for="direccion">Dirección de correspondencia / envío *</label>
+        <input type="text" id="direccion" placeholder="Calle 123 # 45-67, Pereira, Risaralda" required>
+        <span class="field-error" id="err-direccion"></span>
       </div>
 
-      <hr class="section-sep">
+      <!-- ── 3. Datos de acceso ── -->
+      <p style="font-size:0.75rem;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 12px;">
+        Datos de acceso
+      </p>
 
       <div class="input-group">
-        <label>Notificaciones</label>
-        <div style="display:flex; flex-direction:column; gap:14px; margin-top:8px;">
-          <div class="toggle-wrap">
-            <label class="toggle">
-              <input type="checkbox" id="notifCatalogo" checked>
-              <span class="toggle-slider"></span>
-            </label>
-            <span style="font-size:0.9rem;">📬 Recibir catálogo de nuevos libros</span>
-          </div>
-          <div class="toggle-wrap">
-            <label class="toggle">
-              <input type="checkbox" id="notifCumple" checked>
-              <span class="toggle-slider"></span>
-            </label>
-            <span style="font-size:0.9rem;">🎂 Recibir bono de cumpleaños</span>
-          </div>
-          <div class="toggle-wrap">
-            <label class="toggle">
-              <input type="checkbox" id="suscripcionNoticias" checked>
-              <span class="toggle-slider"></span>
-            </label>
-            <span style="font-size:0.9rem;">📰 Suscripción al boletín de noticias</span>
-          </div>
-        </div>
+        <label for="usuario">Nombre de usuario *</label>
+        <input type="text" id="usuario" placeholder="juanito_99" required>
+        <span class="field-error" id="err-usuario"></span>
       </div>
 
-      <hr class="section-sep">
-      <button onclick="guardarPreferencias()" type="button">💾 Guardar preferencias</button>
-    </div>
-
-    <!-- ── TAB: Monedero (resumen) ── -->
-    <div id="tab-monedero" style="display:none;">
-      <div id="alertMonedero"></div>
-
-      <div style="background:linear-gradient(135deg,var(--primario-dark),var(--primario));border-radius:14px;padding:18px 22px;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;box-shadow:0 6px 20px var(--primario-glow);">
-        <div>
-          <div style="font-size:0.78rem;opacity:0.75;margin-bottom:4px;">Saldo total disponible</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:700;" id="pSaldoTotal">$ 0</div>
-        </div>
-        <div style="font-size:2rem;opacity:0.3;">💰</div>
-      </div>
-
-      <div id="pListaTarjetas">
-        <p style="text-align:center;color:var(--texto-suave);font-size:0.9rem;padding:20px 0;">Cargando tarjetas...</p>
-      </div>
-
-      <hr class="section-sep">
-
-      <a href="tarjetas.html"
-         style="display:flex;align-items:center;justify-content:center;gap:10px;padding:13px;background:var(--fondo);border:1.5px solid var(--borde);border-radius:10px;color:var(--texto);font-weight:600;font-size:0.9rem;text-decoration:none;transition:all var(--transicion);"
-         onmouseover="this.style.borderColor='var(--secundario)'"
-         onmouseout="this.style.borderColor='var(--borde)'">
-        💳 Gestionar tarjetas y saldo completo →
-      </a>
-    </div>
-
-    <!-- ── TAB: Seguridad ── -->
-    <div id="tab-seguridad" style="display:none;">
-      <div id="alertSeg"></div>
-      <form onsubmit="cambiarPassword(event)">
+      <div class="input-row">
         <div class="input-group">
-          <label for="passActual">Contraseña actual</label>
-          <input type="password" id="passActual" placeholder="••••••••" required>
+          <label for="password">Contraseña *</label>
+          <input type="password" id="password" placeholder="••••••••" required autocomplete="new-password">
+          <div class="pass-strength"><div class="pass-strength-bar" id="strengthBar"></div></div>
+          <p class="pass-hint" id="passHint"></p>
+          <span class="field-error" id="err-password"></span>
         </div>
         <div class="input-group">
-          <label for="passNueva">Nueva contraseña</label>
-          <input type="password" id="passNueva" placeholder="••••••••" required>
-          <div class="pass-strength"><div class="pass-strength-bar" id="strengthBarPerfil"></div></div>
-          <p class="pass-hint" id="passHintPerfil"></p>
+          <label for="confirmPassword">Confirmar contraseña *</label>
+          <input type="password" id="confirmPassword" placeholder="••••••••" required autocomplete="new-password">
+          <span class="field-error" id="err-confirmPassword"></span>
         </div>
-        <div class="input-group">
-          <label for="passConfirm">Confirmar nueva contraseña</label>
-          <input type="password" id="passConfirm" placeholder="••••••••" required>
-        </div>
-        <button type="submit">🔒 Actualizar contraseña</button>
-      </form>
-
-      <hr class="section-sep">
-
-      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:20px;">
-        <h3 style="color:#dc2626;font-size:1rem;margin-bottom:8px;">⚠️ Zona de peligro</h3>
-        <p style="font-size:0.85rem;color:#7f1d1d;margin-bottom:16px;">
-          Una vez eliminada tu cuenta, todos tus datos serán borrados permanentemente.
-        </p>
-        <button onclick="confirmarEliminarCuenta()" type="button"
-                style="background:#dc2626;box-shadow:0 4px 12px rgba(220,38,38,0.25);width:auto;padding:10px 20px;">
-          🗑️ Eliminar mi cuenta
-        </button>
       </div>
-    </div>
 
-  </div>
+      <!-- CAPTCHA -->
+      <div id="captchaReg" class="captcha-box">
+        <div class="captcha-checkbox"></div>
+        <span class="captcha-label">No soy un robot</span>
+        <span class="captcha-logo">🛡️</span>
+      </div>
+      <span class="field-error" id="err-captcha"></span>
 
-  <!-- Session timer -->
-  <div class="session-bar" id="sessionBar">
-    <div class="session-dot"></div>
-    Sesión activa · <span id="sessionCount">300s</span>
+      <!-- Términos -->
+      <div style="margin-bottom:24px;">
+        <label class="check-label">
+          <input type="checkbox" id="aceptaTerminos" required>
+          Acepto los <a href="terminos.html" target="_blank">Términos y Condiciones</a>
+          y la <a href="terminos.html#datos" target="_blank">Política de Tratamiento de Datos</a>
+        </label>
+        <span class="field-error" id="err-aceptaTerminos"></span>
+      </div>
+
+      <button type="submit">✨ Crear mi cuenta</button>
+
+    </form>
+
+    <p class="link-muted" style="text-align:center; margin-top:20px;">
+      ¿Ya tienes cuenta? <a href="login.html">Inicia sesión aquí</a>
+    </p>
+
   </div>
 
   <footer>
@@ -321,293 +207,319 @@
 
   <script src="js/script.js"></script>
   <script>
-    const TEMAS = [
-      { val: 'ciencia_ficcion',  label: '🚀 Ciencia Ficción' },
-      { val: 'fantasia',         label: '🧙 Fantasía' },
-      { val: 'novela_historica', label: '🏛️ Novela Histórica' },
-      { val: 'misterio',         label: '🔎 Misterio' },
-      { val: 'romance',          label: '❤️ Romance' },
-      { val: 'poesia',           label: '🖊️ Poesía' },
-      { val: 'historia',         label: '📜 Historia' },
-      { val: 'software',         label: '💻 Desarrollo de Software' },
-      { val: 'biografia',        label: '👤 Biografía' },
-      { val: 'terror',           label: '👻 Terror' },
-    ];
+    initCaptcha('captchaReg');
+    initPasswordStrength('password', 'strengthBar', 'passHint');
 
-    const GENERO_LABEL = {
-      masculino: 'Masculino', femenino: 'Femenino',
-      no_binario: 'No binario', prefiero_no_decir: 'Prefiero no decir'
-    };
-
-    // Verificar sesión
-    const sesion = requireSession();
-    if (!sesion) throw new Error('no session');
-
-    // Cabecera
-    document.getElementById('nombreDisplay').textContent = sesion.nombre_completo;
-    document.getElementById('correoDisplay').textContent = sesion.correo;
-    document.getElementById('rolDisplay').textContent    = sesion.rol;
-    const iniciales = sesion.nombre_completo.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
-    document.getElementById('avatarInicial').textContent = iniciales || '👤';
-
-    initPasswordStrength('passNueva', 'strengthBarPerfil', 'passHintPerfil');
-    initSessionTimer();
-
-    // Mostrar enlace admin si corresponde
-    if (sesion.rol === 'administrador') {
-      const navAdmin = document.getElementById('nav-admin-perfil');
-      if (navAdmin) navAdmin.style.display = 'inline-block';
-    }
-
-    // ── Cargar datos desde Supabase ──────────────────────────────
-    let datosUsuario = null;
-
-    async function cargarDatos() {
-      const { data, error } = await client
-        .from('usuarios').select('*').eq('id', sesion.id).single();
-
-      if (error || !data) return;
-      datosUsuario = data;
-
-      // Vista de solo lectura
-      renderVista(data);
-
-      // Formulario editar
-      document.getElementById('pNombre').value    = data.nombre_completo?.split(' ').slice(0, -2).join(' ') || data.nombre_completo || '';
-      document.getElementById('pApellidos').value = data.apellidos || '';
-      document.getElementById('pCorreo').value    = data.correo || '';
-      document.getElementById('pFecha').value     = data.fecha_nacimiento || '';
-      // Restaurar departamento y ciudad de residencia
-      if (data.dep_residencia) {
-        const selDep = document.getElementById('pDepResidencia');
-        selDep.value = data.dep_residencia;
-        cargarCiudadesPerfil(data.ciudad_residencia);
+    // ── Utilidades de validación inline ────────────────────────────
+    function setError(id, msg) {
+      const el = document.getElementById(id);
+      const errEl = document.getElementById('err-' + id);
+      if (!el || !errEl) return;
+      if (msg) {
+        el.classList.add('invalid');
+        el.classList.remove('valid');
+        errEl.textContent = msg;
+        errEl.classList.add('visible');
+      } else {
+        el.classList.remove('invalid');
+        el.classList.add('valid');
+        errEl.textContent = '';
+        errEl.classList.remove('visible');
       }
-      document.getElementById('pDireccion').value = data.direccion || '';
-      document.getElementById('pTelefono').value  = data.telefono || '';
-      if (data.genero) document.getElementById('pGenero').value = data.genero;
-
-      // Notificaciones
-      if (data.notif_catalogo !== undefined)
-        document.getElementById('notifCatalogo').checked = data.notif_catalogo;
-      if (data.notif_cumple !== undefined)
-        document.getElementById('notifCumple').checked = data.notif_cumple;
-      if (data.suscripcion_noticias !== undefined)
-        document.getElementById('suscripcionNoticias').checked = data.suscripcion_noticias;
-
-      renderTemas(data.temas_preferidos || []);
     }
 
-    // ── Vista solo lectura (HU #8) ───────────────────────────────
-    function renderVista(d) {
-      const campos = [
-        { label: 'Nombre completo',      value: d.nombre_completo },
-        { label: 'Apellidos',            value: d.apellidos || '—' },
-        { label: 'Cédula / DNI',         value: d.id_dni },
-        { label: 'Correo',               value: d.correo },
-        { label: 'Teléfono',             value: d.telefono || '—' },
-        { label: 'Fecha de nacimiento',  value: d.fecha_nacimiento ? new Date(d.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' }) : '—' },
-        { label: 'Departamento de residencia', value: d.dep_residencia || '—' },
-        { label: 'Ciudad de residencia', value: d.ciudad_residencia || '—' },
-        { label: 'Género',               value: GENERO_LABEL[d.genero] || '—' },
-        { label: 'Dirección de envío',   value: d.direccion || '—' },
-        { label: 'Rol en el sistema',    value: d.rol },
-        { label: 'Miembro desde',        value: d.creado_en ? new Date(d.creado_en).toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' }) : '—' },
-        { label: 'Suscripción noticias', value: d.suscripcion_noticias ? '✅ Activa' : '❌ Inactiva' },
-      ];
-
-      document.getElementById('infoGrid').innerHTML = campos.map(c => `
-        <div class="info-field">
-          <div class="label">${c.label}</div>
-          <div class="value">${c.value || '—'}</div>
-        </div>
-      `).join('');
+    function clearError(id) {
+      const el = document.getElementById(id);
+      const errEl = document.getElementById('err-' + id);
+      if (el) { el.classList.remove('invalid', 'valid'); }
+      if (errEl) { errEl.textContent = ''; errEl.classList.remove('visible'); }
     }
 
-    // ── Temas ────────────────────────────────────────────────────
-    function renderTemas(seleccionados) {
-      const grid = document.getElementById('temasGrid');
-      grid.innerHTML = '';
-      TEMAS.forEach(t => {
-        const chip = document.createElement('label');
-        chip.className = 'pref-chip' + (seleccionados.includes(t.val) ? ' selected' : '');
-        chip.innerHTML = `<input type="checkbox" value="${t.val}" ${seleccionados.includes(t.val) ? 'checked' : ''}>${t.label}`;
-        chip.addEventListener('click', () => chip.classList.toggle('selected'));
-        grid.appendChild(chip);
+    function showFieldError(errId, msg) {
+      const errEl = document.getElementById(errId);
+      if (!errEl) return;
+      errEl.textContent = msg;
+      errEl.classList.add('visible');
+    }
+
+    function hideFieldError(errId) {
+      const errEl = document.getElementById(errId);
+      if (!errEl) return;
+      errEl.textContent = '';
+      errEl.classList.remove('visible');
+    }
+
+    // ── Filtro en tiempo real: nombre y apellidos (solo letras, tildes y espacios) ──
+    ['nombre', 'apellidos'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      el.addEventListener('keypress', function (e) {
+        // Permitir solo letras (incluye tildes, ñ, ü, etc.) y espacio
+        const char = e.key;
+        if (char === ' ' || /^[\p{L}]$/u.test(char)) return;
+        e.preventDefault();
       });
-    }
 
-    // ── Tabs ─────────────────────────────────────────────────────
-    function showTab(name, btn) {
-      ['vista','datos','preferencias','monedero','seguridad'].forEach(t => {
-        document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+      el.addEventListener('input', function () {
+        // Por si acaso se pega texto: filtrar todo lo que no sea letra o espacio
+        const cursor = this.selectionStart;
+        const original = this.value;
+        const limpio = original.replace(/[^\p{L} ]/gu, '');
+        if (limpio !== original) {
+          this.value = limpio;
+          // Restaurar posición del cursor
+          const diff = original.length - limpio.length;
+          this.setSelectionRange(cursor - diff, cursor - diff);
+        }
+        clearError(id);
       });
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      if (name === 'monedero') cargarTarjetasPerfil();
-    }
 
-    // ── Guardar datos (HU #4) ────────────────────────────────────
-    async function guardarDatos(event) {
-      event.preventDefault();
-      const btn = event.submitter;
+      el.addEventListener('change', () => clearError(id));
+    });
+
+    // Limpiar error al corregir los demás campos
+    ['dni','genero','fecha_nacimiento','dep_residencia',
+     'ciudad_residencia','correo','telefono','direccion','usuario',
+     'password','confirmPassword'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', () => clearError(id));
+      if (el) el.addEventListener('change', () => clearError(id));
+    });
+
+    // ── Validación inline + envío a Supabase ───────────────────────
+    async function simularRegistro(e) {
+      e.preventDefault();
+      let valid = true;
+
+      const v    = id => document.getElementById(id)?.value?.trim();
+      const today = new Date();
+
+      // Nombre
+      const nombreVal = v('nombre');
+      if (!nombreVal) {
+        setError('nombre', 'El nombre es obligatorio.');
+        valid = false;
+      } else if (nombreVal.replace(/\s/g, '').length < 2) {
+        setError('nombre', 'El nombre debe tener al menos 2 letras.');
+        valid = false;
+      } else { setError('nombre', ''); }
+
+      // Apellidos
+      const apellidosVal = v('apellidos');
+      if (!apellidosVal) {
+        setError('apellidos', 'Los apellidos son obligatorios.');
+        valid = false;
+      } else if (apellidosVal.replace(/\s/g, '').length < 2) {
+        setError('apellidos', 'Los apellidos deben tener al menos 2 letras.');
+        valid = false;
+      } else { setError('apellidos', ''); }
+
+      // DNI
+      const dniVal = v('dni');
+      if (!dniVal) {
+        setError('dni', 'La cédula / DNI es obligatoria.');
+        valid = false;
+      } else if (!/^\d{5,12}$/.test(dniVal)) {
+        setError('dni', 'Ingresa un número de documento válido (5–12 dígitos).');
+        valid = false;
+      } else { setError('dni', ''); }
+
+      // Género
+      if (!v('genero')) {
+        setError('genero', 'Selecciona un género.');
+        valid = false;
+      } else { setError('genero', ''); }
+
+      // Fecha de nacimiento
+      const fechaVal = v('fecha_nacimiento');
+      if (!fechaVal) {
+        setError('fecha_nacimiento', 'La fecha de nacimiento es obligatoria.');
+        valid = false;
+      } else {
+        const nacimiento = new Date(fechaVal);
+        const edad = Math.floor((today - nacimiento) / (365.25 * 24 * 60 * 60 * 1000));
+        if (edad < 13) {
+          setError('fecha_nacimiento', 'Debes tener al menos 13 años para registrarte.');
+          valid = false;
+        } else if (edad > 120) {
+          setError('fecha_nacimiento', 'Ingresa una fecha de nacimiento válida.');
+          valid = false;
+        } else { setError('fecha_nacimiento', ''); }
+      }
+
+      // Departamento
+      if (!v('dep_residencia')) {
+        setError('dep_residencia', 'Selecciona tu departamento de residencia.');
+        valid = false;
+      } else { setError('dep_residencia', ''); }
+
+      // Ciudad
+      if (!v('ciudad_residencia')) {
+        setError('ciudad_residencia', 'Selecciona tu ciudad de residencia.');
+        valid = false;
+      } else { setError('ciudad_residencia', ''); }
+
+      // Correo
+      const correoVal = v('correo');
+      if (!correoVal) {
+        setError('correo', 'El correo electrónico es obligatorio.');
+        valid = false;
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoVal)) {
+        setError('correo', 'Ingresa un correo electrónico válido.');
+        valid = false;
+      } else { setError('correo', ''); }
+
+      // Teléfono (opcional, pero si se llena debe ser válido)
+      const telVal = v('telefono');
+      if (telVal && !/^[\d\s\+\-\(\)]{7,15}$/.test(telVal)) {
+        setError('telefono', 'Ingresa un número de teléfono válido.');
+        valid = false;
+      } else { setError('telefono', ''); }
+
+      // Dirección
+      if (!v('direccion')) {
+        setError('direccion', 'La dirección de envío es obligatoria.');
+        valid = false;
+      } else { setError('direccion', ''); }
+
+      // Usuario
+      const usuarioVal = v('usuario');
+      if (!usuarioVal) {
+        setError('usuario', 'El nombre de usuario es obligatorio.');
+        valid = false;
+      } else if (usuarioVal.length < 3) {
+        setError('usuario', 'El usuario debe tener al menos 3 caracteres.');
+        valid = false;
+      } else if (!/^[a-zA-Z0-9_\.]+$/.test(usuarioVal)) {
+        setError('usuario', 'Solo se permiten letras, números, guiones bajos y puntos.');
+        valid = false;
+      } else { setError('usuario', ''); }
+
+      // Contraseña
+      const passVal = document.getElementById('password')?.value || '';
+      if (!passVal) {
+        setError('password', 'La contraseña es obligatoria.');
+        valid = false;
+      } else if (!isPasswordStrong(passVal)) {
+        setError('password', 'Debe tener mínimo 8 caracteres, una mayúscula, un número y un símbolo.');
+        valid = false;
+      } else { setError('password', ''); }
+
+      // Confirmar contraseña
+      const confirmVal = document.getElementById('confirmPassword')?.value || '';
+      if (!confirmVal) {
+        setError('confirmPassword', 'Confirma tu contraseña.');
+        valid = false;
+      } else if (confirmVal !== passVal) {
+        setError('confirmPassword', 'Las contraseñas no coinciden.');
+        valid = false;
+      } else { setError('confirmPassword', ''); }
+
+      // CAPTCHA — usa isCaptchaVerified() de script.js (comprueba dataset.verified)
+      if (!isCaptchaVerified('captchaReg')) {
+        showFieldError('err-captcha', 'Por favor confirma que no eres un robot.');
+        valid = false;
+      } else { hideFieldError('err-captcha'); }
+
+      // Términos
+      const terminos = document.getElementById('aceptaTerminos');
+      if (!terminos?.checked) {
+        showFieldError('err-aceptaTerminos', 'Debes aceptar los Términos y Condiciones para continuar.');
+        valid = false;
+      } else { hideFieldError('err-aceptaTerminos'); }
+
+      if (!valid) {
+        const primerError = document.querySelector('.invalid, .field-error.visible');
+        if (primerError) primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // ── Todo válido → enviar a Supabase ──────────────────────────
+      const nombre         = v('nombre');
+      const apellidos      = v('apellidos');
+      const nombreCompleto = (nombre + ' ' + apellidos).trim();
+      const btn            = e.submitter || document.querySelector('button[type="submit"]');
+
       setLoading(btn, true);
 
-      const nombre    = document.getElementById('pNombre').value.trim();
-      const apellidos = document.getElementById('pApellidos').value.trim();
-      const nombreCompleto = (nombre + ' ' + apellidos).trim();
+      const datosUsuario = {
+        id_dni:            dniVal,
+        nombre:            v('nombre'),
+        nombre_completo:   nombreCompleto,
+        apellidos:         apellidos,
+        correo:            correoVal.toLowerCase(),
+        fecha_nacimiento:  fechaVal,
+        departamento:      v('dep_residencia'),
+        ciudad:            v('ciudad_residencia'),
+        genero:            v('genero'),
+        telefono:          telVal || '',
+        direccion:         v('direccion') || 'Pereira, Colombia',
+        username:          usuarioVal,
+        password:          passVal,
+        rol:               'cliente',
+        suscripcion_noticias: true,
+        notif_catalogo:    true,
+        notif_cumple:      true,
+      };
 
-      const { error } = await client.from('usuarios').update({
-        nombre_completo:  nombreCompleto,
-        apellidos:        apellidos,
-        correo:           document.getElementById('pCorreo').value.trim(),
-        fecha_nacimiento: document.getElementById('pFecha').value,
-        dep_residencia:   document.getElementById('pDepResidencia').value,
-        ciudad_residencia: document.getElementById('pCiudadResidencia').value,
-        genero:           document.getElementById('pGenero').value,
-        telefono:         document.getElementById('pTelefono').value.trim(),
-        direccion:        document.getElementById('pDireccion').value.trim(),
-      }).eq('id', sesion.id);
-
-      setLoading(btn, false);
+      const { data: insertData, error } = await client
+        .from('usuarios')
+        .insert([datosUsuario])
+        .select('id')
+        .single();
 
       if (error) {
-        showAlert('alertPerfil', 'Error al guardar: ' + error.message, 'error');
-      } else {
-        // Actualizar sesión y cabecera
-        sesion.nombre_completo = nombreCompleto;
-        sesion.correo = document.getElementById('pCorreo').value.trim();
-        sessionStorage.setItem('sesion', JSON.stringify(sesion));
-        document.getElementById('nombreDisplay').textContent = nombreCompleto;
-        document.getElementById('correoDisplay').textContent = sesion.correo;
-        const ini = nombreCompleto.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
-        document.getElementById('avatarInicial').textContent = ini || '👤';
-
-        showAlert('alertPerfil', '¡Datos actualizados correctamente!', 'success');
-        await cargarDatos();
-      }
-    }
-
-    // ── Guardar preferencias ─────────────────────────────────────
-    async function guardarPreferencias() {
-      const temas = Array.from(document.querySelectorAll('.pref-chip.selected input')).map(i => i.value);
-
-      const { error } = await client.from('usuarios').update({
-        temas_preferidos:     temas,
-        notif_catalogo:       document.getElementById('notifCatalogo').checked,
-        notif_cumple:         document.getElementById('notifCumple').checked,
-        suscripcion_noticias: document.getElementById('suscripcionNoticias').checked,
-      }).eq('id', sesion.id);
-
-      if (error) showAlert('alertPref', 'Error: ' + error.message, 'error');
-      else       showAlert('alertPref', '¡Preferencias guardadas!', 'success');
-    }
-
-    // ── Cambiar contraseña ───────────────────────────────────────
-    async function cambiarPassword(event) {
-      event.preventDefault();
-      const btn      = event.submitter;
-      const actual   = document.getElementById('passActual').value;
-      const nueva    = document.getElementById('passNueva').value;
-      const confirma = document.getElementById('passConfirm').value;
-
-      if (!isPasswordStrong(nueva)) {
-        showAlert('alertSeg', 'La contraseña debe tener 8+ caracteres, mayúscula, número y símbolo.', 'error');
-        return;
-      }
-      if (nueva !== confirma) {
-        showAlert('alertSeg', 'Las contraseñas nuevas no coinciden.', 'error');
-        return;
-      }
-
-      setLoading(btn, true);
-      const { data, error: errCheck } = await client.from('usuarios').select('password').eq('id', sesion.id).single();
-
-      if (errCheck || !data || data.password !== actual) {
         setLoading(btn, false);
-        showAlert('alertSeg', 'La contraseña actual es incorrecta.', 'error');
+        const isDuplicate = error.message.includes('duplicate') || error.message.includes('unique');
+        if (isDuplicate) {
+          // Intentar detectar qué campo está duplicado
+          if (error.message.includes('correo')) {
+            setError('correo', 'Este correo ya está registrado.');
+          } else if (error.message.includes('username') || error.message.includes('usuario')) {
+            setError('usuario', 'Este nombre de usuario ya está en uso.');
+          } else if (error.message.includes('dni') || error.message.includes('id_dni')) {
+            setError('dni', 'Esta cédula ya está registrada.');
+          } else {
+            // No se puede determinar cuál — mostrar ambos como posibles
+            setError('correo', 'Este correo o usuario ya está registrado.');
+            setError('usuario', 'Este correo o usuario ya está registrado.');
+          }
+          const primerError = document.querySelector('.invalid');
+          if (primerError) primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          showFieldError('err-aceptaTerminos', 'Error al registrar: ' + error.message);
+        }
         return;
       }
 
-      const { error } = await client.from('usuarios').update({ password: nueva }).eq('id', sesion.id);
+      // Enviar correo de verificación
+      await fetch(`${SUPABASE_URL}/functions/v1/send-verification-email`, {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'apikey':        SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+        },
+        body: JSON.stringify({ usuario_id: insertData.id }),
+      });
+
       setLoading(btn, false);
 
-      if (error) showAlert('alertSeg', 'Error: ' + error.message, 'error');
-      else {
-        showAlert('alertSeg', '¡Contraseña actualizada!', 'success');
-        event.target.reset();
-      }
+      sessionStorage.setItem('pendiente_verificacion', JSON.stringify({
+        id:     insertData.id,
+        correo: datosUsuario.correo,
+        nombre: datosUsuario.nombre_completo,
+      }));
+
+      setTimeout(() => { window.location.href = 'verificar.html'; }, 1200);
     }
-
-    // ── Monedero (resumen) ───────────────────────────────────────
-    async function cargarTarjetasPerfil() {
-      const { data } = await client.from('tarjetas').select('*').eq('usuario_id', sesion.id).order('creado_en');
-      const tarjetas = data || [];
-
-      const total = tarjetas.reduce((s, t) => s + parseFloat(t.saldo || 0), 0);
-      document.getElementById('pSaldoTotal').textContent =
-        '$ ' + total.toLocaleString('es-CO', { minimumFractionDigits: 0 });
-
-      const lista = document.getElementById('pListaTarjetas');
-      if (tarjetas.length === 0) {
-        lista.innerHTML = `<div style="text-align:center;padding:24px;border:1.5px dashed var(--borde);border-radius:12px;color:var(--texto-suave);">
-          <div style="font-size:2rem;margin-bottom:8px;">💳</div>
-          <p style="font-size:0.88rem;margin-bottom:12px;">No tienes tarjetas registradas.</p>
-          <a href="tarjetas.html" style="font-size:0.85rem;font-weight:600;color:var(--secundario);">+ Agregar primera tarjeta</a>
-        </div>`;
-        return;
-      }
-
-      lista.innerHTML = tarjetas.map(t => {
-        const ultimos = t.numero.replace(/\s/g,'').slice(-4);
-        const saldo   = parseFloat(t.saldo).toLocaleString('es-CO', { minimumFractionDigits: 0 });
-        const bg      = t.tipo === 'credito'
-          ? 'linear-gradient(135deg,#b83227,#8e2118)'
-          : 'linear-gradient(135deg,#1a1a2e,#0f3460)';
-        return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--borde);border-radius:10px;margin-bottom:8px;background:var(--fondo-card);">
-          <div style="width:40px;height:26px;border-radius:5px;background:${bg};flex-shrink:0;"></div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:0.87rem;font-weight:600;color:var(--texto);">•••• ${ultimos}</div>
-            <div style="font-size:0.75rem;color:var(--texto-suave);">${t.titular} · ${t.tipo === 'credito' ? 'Crédito' : 'Débito'}</div>
-          </div>
-          <div style="font-weight:700;font-size:0.9rem;color:var(--primario);white-space:nowrap;">$ ${saldo}</div>
-        </div>`;
-      }).join('');
-    }
-
-    // ── Eliminar cuenta ──────────────────────────────────────────
-    function confirmarEliminarCuenta() {
-      const overlay = document.createElement('div');
-      overlay.className = 'modal-overlay';
-      overlay.id = 'deleteModal';
-      overlay.innerHTML = `
-        <div class="modal">
-          <div style="font-size:2rem;text-align:center;margin-bottom:12px;">⚠️</div>
-          <h3 style="text-align:center;color:#dc2626;">Eliminar cuenta</h3>
-          <p style="text-align:center;">Esta acción es irreversible. Todos tus datos serán eliminados permanentemente.</p>
-          <div class="modal-actions">
-            <button onclick="document.getElementById('deleteModal').remove()"
-                    style="background:transparent;color:var(--texto-suave);border:1.5px solid var(--borde);box-shadow:none;width:auto;flex:1;">
-              Cancelar
-            </button>
-            <button onclick="eliminarCuenta()"
-                    style="background:#dc2626;box-shadow:none;width:auto;flex:1;">
-              Sí, eliminar
-            </button>
-          </div>
-        </div>`;
-      document.body.appendChild(overlay);
-    }
-
-    async function eliminarCuenta() {
-      const { error } = await client.from('usuarios').delete().eq('id', sesion.id);
-      if (error) { alert('Error: ' + error.message); return; }
-      sessionStorage.removeItem('sesion');
-      window.location.href = 'login.html';
-    }
+  </script>
+  <script>
+    initCaptcha('captchaReg');
+    initPasswordStrength('password', 'strengthBar', 'passHint');
 
     // ── Departamentos y ciudades de Colombia ──────────────────────
-    // IMPORTANTE: debe definirse ANTES de cargarDatos()
     const DEPARTAMENTOS_COLOMBIA = {
       "Amazonas": ["Leticia", "Puerto Nariño"],
       "Antioquia": ["Medellín", "Bello", "Itagüí", "Envigado", "Apartadó", "Turbo", "Rionegro", "Caucasia", "Sabaneta", "La Estrella"],
@@ -644,8 +556,8 @@
     };
 
     // Poblar select de departamentos al cargar
-    (function poblarDepartamentosPerfil() {
-      const selDep = document.getElementById('pDepResidencia');
+    (function poblarDepartamentos() {
+      const selDep = document.getElementById('dep_residencia');
       Object.keys(DEPARTAMENTOS_COLOMBIA).sort().forEach(dep => {
         const opt = document.createElement('option');
         opt.value = dep;
@@ -654,16 +566,15 @@
       });
     })();
 
-    function cargarCiudadesPerfil(ciudadSeleccionada) {
-      const dep = document.getElementById('pDepResidencia').value;
-      const selCiudad = document.getElementById('pCiudadResidencia');
+    function cargarCiudadesReg() {
+      const dep = document.getElementById('dep_residencia').value;
+      const selCiudad = document.getElementById('ciudad_residencia');
       selCiudad.innerHTML = '<option value="" disabled selected>Seleccionar ciudad...</option>';
       if (dep && DEPARTAMENTOS_COLOMBIA[dep]) {
         DEPARTAMENTOS_COLOMBIA[dep].forEach(ciudad => {
           const opt = document.createElement('option');
           opt.value = ciudad;
           opt.textContent = ciudad;
-          if (ciudadSeleccionada && ciudad === ciudadSeleccionada) opt.selected = true;
           selCiudad.appendChild(opt);
         });
         selCiudad.disabled = false;
@@ -671,9 +582,6 @@
         selCiudad.disabled = true;
       }
     }
-
-    // Llamar cargarDatos() DESPUÉS de que los selects estén listos
-    cargarDatos();
   </script>
 </body>
 </html>

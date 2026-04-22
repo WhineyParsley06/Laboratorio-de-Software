@@ -87,6 +87,7 @@
     <a href="index.html">Inicio</a>
     <a href="tarjetas.html">💳 Monedero</a>
     <a href="perfil.html" class="active">Mi Perfil</a>
+    <a href="admin.html" id="nav-admin-perfil" style="display:none;background:rgba(255,255,255,0.15);border-radius:6px;padding:4px 10px;">🛠️ Admin</a>
     <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
   </nav>
 
@@ -352,6 +353,12 @@
     initPasswordStrength('passNueva', 'strengthBarPerfil', 'passHintPerfil');
     initSessionTimer();
 
+    // Mostrar enlace admin si corresponde
+    if (sesion.rol === 'administrador') {
+      const navAdmin = document.getElementById('nav-admin-perfil');
+      if (navAdmin) navAdmin.style.display = 'inline-block';
+    }
+
     // ── Cargar datos desde Supabase ──────────────────────────────
     let datosUsuario = null;
 
@@ -371,10 +378,10 @@
       document.getElementById('pCorreo').value    = data.correo || '';
       document.getElementById('pFecha').value     = data.fecha_nacimiento || '';
       // Restaurar departamento y ciudad de residencia
-      if (data.dep_residencia) {
+      if (data.departamento) {
         const selDep = document.getElementById('pDepResidencia');
-        selDep.value = data.dep_residencia;
-        cargarCiudadesPerfil(data.ciudad_residencia);
+        selDep.value = data.departamento;
+        cargarCiudadesPerfil(data.ciudad);
       }
       document.getElementById('pDireccion').value = data.direccion || '';
       document.getElementById('pTelefono').value  = data.telefono || '';
@@ -400,8 +407,8 @@
         { label: 'Correo',               value: d.correo },
         { label: 'Teléfono',             value: d.telefono || '—' },
         { label: 'Fecha de nacimiento',  value: d.fecha_nacimiento ? new Date(d.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' }) : '—' },
-        { label: 'Departamento de residencia', value: d.dep_residencia || '—' },
-        { label: 'Ciudad de residencia', value: d.ciudad_residencia || '—' },
+        { label: 'Departamento de residencia', value: d.departamento || '—' },
+        { label: 'Ciudad de residencia', value: d.ciudad || '—' },
         { label: 'Género',               value: GENERO_LABEL[d.genero] || '—' },
         { label: 'Dirección de envío',   value: d.direccion || '—' },
         { label: 'Rol en el sistema',    value: d.rol },
@@ -455,8 +462,8 @@
         apellidos:        apellidos,
         correo:           document.getElementById('pCorreo').value.trim(),
         fecha_nacimiento: document.getElementById('pFecha').value,
-        dep_residencia:   document.getElementById('pDepResidencia').value,
-        ciudad_residencia: document.getElementById('pCiudadResidencia').value,
+        departamento:     document.getElementById('pDepResidencia').value,
+        ciudad: document.getElementById('pCiudadResidencia').value,
         genero:           document.getElementById('pGenero').value,
         telefono:         document.getElementById('pTelefono').value.trim(),
         direccion:        document.getElementById('pDireccion').value.trim(),
@@ -599,9 +606,8 @@
       window.location.href = 'login.html';
     }
 
-    cargarDatos();
-
     // ── Departamentos y ciudades de Colombia ──────────────────────
+    // IMPORTANTE: debe definirse ANTES de cargarDatos()
     const DEPARTAMENTOS_COLOMBIA = {
       "Amazonas": ["Leticia", "Puerto Nariño"],
       "Antioquia": ["Medellín", "Bello", "Itagüí", "Envigado", "Apartadó", "Turbo", "Rionegro", "Caucasia", "Sabaneta", "La Estrella"],
@@ -665,6 +671,9 @@
         selCiudad.disabled = true;
       }
     }
+
+    // Llamar cargarDatos() DESPUÉS de que los selects estén listos
+    cargarDatos();
   </script>
 </body>
 </html>

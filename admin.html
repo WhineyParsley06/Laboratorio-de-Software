@@ -269,6 +269,30 @@
       .search-input { width: 100%; }
       td, th { padding: 10px 10px; }
     }
+    .field-error {
+      display: block;
+      font-size: 0.72rem;
+      color: #e53e3e;
+      margin-top: 4px;
+      min-height: 0.9rem;
+      opacity: 0;
+      transform: translateY(-3px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .field-error.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .modal-admin input.invalid,
+    .modal-admin select.invalid,
+    .modal-admin textarea.invalid {
+      border-color: #e53e3e !important;
+      background-color: #fff5f5 !important;
+    }
+    .modal-admin input.valid,
+    .modal-admin select.valid {
+      border-color: #38a169 !important;
+    }
   </style>
 </head>
 <body>
@@ -307,7 +331,7 @@
         <div class="stat-chips">
           <div class="stat-chip">Total: <strong id="statTotal">—</strong></div>
           <div class="stat-chip">Stock bajo: <strong id="statBajo">—</strong></div>
-          <div class="stat-chip">Ocultos: <strong id="statOcultos">—</strong></div>
+          <div class="stat-chip">Agotados: <strong id="statOcultos">—</strong></div>
         </div>
       </div>
       <button class="btn-add" onclick="abrirModal()">＋ Agregar libro</button>
@@ -379,7 +403,7 @@
     function actualizarStats() {
       document.getElementById('statTotal').textContent   = libros.length;
       document.getElementById('statBajo').textContent    = libros.filter(l => (l.stock ?? 0) < 5).length;
-      document.getElementById('statOcultos').textContent = libros.filter(l => l.disponible === false).length;
+      document.getElementById('statOcultos').textContent = libros.filter(l => l.agotado === true).length;
     }
 
     // ── Renderizar tabla ──────────────────────────────────────────
@@ -397,7 +421,8 @@
       }
       tbody.innerHTML = lista.map(l => {
         const stockClass = (l.stock ?? 0) < 5 ? 'stock-low' : 'stock-ok';
-        const activo     = l.disponible !== false;
+        const agotado    = l.agotado === true;
+        const estadoLibro = l.estado_libro || 'disponible';
         return `
           <tr data-id="${l.id}">
             <td class="td-titulo">
@@ -410,17 +435,13 @@
             <td class="td-precio">$${parseFloat(l.precio || 0).toLocaleString('es-CO', { minimumFractionDigits: 0 })}</td>
             <td class="td-stock ${stockClass}">${l.stock ?? 0}</td>
             <td>
-              <span class="badge-genero" style="background:${activo ? '#dcfce7' : '#fef9c3'};color:${activo ? '#166534' : '#78350f'};">
-                ${activo ? 'Activo' : 'Oculto'}
+              <span class="badge-genero" style="background:${agotado ? '#fef2f2' : '#dcfce7'};color:${agotado ? '#dc2626' : '#166534'};">
+                ${agotado ? 'Agotado' : estadoLibro}
               </span>
             </td>
             <td>
               <div class="td-acciones">
                 <button class="btn-icon btn-edit"   onclick="abrirModal('${l.id}')">✏️ Editar</button>
-                <button class="btn-icon btn-toggle ${activo ? '' : 'inactive'}"
-                        onclick="toggleDisponible('${l.id}', ${activo})">
-                  ${activo ? '👁️ Ocultar' : '✅ Activar'}
-                </button>
                 <button class="btn-icon btn-delete" onclick="confirmarEliminar('${l.id}', '${escAttr(l.titulo)}')">🗑️</button>
               </div>
             </td>
@@ -451,17 +472,31 @@
       overlay.innerHTML = `
         <div class="modal-admin">
           <h3>${titulo}</h3>
-          <div id="alertModal"></div>
-
-          <div class="input-group">
-            <label>Título *</label>
-            <input type="text" id="mTitulo" placeholder="Ej: Cien años de soledad"
-                   value="${escAttr(libro?.titulo || '')}">
+          <div class="modal-row">
+            <div class="input-group">
+              <label>Título *</label>
+              <input type="text" id="mTitulo" placeholder="Ej: Cien años de soledad"
+                     value="${escAttr(libro?.titulo || '')}">
+              <span class="field-error" id="err-mTitulo"></span>
+            </div>
+            <div class="input-group">
+              <label>Autor *</label>
+              <input type="text" id="mAutor" placeholder="Ej: Gabriel García Márquez"
+                     value="${escAttr(libro?.autor || '')}">
+              <span class="field-error" id="err-mAutor"></span>
+            </div>
           </div>
-          <div class="input-group">
-            <label>Autor *</label>
-            <input type="text" id="mAutor" placeholder="Ej: Gabriel García Márquez"
-                   value="${escAttr(libro?.autor || '')}">
+          <div class="modal-row">
+            <div class="input-group">
+              <label>Editorial</label>
+              <input type="text" id="mEditorial" placeholder="Ej: Planeta"
+                     value="${escAttr(libro?.editorial || '')}">
+            </div>
+            <div class="input-group">
+              <label>Código único</label>
+              <input type="text" id="mCodigo" placeholder="Ej: LP-2026-001"
+                     value="${escAttr(libro?.codigo_unico || '')}">
+            </div>
           </div>
           <div class="modal-row">
             <div class="input-group">
@@ -480,27 +515,43 @@
           </div>
           <div class="modal-row">
             <div class="input-group">
-              <label>Precio (COP) *</label>
-              <input type="number" id="mPrecio" min="0" step="500"
-                     placeholder="25000" value="${libro?.precio || ''}">
-            </div>
-            <div class="input-group">
-              <label>Stock *</label>
-              <input type="number" id="mStock" min="0" step="1"
-                     placeholder="10" value="${libro?.stock ?? ''}">
-            </div>
-          </div>
-          <div class="modal-row">
-            <div class="input-group">
               <label>ISBN</label>
               <input type="text" id="mIsbn" placeholder="978-xxxxxxxxxx"
                      value="${escAttr(libro?.isbn || '')}">
             </div>
             <div class="input-group">
-              <label>Año de publicación</label>
-              <input type="number" id="mAnio" min="1000" max="2099"
-                     placeholder="${new Date().getFullYear()}"
-                     value="${libro?.anio_publicacion || ''}">
+              <label>Número de páginas</label>
+              <input type="number" id="mPaginas" min="1"
+                     placeholder="Ej: 320" value="${libro?.numero_paginas || ''}">
+            </div>
+          </div>
+          <div class="modal-row">
+            <div class="input-group">
+              <label>Fecha de publicación</label>
+              <input type="date" id="mFechaPub"
+                     value="${libro?.fecha_publicacion || ''}">
+            </div>
+            <div class="input-group">
+              <label>Estado del libro</label>
+              <select id="mEstadoLibro">
+                ${['disponible','reservado','no disponible']
+                  .map(e => `<option value="${e}" ${(libro?.estado_libro||'disponible')===e?'selected':''}>${e.charAt(0).toUpperCase()+e.slice(1)}</option>`)
+                  .join('')}
+              </select>
+            </div>
+          </div>
+          <div class="modal-row">
+            <div class="input-group">
+              <label>Precio (COP) *</label>
+              <input type="number" id="mPrecio" min="0" step="500"
+                     placeholder="25000" value="${libro?.precio || ''}">
+              <span class="field-error" id="err-mPrecio"></span>
+            </div>
+            <div class="input-group">
+              <label>Stock *</label>
+              <input type="number" id="mStock" min="0" step="1"
+                     placeholder="10" value="${libro?.stock ?? ''}">
+              <span class="field-error" id="err-mStock"></span>
             </div>
           </div>
           <div class="input-group">
@@ -511,13 +562,6 @@
           <div class="input-group">
             <label>Descripción / Sinopsis</label>
             <textarea id="mDescripcion">${escHtml(libro?.descripcion || '')}</textarea>
-          </div>
-          <div class="input-group">
-            <label>Disponible en catálogo</label>
-            <select id="mDisponible">
-              <option value="true"  ${(libro?.disponible!==false)?'selected':''}>Sí — visible para clientes</option>
-              <option value="false" ${(libro?.disponible===false)?'selected':''}>No — oculto</option>
-            </select>
           </div>
 
           <div class="modal-actions">
@@ -535,36 +579,78 @@
       if (m) m.remove();
     }
 
+    // ── Helpers de validación inline del modal ───────────────────
+    function mSetError(id, msg) {
+      const el    = document.getElementById(id);
+      const errEl = document.getElementById('err-' + id);
+      if (el) {
+        if (msg) { el.classList.add('invalid'); el.classList.remove('valid'); }
+        else     { el.classList.remove('invalid'); el.classList.add('valid'); }
+      }
+      if (errEl) {
+        errEl.textContent = msg;
+        msg ? errEl.classList.add('visible') : errEl.classList.remove('visible');
+      }
+    }
+    function mClearError(id) {
+      const el    = document.getElementById(id);
+      const errEl = document.getElementById('err-' + id);
+      if (el)    el.classList.remove('invalid', 'valid');
+      if (errEl) { errEl.textContent = ''; errEl.classList.remove('visible'); }
+    }
+
     // ── Guardar (crear o editar) ───────────────────────────────────
     async function guardarLibro() {
+      let valid = true;
+
       const titulo = document.getElementById('mTitulo').value.trim();
       const autor  = document.getElementById('mAutor').value.trim();
       const precio = parseFloat(document.getElementById('mPrecio').value);
       const stock  = parseInt(document.getElementById('mStock').value);
 
-      if (!titulo || !autor) {
-        showAlert('alertModal', 'Título y autor son obligatorios.', 'error'); return;
-      }
+      if (!titulo) {
+        mSetError('mTitulo', 'El título es obligatorio.'); valid = false;
+      } else { mSetError('mTitulo', ''); }
+
+      if (!autor) {
+        mSetError('mAutor', 'El autor es obligatorio.'); valid = false;
+      } else { mSetError('mAutor', ''); }
+
       if (isNaN(precio) || precio < 0) {
-        showAlert('alertModal', 'Ingresa un precio válido.', 'error'); return;
-      }
+        mSetError('mPrecio', 'Ingresa un precio válido.'); valid = false;
+      } else { mSetError('mPrecio', ''); }
+
       if (isNaN(stock) || stock < 0) {
-        showAlert('alertModal', 'Ingresa un stock válido.', 'error'); return;
+        mSetError('mStock', 'Ingresa un stock válido (mínimo 0).'); valid = false;
+      } else { mSetError('mStock', ''); }
+
+      if (!valid) {
+        const primerError = document.querySelector('#modalLibro .invalid');
+        if (primerError) primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
       }
 
       const payload = {
         titulo,
         autor,
-        genero:           document.getElementById('mGenero').value || null,
-        idioma:           document.getElementById('mIdioma').value.trim() || 'Español',
+        editorial:         document.getElementById('mEditorial').value.trim() || null,
+        codigo_unico:      document.getElementById('mCodigo').value.trim() || null,
+        genero:            document.getElementById('mGenero').value || null,
+        idioma:            document.getElementById('mIdioma').value.trim() || 'Español',
+        isbn:              document.getElementById('mIsbn').value.trim() || null,
+        numero_paginas:    parseInt(document.getElementById('mPaginas').value) || null,
+        fecha_publicacion: document.getElementById('mFechaPub').value || null,
         precio,
         stock,
-        isbn:             document.getElementById('mIsbn').value.trim() || null,
-        anio_publicacion: parseInt(document.getElementById('mAnio').value) || null,
-        imagen_url:       document.getElementById('mImagen').value.trim() || null,
-        descripcion:      document.getElementById('mDescripcion').value.trim() || null,
-        disponible:       document.getElementById('mDisponible').value === 'true',
+        estado_libro:      document.getElementById('mEstadoLibro').value,
+        agotado:           stock === 0,
+        imagen_url:        document.getElementById('mImagen').value.trim() || null,
+        descripcion:       document.getElementById('mDescripcion').value.trim() || null,
+        registrado_por:    sesion?.id || null,
       };
+
+      const btnSave = document.querySelector('#modalLibro .btn-save');
+      if (btnSave) setLoading(btnSave, true);
 
       let error;
       if (editandoId) {
@@ -573,8 +659,10 @@
         ({ error } = await client.from('libros').insert([payload]));
       }
 
+      if (btnSave) setLoading(btnSave, false);
+
       if (error) {
-        showAlert('alertModal', 'Error: ' + error.message, 'error'); return;
+        toast('Error: ' + error.message, 'error'); return;
       }
 
       cerrarModal('modalLibro');
@@ -582,14 +670,7 @@
       await cargarLibros();
     }
 
-    // ── Toggle disponible ─────────────────────────────────────────
-    async function toggleDisponible(id, estadoActual) {
-      const { error } = await client
-        .from('libros').update({ disponible: !estadoActual }).eq('id', id);
-      if (error) { toast('Error: ' + error.message, 'error'); return; }
-      toast(estadoActual ? '👁️ Libro ocultado' : '✅ Libro activado', 'success');
-      await cargarLibros();
-    }
+
 
     // ── Confirmar eliminar ────────────────────────────────────────
     function confirmarEliminar(id, titulo) {

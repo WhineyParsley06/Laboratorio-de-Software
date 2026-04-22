@@ -239,11 +239,13 @@ async function simularRegistro(event) {
 
   const datosUsuario = {
     id_dni:           document.getElementById('dni').value.trim(),
+    nombre:           nombre,
     nombre_completo:  nombreCompleto,
     apellidos:        apellidos,
     correo:           document.getElementById('correo').value.trim().toLowerCase(),
     fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
-    lugar_nacimiento: document.getElementById('lugar_nacimiento')?.value.trim() || '',
+    departamento:     document.getElementById('dep_residencia')?.value || '',
+    ciudad:           document.getElementById('ciudad_residencia')?.value || '',
     genero:           document.getElementById('genero')?.value || '',
     telefono:         document.getElementById('telefono')?.value.trim() || '',
     direccion:        document.getElementById('direccion').value.trim() || 'Pereira, Colombia',
