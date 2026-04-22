@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Root — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* ── Header Root ─────────────────────────────── */
+    .root-header {
+      background: linear-gradient(135deg, #2d0a31 0%, #1a051d 100%);
+      color: #fff;
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .root-header h1 { font-size: 1.15rem; margin: 0; font-weight: 700; letter-spacing: 0.02em; }
+    .root-header p  { margin: 2px 0 0; font-size: 0.78rem; opacity: 0.7; }
+    .badge-root {
+      background: #8b5cf6;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 99px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .admin-wrap { max-width: 1100px; margin: 32px auto; padding: 0 20px; }
+
+    /* ── Pestañas ────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--borde);
+      padding-bottom: 10px;
+    }
+    .tab-btn {
+      padding: 10px 24px;
+      border: none;
+      background: transparent;
+      font-weight: 600;
+      color: var(--texto-suave);
+      cursor: pointer;
+      font-size: 0.95rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { background: var(--fondo-suave); }
+    .tab-btn.active {
+      background: #f3e8ff;
+      color: #6b21a8;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Controles ───────────────────────────────── */
+    .toolbar { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .search-input {
+      padding: 10px 16px;
+      border: 1.5px solid var(--borde);
+      border-radius: 8px;
+      width: 300px;
+      font-size: 0.88rem;
+    }
+    .btn-add {
+      padding: 10px 20px;
+      background: #8b5cf6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-add:hover { background: #7c3aed; }
+
+    /* ── Tabla ───────────────────────────────────── */
+    .table-wrap {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid var(--borde);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f8fafc; padding: 14px; text-align: left; font-size: 0.75rem; color: var(--texto-suave); text-transform: uppercase; }
+    td { padding: 14px; border-top: 1px solid var(--borde); font-size: 0.88rem; vertical-align: middle; }
+    tr:hover td { background: #f8fafc; }
+
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .user-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #e2e8f0; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #475569; font-size: 0.85rem;
+    }
+    .user-name { font-weight: 600; color: var(--texto); display: block; }
+    .user-email { font-size: 0.75rem; color: var(--texto-suave); }
+
+    .btn-icon { background: #fff; border: 1px solid var(--borde); border-radius: 6px; padding: 6px 10px; cursor: pointer; transition: 0.2s; }
+    .btn-icon:hover { border-color: #8b5cf6; color: #8b5cf6; }
+
+    /* ── Modal Detalles Cliente ──────────────────── */
+    .detail-section { margin-bottom: 24px; padding: 16px; background: var(--fondo-suave); border-radius: 12px; }
+    .detail-section h4 { margin-top: 0; color: var(--primario); margin-bottom: 12px; font-size: 0.9rem; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem; }
+    .detail-grid strong { color: var(--texto-suave); display: block; margin-bottom: 2px; }
+    
+    .iter3-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-iter3 {
+      padding: 10px; border-radius: 8px; border: 1px dashed var(--borde);
+      background: #fff; color: var(--texto-suave); font-size: 0.85rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600;
+    }
+    .btn-iter3:hover { background: #fffbeb; border-color: #f59e0b; color: #d97706; }
+    .btn-iter3.danger:hover { background: #fef2f2; border-color: #ef4444; color: #dc2626; }
+
+    /* Estilos base de modals (reutilizados del admin) */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal-admin { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--texto-suave); }
+    .input-group input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--borde); font-size: 0.9rem; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+    .btn-cancel { flex: 1; padding: 11px; background: transparent; border: 1px solid var(--borde); border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .btn-save { flex: 2; padding: 11px; background: #8b5cf6; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+    
+    #toast { position: fixed; bottom: 24px; right: 24px; padding: 13px 20px; border-radius: 10px; font-size: 0.88rem; font-weight: 600; color: #fff; z-index: 9999; opacity: 0; transition: 0.3s; pointer-events: none; }
+    #toast.show { opacity: 1; transform: translateY(-10px); }
+    .success { background: #16a34a; }
+    .error { background: #dc2626; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
+  </nav>
+
+  <div class="root-header">
+    <div>
+      <h1>👑 Panel de Superusuario <span class="badge-root">Root</span></h1>
+      <p>Gestión del sistema, administradores y control de clientes.</p>
+    </div>
+  </div>
+
+  <div class="admin-wrap">
+    
+    <div class="tabs">
+      <button class="tab-btn active" onclick="cambiarTab('admins')">🛡️ Administradores</button>
+      <button class="tab-btn" onclick="cambiarTab('clientes')">👥 Clientes</button>
+    </div>
+
+    <div id="tab-admins" class="tab-content active">
+      <div class="toolbar">
+        <input type="text" class="search-input" id="buscarAdmin" placeholder="Buscar administrador..." oninput="renderAdmins()">
+        <button class="btn-add" onclick="abrirModalAdmin()">＋ Crear Administrador</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Administrador</th><th>Fecha Registro</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="listaAdmins"><tr><td colspan="4">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-clientes" class="tab-content">
+      <div class="toolbar">
+        <input type="text" class="search-input" id="buscarCliente" placeholder="Buscar cliente..." oninput="renderClientes()">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>Ciudad / Dirección</th><th>Fecha Registro</th><th>Acciones</th></tr></thead>
+          <tbody id="listaClientes"><tr><td colspan="4">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="js/script.js"></script>
+  <script>
+    // ── Protección de Ruta ───────────────────────────────────────
+    // El rol ROOT debe ser el único que puede entrar aquí.
+    const sesion = requireSession();
+    if (sesion && sesion.rol !== 'root') {
+      alert('⛔ Acceso denegado. Esta sección es exclusiva para el Superusuario (Root).');
+      window.location.href = 'index.html';
+    }
+
+    let todosLosUsuarios = [];
+
+    // ── Lógica de Pestañas ───────────────────────────────────────
+    function cambiarTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    // ── Cargar Datos ─────────────────────────────────────────────
+    async function cargarUsuarios() {
+      // Cargamos la tabla 'usuarios' donde deben estar tanto admins como clientes
+      const { data, error } = await client.from('usuarios').select('*').order('creado_en', { ascending: false });
+      if (error) { toast('Error cargando usuarios', 'error'); return; }
+      todosLosUsuarios = data || [];
+      renderAdmins();
+      renderClientes();
+    }
+
+    // ── Render Administradores (Iteración 2) ─────────────────────
+    function renderAdmins() {
+      const q = document.getElementById('buscarAdmin').value.toLowerCase();
+      const admins = todosLosUsuarios.filter(u => u.rol === 'administrador' && (u.nombre_completo.toLowerCase().includes(q) || u.correo.toLowerCase().includes(q)));
+      
+      const tbody = document.getElementById('listaAdmins');
+      if (!admins.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay administradores registrados.</td></tr>'; return; }
+
+      tbody.innerHTML = admins.map(u => `
+        <tr>
+          <td>
+            <div class="user-info">
+              <div class="user-avatar">${u.nombre_completo.charAt(0).toUpperCase()}</div>
+              <div>
+                <span class="user-name">${u.nombre_completo}</span>
+                <span class="user-email">${u.correo}</span>
+              </div>
+            </div>
+          </td>
+          <td>${new Date(u.creado_en).toLocaleDateString()}</td>
+          <td><span style="background:#dcfce7; color:#166534; padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:600;">Activo</span></td>
+          <td>
+            <button class="btn-icon" onclick="abrirModalAdmin('${u.id}')">✏️ Editar</button>
+            <button class="btn-icon" onclick="eliminarUsuario('${u.id}', '${u.nombre_completo}')" style="color:#dc2626;">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // ── Render Clientes (Iteración 2) ────────────────────────────
+    function renderClientes() {
+      const q = document.getElementById('buscarCliente').value.toLowerCase();
+      const clientes = todosLosUsuarios.filter(u => u.rol === 'cliente' && (u.nombre_completo.toLowerCase().includes(q) || u.correo.toLowerCase().includes(q)));
+      
+      const tbody = document.getElementById('listaClientes');
+      if (!clientes.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay clientes registrados.</td></tr>'; return; }
+
+      tbody.innerHTML = clientes.map(u => `
+        <tr>
+          <td>
+            <div class="user-info">
+              <div class="user-avatar">${u.nombre_completo.charAt(0).toUpperCase()}</div>
+              <div>
+                <span class="user-name">${u.nombre_completo}</span>
+                <span class="user-email">${u.correo}</span>
+              </div>
+            </div>
+          </td>
+          <td style="color:var(--texto-suave); font-size:0.8rem;">
+            ${u.ciudad_residencia || 'Sin ciudad'}<br>${u.direccion || 'Sin dirección'}
+          </td>
+          <td>${new Date(u.creado_en).toLocaleDateString()}</td>
+          <td>
+            <button class="btn-icon" onclick="verDetallesCliente('${u.id}')" style="background:#f0fdf4; border-color:#bbf7d0; color:#16a34a;">👁️ Ver detalles</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // ── Modal Crear/Editar Administrador ─────────────────────────
+    let editandoAdminId = null;
+
+    function abrirModalAdmin(id = null) {
+      editandoAdminId = id;
+      const admin = id ? todosLosUsuarios.find(u => u.id == id) : null;
+      const titulo = admin ? '✏️ Editar Administrador' : '＋ Nuevo Administrador';
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'modalAdmin';
+      overlay.innerHTML = `
+        <div class="modal-admin">
+          <h3 style="margin-top:0; margin-bottom:20px;">${titulo}</h3>
+          
+          <div class="input-group">
+            <label>Nombre Completo *</label>
+            <input type="text" id="mNombre" value="${admin?.nombre_completo || ''}" placeholder="Ej: Carlos Admin">
+          </div>
+          
+          <div class="input-group">
+            <label>Correo Electrónico *</label>
+            <input type="email" id="mCorreo" value="${admin?.correo || ''}" placeholder="carlos@libreria.com" ${admin ? 'disabled title="El correo no se puede cambiar"' : ''}>
+          </div>
+
+          <div class="input-group">
+            <label>Contraseña ${admin ? '(Opcional)' : '*'}</label>
+            <input type="password" id="mPass" placeholder="${admin ? 'Dejar en blanco para mantener la actual' : 'Mínimo 8 caracteres...'}">
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="cerrarModal('modalAdmin')">Cancelar</button>
+            <button class="btn-save" onclick="guardarAdmin()">${admin ? 'Guardar Cambios' : 'Crear Administrador'}</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    async function guardarAdmin() {
+      const nombre = document.getElementById('mNombre').value.trim();
+      const correo = document.getElementById('mCorreo').value.trim();
+      const pass   = document.getElementById('mPass').value.trim();
+
+      if (!nombre || (!editandoAdminId && !correo)) {
+        toast('El nombre y correo son obligatorios', 'error'); return;
+      }
+      if (!editandoAdminId && pass.length < 8) {
+        toast('La contraseña debe tener mínimo 8 caracteres', 'error'); return;
+      }
+
+      const payload = {
+        nombre_completo: nombre,
+        rol: 'administrador'
+      };
+      
+      if (!editandoAdminId) {
+        payload.correo = correo;
+        payload.contrasena = pass; // En un entorno real Supabase Auth maneja esto de otra forma, pero es el mock de la BD.
+      } else if (pass) {
+        payload.contrasena = pass;
+      }
+
+      let errorObj;
+      if (editandoAdminId) {
+        const { error } = await client.from('usuarios').update(payload).eq('id', editandoAdminId);
+        errorObj = error;
+      } else {
+        const { error } = await client.from('usuarios').insert([payload]);
+        errorObj = error;
+      }
+
+      if (errorObj) { toast('Error: ' + errorObj.message, 'error'); return; }
+
+      cerrarModal('modalAdmin');
+      toast(editandoAdminId ? 'Admin actualizado' : 'Admin creado', 'success');
+      cargarUsuarios();
+    }
+
+    async function eliminarUsuario(id, nombre) {
+      if (confirm(`¿Estás seguro de eliminar permanentemente al administrador ${nombre}?`)) {
+        const { error } = await client.from('usuarios').delete().eq('id', id);
+        if (error) toast('Error al eliminar', 'error');
+        else { toast('Administrador eliminado', 'success'); cargarUsuarios(); }
+      }
+    }
+
+    // ── Modal Ver Detalles del Cliente (Iteración 2 y 3) ─────────
+    function verDetallesCliente(id) {
+      const cliente = todosLosUsuarios.find(u => u.id == id);
+      if(!cliente) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'modalCliente';
+      overlay.innerHTML = `
+        <div class="modal-admin" style="max-width:600px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0;">👤 Detalles del Cliente</h3>
+            <span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:8px; font-size:0.8rem; font-weight:600;">Cuenta Activa</span>
+          </div>
+          
+          <div class="detail-section">
+            <h4>Información Personal</h4>
+            <div class="detail-grid">
+              <div><strong>Nombre Completo</strong>${cliente.nombre_completo}</div>
+              <div><strong>Correo Electrónico</strong>${cliente.correo}</div>
+              <div><strong>Nombre de Usuario</strong>${cliente.nombre_usuario || 'N/A'}</div>
+              <div><strong>Fecha de Nacimiento</strong>${cliente.fecha_nacimiento || 'N/A'}</div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h4>Datos de Contacto / Envío</h4>
+            <div class="detail-grid">
+              <div><strong>Departamento</strong>${cliente.dep_residencia || 'N/A'}</div>
+              <div><strong>Ciudad</strong>${cliente.ciudad_residencia || 'N/A'}</div>
+              <div style="grid-column: 1 / -1;"><strong>Dirección Completa</strong>${cliente.direccion || 'N/A'}</div>
+            </div>
+          </div>
+
+          <h4 style="font-size:0.9rem; color:var(--texto); margin-bottom:10px;">Acciones Administrativas</h4>
+          <div class="iter3-grid">
+            <button class="btn-iter3" onclick="alert('La funcionalidad de Ver Historial de Compras estará disponible en la Iteración 3.')">🛒 Ver Compras</button>
+            <button class="btn-iter3" onclick="alert('La funcionalidad de Ver Reservas Activas estará disponible en la Iteración 3.')">📌 Ver Reservas</button>
+            <button class="btn-iter3" onclick="alert('La funcionalidad de Ver Métodos de Pago estará disponible en la Iteración 3.')">💳 Métodos de Pago</button>
+            <button class="btn-iter3 danger" onclick="alert('La funcionalidad de Bloquear / Suspender usuarios estará disponible en la Iteración 3.')">🚫 Suspender Cuenta</button>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-cancel" style="width:100%;" onclick="cerrarModal('modalCliente')">Cerrar Detalles</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    // ── Utilidades ───────────────────────────────────────────────
+    function cerrarModal(id) { const m = document.getElementById(id); if (m) m.remove(); }
+    function toast(msg, tipo = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = `show ${tipo}`;
+      setTimeout(() => { t.className = ''; }, 3000);
+    }
+
+    // Init
+    cargarUsuarios();
+  </script>
+</body>
+</html>

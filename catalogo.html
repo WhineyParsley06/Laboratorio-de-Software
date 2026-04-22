@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* ── Estilos específicos del catálogo ────────────────── */
+    .catalogo-header {
+      background: #fdf6f0;
+      padding: 40px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--borde);
+    }
+    .catalogo-header h1 { font-family: 'Playfair Display', serif; font-size: 2.2rem; color: var(--primario-dark); }
+    
+    .filter-bar {
+      max-width: 1100px;
+      margin: -30px auto 30px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: var(--sombra);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .search-box { flex: 1; min-width: 280px; position: relative; }
+    .search-box input {
+      width: 100%; padding: 12px 16px; border-radius: 10px;
+      border: 1.5px solid var(--borde); font-size: 0.9rem;
+    }
+    .genre-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    .genre-btn {
+      padding: 8px 16px; border-radius: 99px; border: 1px solid var(--borde);
+      background: #fff; color: var(--texto-suave); cursor: pointer; font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .genre-btn.active { background: var(--primario); color: #fff; border-color: var(--primario); }
+
+    /* ── Grid de Libros ─────────────────────────────────── */
+    .books-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 30px;
+      max-width: 1100px;
+      margin: 0 auto 60px;
+      padding: 0 20px;
+    }
+    .book-card {
+      background: #fff; border-radius: 14px; border: 1px solid var(--borde);
+      overflow: hidden; transition: transform 0.3s, box-shadow 0.3s;
+      display: flex; flex-direction: column; text-decoration: none; color: inherit;
+    }
+    .book-card:hover { transform: translateY(-6px); box-shadow: var(--sombra-fuerte); }
+    .book-img {
+      width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #eee;
+    }
+    .book-info { padding: 18px; flex-grow: 1; display: flex; flex-direction: column; }
+    .book-tag { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--primario); margin-bottom: 6px; }
+    .book-title { font-size: 1.05rem; margin: 0 0 4px; font-weight: 700; color: var(--texto); }
+    .book-author { font-size: 0.85rem; color: var(--texto-suave); margin-bottom: 12px; }
+    .book-price { font-size: 1.15rem; font-weight: 800; color: var(--primario-dark); margin-top: auto; }
+
+    /* ── Vista Detalle ───────────────────────────────────── */
+    #vista-detalle { display: none; max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+    .detail-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 40px; }
+    .detail-img { width: 100%; border-radius: 16px; box-shadow: var(--sombra); }
+    .detail-content h2 { font-family: 'Playfair Display', serif; font-size: 2.5rem; margin-bottom: 10px; }
+    .detail-meta { display: flex; gap: 20px; margin-bottom: 24px; color: var(--texto-suave); font-size: 0.9rem; }
+    .detail-desc { line-height: 1.7; color: var(--texto); margin-bottom: 30px; }
+    .detail-price { font-size: 2rem; font-weight: 800; color: var(--primario); margin-bottom: 20px; }
+    .btn-reserva {
+      padding: 15px 30px; background: var(--primario); color: #fff; border: none;
+      border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .detail-container { grid-template-columns: 1fr; }
+      .filter-bar { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav id="navbar-placeholder">
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <div id="nav-links">
+      <a href="index.html">Inicio</a>
+      <a href="catalogo.html" class="active">Catálogo</a>
+      </div>
+  </nav>
+
+  <main id="seccion-catalogo">
+    <header class="catalogo-header">
+      <h1>Nuestro Catálogo</h1>
+      <p>Explora miles de historias esperando por ti</p>
+    </header>
+
+    <div class="filter-bar">
+      <div class="search-box">
+        <input type="text" id="inputBuscar" placeholder="Buscar por título, autor o ISBN..." oninput="manejarFiltros()">
+      </div>
+      <div class="genre-filters" id="listaGeneros">
+        <button class="genre-btn active" onclick="filtrarPorGenero('Todos')">Todos</button>
+        </div>
+    </div>
+
+    <div class="books-grid" id="gridLibros">
+      <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: var(--texto-suave);">
+        Cargando libros...
+      </div>
+    </div>
+  </main>
+
+  <main id="vista-detalle">
+    <button onclick="window.location.href='catalogo.html'" style="margin-bottom:20px; border:none; background:none; cursor:pointer; color:var(--primario); font-weight:600;">
+      ← Volver al catálogo
+    </button>
+    <div id="detalleContenido"></div>
+  </main>
+
+  <footer style="margin-top: 80px;">
+    <strong>Librería Pereira</strong> &copy; 2026
+  </footer>
+
+  <script src="js/script.js"></script>
+  <script>
+    let todosLosLibros = [];
+    let generoActual = 'Todos';
+
+    // 1. Inicialización
+    async function init() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const libroId = urlParams.get('id');
+
+      if (libroId) {
+        // Mostrar solo un libro (Detalle)
+        document.getElementById('seccion-catalogo').style.display = 'none';
+        document.getElementById('vista-detalle').style.display = 'block';
+        cargarDetalleLibro(libroId);
+      } else {
+        // Mostrar listado completo
+        await cargarCatalogo();
+        generarBotonesGeneros();
+      }
+    }
+
+    // 2. Cargar todos los libros
+    async function cargarCatalogo() {
+      const { data, error } = await client
+        .from('libros')
+        .select('*')
+        .eq('agotado', false) // Solo mostramos los que no están agotados
+        .order('titulo', { ascending: true });
+
+      if (error) {
+        console.error("Error cargando catálogo:", error);
+        return;
+      }
+      todosLosLibros = data || [];
+      renderizarGrid(todosLosLibros);
+    }
+
+    // 3. Renderizar Grid
+    function renderizarGrid(lista) {
+      const grid = document.getElementById('gridLibros');
+      if (lista.length === 0) {
+        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:50px;">
+          <p>No se encontraron libros con esos criterios.</p>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = lista.map(l => `
+        <a href="catalogo.html?id=${l.id}" class="book-card">
+          <img src="${l.imagen_url || 'https://via.placeholder.com/300x450?text=Sin+Portada'}" class="book-img" alt="${l.titulo}">
+          <div class="book-info">
+            <span class="book-tag">${l.genero || 'General'}</span>
+            <h3 class="book-title">${l.titulo}</h3>
+            <p class="book-author">${l.autor}</p>
+            <div class="book-price">$${parseFloat(l.precio).toLocaleString('es-CO')}</div>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    // 4. Filtros
+    function filtrarPorGenero(genero) {
+      generoActual = genero;
+      document.querySelectorAll('.genre-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent === genero);
+      });
+      manejarFiltros();
+    }
+
+    function manejarFiltros() {
+      const busqueda = document.getElementById('inputBuscar').value.toLowerCase();
+      
+      const filtrados = todosLosLibros.filter(l => {
+        const matchesGenero = (generoActual === 'Todos' || l.genero === generoActual);
+        const matchesBusqueda = (
+          l.titulo.toLowerCase().includes(busqueda) || 
+          l.autor.toLowerCase().includes(busqueda) ||
+          (l.isbn && l.isbn.includes(busqueda))
+        );
+        return matchesGenero && matchesBusqueda;
+      });
+
+      renderizarGrid(filtrados);
+    }
+
+    function generarBotonesGeneros() {
+      const generos = [...new Set(todosLosLibros.map(l => l.genero).filter(g => g))];
+      const contenedor = document.getElementById('listaGeneros');
+      generos.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = 'genre-btn';
+        btn.textContent = g;
+        btn.onclick = () => filtrarPorGenero(g);
+        contenedor.appendChild(btn);
+      });
+    }
+
+    // 5. Vista Detalle
+    async function cargarDetalleLibro(id) {
+      const { data: l, error } = await client
+        .from('libros')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !l) {
+        document.getElementById('detalleContenido').innerHTML = "<p>El libro no existe o fue eliminado.</p>";
+        return;
+      }
+
+      document.title = `${l.titulo} — Librería Pereira`;
+
+      document.getElementById('detalleContenido').innerHTML = `
+        <div class="detail-container">
+          <img src="${l.imagen_url || 'https://via.placeholder.com/400x600?text=Sin+Portada'}" class="detail-img">
+          <div class="detail-content">
+            <span class="book-tag">${l.genero || 'General'}</span>
+            <h2>${l.titulo}</h2>
+            <p style="font-size:1.2rem; margin-bottom:20px;">de <strong>${l.autor}</strong></p>
+            
+            <div class="detail-meta">
+              <span><strong>Editorial:</strong> ${l.editorial || 'N/A'}</span>
+              <span><strong>ISBN:</strong> ${l.isbn || 'N/A'}</span>
+              <span><strong>Idioma:</strong> ${l.idioma || 'Español'}</span>
+              <span><strong>Páginas:</strong> ${l.numero_paginas || '—'}</span>
+            </div>
+
+            <div class="detail-desc">
+              ${l.descripcion || 'Sin descripción disponible.'}
+            </div>
+
+            <div class="detail-price">$${parseFloat(l.precio).toLocaleString('es-CO')}</div>
+            
+            <div style="margin-bottom:20px; font-size:0.9rem;">
+              Estado: <span style="text-transform:capitalize; font-weight:700;">${l.estado_libro}</span><br>
+              Stock disponible: <strong>${l.stock} unidades</strong>
+            </div>
+
+            <button class="btn-reserva" onclick="alert('Funcionalidad de reserva disponible en la Iteración 3')">
+              Reservar este libro
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -112,9 +112,6 @@
 </head>
 <body>
 
-  <!-- ══════════════════════════════════════════
-       NAV VISITANTE
-  ══════════════════════════════════════════ -->
   <nav id="nav-visitante">
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html" class="active">Inicio</a>
@@ -122,21 +119,19 @@
     <a href="registro.html" class="nav-cta">Registrarse</a>
   </nav>
 
-  <!-- ══════════════════════════════════════════
-       NAV USUARIO LOGUEADO
-  ══════════════════════════════════════════ -->
   <nav id="nav-usuario">
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html" class="active">Inicio</a>
     <a href="tarjetas.html">💳 Monedero</a>
     <a href="perfil.html">Mi Perfil</a>
+    
     <a href="admin.html" id="nav-admin" style="display:none;background:rgba(255,255,255,0.15);border-radius:6px;padding:4px 10px;">🛠️ Admin</a>
+    
+    <a href="root.html" id="nav-root" style="display:none;background:#8b5cf6;color:#fff;border-radius:6px;padding:4px 10px;font-weight:600;">👑 Root</a>
+    
     <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
   </nav>
 
-  <!-- ══════════════════════════════════════════
-       HERO VISITANTE
-  ══════════════════════════════════════════ -->
   <div class="hero" id="hero-visitante">
     <h1>Bienvenido a Librería Pereira</h1>
     <p>Descubre, reserva y compra libros desde Pereira para el mundo. Más de miles de títulos disponibles.</p>
@@ -152,9 +147,6 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       HERO USUARIO LOGUEADO
-  ══════════════════════════════════════════ -->
   <div class="hero" id="hero-usuario">
     <h1 id="saludoHero">Bienvenido de vuelta</h1>
     <p>Tu espacio para descubrir, reservar y comprar libros desde Pereira para el mundo.</p>
@@ -164,14 +156,10 @@
     </a>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       SECCIÓN VISITANTE
-  ══════════════════════════════════════════ -->
   <div id="seccion-visitante">
 
     <div class="container container-wide" style="margin-top:36px;">
 
-      <!-- Banner únete -->
       <div class="join-banner">
         <div>
           <h3>¿Aún no tienes cuenta?</h3>
@@ -183,7 +171,6 @@
         </div>
       </div>
 
-      <!-- Qué puede hacer un visitante -->
       <div style="text-align:center; margin-bottom:20px;">
         <h2 style="font-size:1.3rem; margin-bottom:4px;">Explora sin registrarte</h2>
         <p style="color:var(--texto-suave); font-size:0.88rem;">Estas funciones están disponibles para todos</p>
@@ -197,13 +184,15 @@
             <p>Busca libros por título, autor, género y más</p>
           </div>
         </a>
-        <a href="noticias.html" style="text-decoration:none;">
+        
+        <a href="#" onclick="alert('Funcionalidad de Noticias disponible en la Iteración 3'); return false;" style="text-decoration:none;">
           <div class="feature-card">
             <span class="f-icon">📰</span>
             <h3>Noticias</h3>
             <p>Novedades y nuevos títulos disponibles</p>
           </div>
         </a>
+
         <a href="terminos.html" style="text-decoration:none;">
           <div class="feature-card">
             <span class="f-icon">📋</span>
@@ -228,14 +217,12 @@
         </div>
       </div>
 
-      <!-- Novedades recientes (estáticas por ahora, dinámicas en Iter 3) -->
       <div style="text-align:center; margin-bottom:20px;">
         <h2 style="font-size:1.3rem; margin-bottom:4px;">Últimas novedades</h2>
         <p style="color:var(--texto-suave); font-size:0.88rem;">Los libros más recientes en nuestra librería</p>
       </div>
 
       <div id="novedadesGrid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin-bottom:16px;">
-        <!-- Se llena dinámicamente desde Supabase -->
         <div style="text-align:center; padding:32px; color:var(--texto-suave); grid-column:1/-1;" id="novedadesLoading">
           Cargando novedades...
         </div>
@@ -251,25 +238,20 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       SECCIÓN USUARIO LOGUEADO
-  ══════════════════════════════════════════ -->
   <div id="seccion-usuario">
 
-    <!-- Accesos rápidos -->
     <div class="quick-links" style="margin-top:32px;">
       <a href="catalogo.html">📚 Catálogo</a>
-      <a href="carrito.html">🛒 Mi carrito</a>
-      <a href="historial.html">📋 Mis compras</a>
+      <a href="#" onclick="alert('Funcionalidad de Mi Carrito disponible en la Iteración 3'); return false;">🛒 Mi carrito</a>
+      <a href="#" onclick="alert('Funcionalidad de Historial de Compras disponible en la Iteración 3'); return false;">📋 Mis compras</a>
       <a href="tarjetas.html">💳 Mi monedero</a>
       <a href="perfil.html">👤 Mi perfil</a>
-      <a href="noticias.html">📰 Noticias</a>
-      <a href="mensajes.html">💬 Mensajes</a>
+      <a href="#" onclick="alert('Funcionalidad de Noticias disponible en la Iteración 3'); return false;">📰 Noticias</a>
+      <a href="#" onclick="alert('Funcionalidad de Mensajes disponible en la Iteración 3'); return false;">💬 Mensajes</a>
     </div>
 
     <div class="container container-wide" style="margin-top:0;">
 
-      <!-- Tarjeta sesión -->
       <div class="profile-card" id="userCard">
         <div class="avatar" id="userAvatar">👤</div>
         <div class="profile-info">
@@ -286,20 +268,19 @@
 
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px;">
         <div class="feature-card"><span class="f-icon">🔍</span><h3>Buscar libros</h3><p>Por título, autor, género y más</p></div>
-        <div class="feature-card"><span class="f-icon">📌</span><h3>Reservar</h3><p>Aparta hasta 5 libros por 24 horas</p></div>
-        <div class="feature-card"><span class="f-icon">🛒</span><h3>Comprar</h3><p>Carrito con saldo simulado</p></div>
-        <div class="feature-card"><span class="f-icon">💳</span><h3>Monedero</h3><p>Gestiona tus tarjetas y saldo</p></div>
+        <div class="feature-card" onclick="alert('Funcionalidad de Reserva disponible en la Iteración 3');" style="cursor:pointer;"><span class="f-icon">📌</span><h3>Reservar</h3><p>Aparta hasta 5 libros por 24 horas</p></div>
+        <div class="feature-card" onclick="alert('Funcionalidad de Carrito disponible en la Iteración 3');" style="cursor:pointer;"><span class="f-icon">🛒</span><h3>Comprar</h3><p>Carrito con saldo simulado</p></div>
+        <div class="feature-card" onclick="window.location.href='tarjetas.html';" style="cursor:pointer;"><span class="f-icon">💳</span><h3>Monedero</h3><p>Gestiona tus tarjetas y saldo</p></div>
         <div class="feature-card"><span class="f-icon">🔄</span><h3>Devoluciones</h3><p>Hasta 8 días tras recibir</p></div>
         <div class="feature-card"><span class="f-icon">🤖</span><h3>Recomendaciones</h3><p>Chatbot IA según tu historial</p></div>
         <div class="feature-card"><span class="f-icon">🎂</span><h3>Bono cumpleaños</h3><p>Descuento especial en tu día</p></div>
-        <div class="feature-card"><span class="f-icon">💬</span><h3>Mensajería</h3><p>Chatea con administradores</p></div>
+        <div class="feature-card" onclick="alert('Funcionalidad de Mensajería disponible en la Iteración 3');" style="cursor:pointer;"><span class="f-icon">💬</span><h3>Mensajería</h3><p>Chatea con administradores</p></div>
       </div>
 
     </div>
 
   </div>
 
-  <!-- Session timer (solo usuarios logueados) -->
   <div class="session-bar" id="sessionBar" style="display:none;">
     <div class="session-dot"></div>
     Sesión activa · <span id="sessionCount">300s</span>
@@ -311,7 +292,7 @@
 
   <script src="js/script.js"></script>
   <script>
-    const sesion = getSesion(); // No redirige — solo consulta
+    const sesion = getSesion(); 
 
     if (sesion) {
       // ── MODO USUARIO LOGUEADO ──────────────────────────────────
@@ -320,13 +301,11 @@
       document.getElementById('seccion-usuario').style.display = 'block';
       document.getElementById('sessionBar').style.display     = 'flex';
 
-      // Saludo personalizado
       const hora   = new Date().getHours();
       const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
       document.getElementById('saludoHero').textContent =
         `${saludo}, ${sesion.nombre_completo.split(' ')[0]} 👋`;
 
-      // Tarjeta de usuario
       document.getElementById('userName').textContent  = sesion.nombre_completo;
       document.getElementById('userEmail').textContent = sesion.correo;
       document.getElementById('userRol').textContent   = sesion.rol;
@@ -336,9 +315,13 @@
 
       initSessionTimer();
 
-      // Mostrar enlace admin si corresponde
+      // 👑 LÓGICA DE ROLES PARA MOSTRAR BOTONES EN EL NAVBAR
       if (sesion.rol === 'administrador') {
         document.getElementById('nav-admin').style.display = 'inline-block';
+      } else if (sesion.rol === 'root') {
+        // Al root le mostramos su botón principal, y si quieres también el de admin
+        document.getElementById('nav-root').style.display = 'inline-block';
+        document.getElementById('nav-admin').style.display = 'inline-block'; // Opcional, por si Root también quiere ver libros
       }
 
     } else {
@@ -347,7 +330,6 @@
       document.getElementById('hero-visitante').style.display   = 'block';
       document.getElementById('seccion-visitante').style.display = 'block';
 
-      // Cargar últimas novedades desde Supabase (libros recientes)
       cargarNovedades();
     }
 

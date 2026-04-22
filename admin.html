@@ -303,13 +303,11 @@
     <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
   </nav>
 
-  <!-- Session timer -->
   <div class="session-bar" id="sessionBar" style="display:none;">
     <div class="session-dot"></div>
     Sesión activa · <span id="sessionCount">300s</span>
   </div>
 
-  <!-- Header del panel -->
   <div class="admin-header">
     <div>
       <h1>🛠️ Panel de Administración</h1>
@@ -318,12 +316,10 @@
     <span class="badge-admin">Administrador</span>
   </div>
 
-  <!-- Contenido principal -->
   <div class="admin-wrap">
 
     <div id="alertAdmin"></div>
 
-    <!-- Toolbar -->
     <div class="toolbar">
       <div class="toolbar-left">
         <input class="search-input" type="search" id="searchLibros"
@@ -337,7 +333,6 @@
       <button class="btn-add" onclick="abrirModal()">＋ Agregar libro</button>
     </div>
 
-    <!-- Tabla -->
     <div class="table-wrap">
       <table id="tablaLibros">
         <thead>
@@ -358,7 +353,6 @@
 
   </div>
 
-  <!-- Toast -->
   <div id="toast"></div>
 
   <footer>
@@ -367,10 +361,11 @@
 
   <script src="js/script.js"></script>
   <script>
-    // ── Proteger: solo administradores ───────────────────────────
+// ── Proteger: administradores y root ───────────────────────────
     const sesion = requireSession();
-    if (sesion && sesion.rol !== 'administrador') {
-      alert('⛔ Acceso denegado. Esta sección es solo para administradores.');
+    // Bloquear el acceso si el rol NO es ni administrador ni root
+    if (sesion && sesion.rol !== 'administrador' && sesion.rol !== 'root') {
+      alert('⛔ Acceso denegado. Esta sección es solo para personal autorizado.');
       window.location.href = 'index.html';
     }
 
@@ -422,7 +417,8 @@
       tbody.innerHTML = lista.map(l => {
         const stockClass = (l.stock ?? 0) < 5 ? 'stock-low' : 'stock-ok';
         const agotado    = l.agotado === true;
-        const estadoLibro = l.estado_libro || 'disponible';
+        const estadoLibroFisico = l.estado_libro ? l.estado_libro.charAt(0).toUpperCase() + l.estado_libro.slice(1) : 'Nuevo';
+        
         return `
           <tr data-id="${l.id}">
             <td class="td-titulo">
@@ -436,7 +432,7 @@
             <td class="td-stock ${stockClass}">${l.stock ?? 0}</td>
             <td>
               <span class="badge-genero" style="background:${agotado ? '#fef2f2' : '#dcfce7'};color:${agotado ? '#dc2626' : '#166534'};">
-                ${agotado ? 'Agotado' : estadoLibro}
+                ${agotado ? 'Agotado' : estadoLibroFisico}
               </span>
             </td>
             <td>
@@ -465,6 +461,9 @@
       editandoId = id;
       const libro = id ? libros.find(l => l.id == id) : null;
       const titulo = libro ? '✏️ Editar libro' : '＋ Nuevo libro';
+
+      // Obtenemos la fecha de hoy para bloquear fechas futuras
+      const fechaHoy = new Date().toISOString().split('T')[0];
 
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
@@ -509,8 +508,11 @@
             </div>
             <div class="input-group">
               <label>Idioma</label>
-              <input type="text" id="mIdioma" placeholder="Español"
-                     value="${escAttr(libro?.idioma || 'Español')}">
+              <select id="mIdioma">
+                ${['Español','Inglés']
+                  .map(i => `<option value="${i}" ${(libro?.idioma||'Español')==i?'selected':''}>${i}</option>`)
+                  .join('')}
+              </select>
             </div>
           </div>
           <div class="modal-row">
@@ -518,6 +520,7 @@
               <label>ISBN</label>
               <input type="text" id="mIsbn" placeholder="978-xxxxxxxxxx"
                      value="${escAttr(libro?.isbn || '')}">
+              <span class="field-error" id="err-mIsbn"></span>
             </div>
             <div class="input-group">
               <label>Número de páginas</label>
@@ -528,14 +531,19 @@
           <div class="modal-row">
             <div class="input-group">
               <label>Fecha de publicación</label>
-              <input type="date" id="mFechaPub"
+              <input type="date" id="mFechaPub" max="${fechaHoy}"
                      value="${libro?.fecha_publicacion || ''}">
+              <span class="field-error" id="err-mFechaPub"></span>
             </div>
             <div class="input-group">
-              <label>Estado del libro</label>
+              <label>Condición del libro</label>
               <select id="mEstadoLibro">
-                ${['disponible','reservado','no disponible']
-                  .map(e => `<option value="${e}" ${(libro?.estado_libro||'disponible')===e?'selected':''}>${e.charAt(0).toUpperCase()+e.slice(1)}</option>`)
+                ${['nuevo','usado']
+                  .map(e => {
+                    const savedValue = (libro?.estado_libro || 'nuevo').toLowerCase();
+                    const textoMostrar = e === 'nuevo' ? 'Nuevo' : 'Usado';
+                    return `<option value="${e}" ${savedValue === e ? 'selected' : ''}>${textoMostrar}</option>`;
+                  })
                   .join('')}
               </select>
             </div>
@@ -592,12 +600,6 @@
         msg ? errEl.classList.add('visible') : errEl.classList.remove('visible');
       }
     }
-    function mClearError(id) {
-      const el    = document.getElementById(id);
-      const errEl = document.getElementById('err-' + id);
-      if (el)    el.classList.remove('invalid', 'valid');
-      if (errEl) { errEl.textContent = ''; errEl.classList.remove('visible'); }
-    }
 
     // ── Guardar (crear o editar) ───────────────────────────────────
     async function guardarLibro() {
@@ -607,6 +609,11 @@
       const autor  = document.getElementById('mAutor').value.trim();
       const precio = parseFloat(document.getElementById('mPrecio').value);
       const stock  = parseInt(document.getElementById('mStock').value);
+      const fechaPub = document.getElementById('mFechaPub').value;
+      const fechaHoy = new Date().toISOString().split('T')[0];
+
+      // Limpiamos el error del ISBN antes de evaluar
+      mSetError('mIsbn', '');
 
       if (!titulo) {
         mSetError('mTitulo', 'El título es obligatorio.'); valid = false;
@@ -624,6 +631,12 @@
         mSetError('mStock', 'Ingresa un stock válido (mínimo 0).'); valid = false;
       } else { mSetError('mStock', ''); }
 
+      if (fechaPub && fechaPub > fechaHoy) {
+        mSetError('mFechaPub', 'La fecha de publicación no puede ser en el futuro.'); valid = false;
+      } else { 
+        mSetError('mFechaPub', ''); 
+      }
+
       if (!valid) {
         const primerError = document.querySelector('#modalLibro .invalid');
         if (primerError) primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -636,10 +649,10 @@
         editorial:         document.getElementById('mEditorial').value.trim() || null,
         codigo_unico:      document.getElementById('mCodigo').value.trim() || null,
         genero:            document.getElementById('mGenero').value || null,
-        idioma:            document.getElementById('mIdioma').value.trim() || 'Español',
+        idioma:            document.getElementById('mIdioma').value, 
         isbn:              document.getElementById('mIsbn').value.trim() || null,
         numero_paginas:    parseInt(document.getElementById('mPaginas').value) || null,
-        fecha_publicacion: document.getElementById('mFechaPub').value || null,
+        fecha_publicacion: fechaPub || null,
         precio,
         stock,
         estado_libro:      document.getElementById('mEstadoLibro').value,
@@ -662,15 +675,20 @@
       if (btnSave) setLoading(btnSave, false);
 
       if (error) {
-        toast('Error: ' + error.message, 'error'); return;
+        // LA NUEVA VALIDACIÓN DEL ISBN DUPLICADO
+        if (error.code === '23505' && error.message.includes('isbn')) {
+          mSetError('mIsbn', 'Ya hay un libro registrado con ese mismo ISBN.');
+          document.getElementById('mIsbn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          toast('Error: ' + error.message, 'error'); 
+        }
+        return;
       }
 
       cerrarModal('modalLibro');
       toast(editandoId ? '✅ Libro actualizado' : '✅ Libro creado', 'success');
       await cargarLibros();
     }
-
-
 
     // ── Confirmar eliminar ────────────────────────────────────────
     function confirmarEliminar(id, titulo) {
