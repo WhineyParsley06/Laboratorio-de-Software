@@ -67,6 +67,20 @@
       transition: opacity 0.2s;
     }
     .btn-add:hover { opacity: 0.88; }
+    .filter-estado {
+      padding: 7px 13px;
+      border: 1.5px solid var(--borde);
+      border-radius: 8px;
+      background: var(--fondo-card);
+      color: var(--texto-suave);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .filter-estado:hover { border-color: var(--primario); color: var(--primario); }
+    .filter-estado.active { background: var(--primario); color: #fff; border-color: var(--primario); }
     .stat-chips { display: flex; gap: 8px; flex-wrap: wrap; }
     .stat-chip {
       background: var(--fondo-card);
@@ -330,7 +344,14 @@
           <div class="stat-chip">Agotados: <strong id="statOcultos">—</strong></div>
         </div>
       </div>
-      <button class="btn-add" onclick="abrirModal()">＋ Agregar libro</button>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <div style="display:flex; gap:6px;">
+          <button class="filter-estado active" id="btnTodos"    onclick="filtrarPorEstado('todos')"   >📚 Todos</button>
+          <button class="filter-estado"        id="btnActivos"  onclick="filtrarPorEstado('activos')" >📗 Activos</button>
+          <button class="filter-estado"        id="btnAgotados" onclick="filtrarPorEstado('agotados')">📕 Agotados</button>
+        </div>
+        <button class="btn-add" onclick="abrirModal()">＋ Agregar libro</button>
+      </div>
     </div>
 
     <div class="table-wrap">
@@ -378,6 +399,7 @@
     // ── Estado global ─────────────────────────────────────────────
     let libros = [];
     let editandoId = null;
+    let filtroEstado = 'todos'; // 'todos' | 'activos' | 'agotados'
 
     // ── Cargar libros ─────────────────────────────────────────────
     async function cargarLibros() {
@@ -445,15 +467,32 @@
       }).join('');
     }
 
+    // ── Filtro por estado ─────────────────────────────────────────
+    function filtrarPorEstado(estado) {
+      filtroEstado = estado;
+      ['btnTodos','btnActivos','btnAgotados'].forEach(id =>
+        document.getElementById(id).classList.remove('active')
+      );
+      const mapa = { todos: 'btnTodos', activos: 'btnActivos', agotados: 'btnAgotados' };
+      document.getElementById(mapa[estado]).classList.add('active');
+      filtrarTabla();
+    }
+
     // ── Filtro de búsqueda ────────────────────────────────────────
     function filtrarTabla() {
       const q = document.getElementById('searchLibros').value.toLowerCase().trim();
-      if (!q) { renderTabla(libros); return; }
-      const filtrado = libros.filter(l =>
-        (l.titulo || '').toLowerCase().includes(q) ||
-        (l.autor  || '').toLowerCase().includes(q)
-      );
-      renderTabla(filtrado);
+      let resultado = libros;
+
+      if (filtroEstado === 'activos')  resultado = resultado.filter(l => !l.agotado);
+      if (filtroEstado === 'agotados') resultado = resultado.filter(l => l.agotado === true);
+
+      if (q) {
+        resultado = resultado.filter(l =>
+          (l.titulo || '').toLowerCase().includes(q) ||
+          (l.autor  || '').toLowerCase().includes(q)
+        );
+      }
+      renderTabla(resultado);
     }
 
     // ── Modal CREAR / EDITAR ──────────────────────────────────────
@@ -495,6 +534,7 @@
               <label>Código único</label>
               <input type="text" id="mCodigo" placeholder="Ej: LP-2026-001"
                      value="${escAttr(libro?.codigo_unico || '')}">
+              <span class="field-error" id="err-mCodigo"></span>
             </div>
           </div>
           <div class="modal-row">
@@ -675,12 +715,14 @@
       if (btnSave) setLoading(btnSave, false);
 
       if (error) {
-        // LA NUEVA VALIDACIÓN DEL ISBN DUPLICADO
-        if (error.code === '23505' && error.message.includes('isbn')) {
+        if (error.code === '23505' && error.message.includes('codigo_unico')) {
+          mSetError('mCodigo', 'Ya hay otro libro con ese mismo código único.');
+          document.getElementById('mCodigo').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (error.code === '23505' && error.message.includes('isbn')) {
           mSetError('mIsbn', 'Ya hay un libro registrado con ese mismo ISBN.');
           document.getElementById('mIsbn').scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
-          toast('Error: ' + error.message, 'error'); 
+          toast('Error: ' + error.message, 'error');
         }
         return;
       }

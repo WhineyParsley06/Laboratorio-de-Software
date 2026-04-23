@@ -413,6 +413,42 @@
 
   </div>
 
+  <!-- Modal editar tarjeta -->
+  <div id="modalEditar" style="display:none;">
+    <div class="modal-overlay">
+      <div class="modal">
+        <h3>✏️ Editar tarjeta</h3>
+        <div class="input-group" style="margin-bottom:16px;">
+          <label for="editTitular">Nombre del titular</label>
+          <input type="text" id="editTitular" placeholder="Como aparece en la tarjeta">
+        </div>
+        <div class="input-group" style="margin-bottom:20px;">
+          <label>Tipo de tarjeta</label>
+          <div style="display:flex; gap:10px;">
+            <label class="pref-chip" id="editChipCredito" style="flex:1; justify-content:center; cursor:pointer;"
+                   onclick="seleccionarTipoEditar('credito')">
+              💳 Crédito
+            </label>
+            <label class="pref-chip" id="editChipDebito" style="flex:1; justify-content:center; cursor:pointer;"
+                   onclick="seleccionarTipoEditar('debito')">
+              🏦 Débito
+            </label>
+          </div>
+          <input type="hidden" id="editTipoTarjeta" value="credito">
+        </div>
+        <div class="modal-actions">
+          <button onclick="cerrarModalEditar()"
+                  style="background:transparent;color:var(--texto-suave);border:1.5px solid var(--borde);box-shadow:none;width:auto;flex:1;">
+            Cancelar
+          </button>
+          <button onclick="guardarEdicionTarjeta()" style="width:auto;flex:1;">
+            💾 Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal editar saldo -->
   <div id="modalSaldo" style="display:none;">
     <div class="modal-overlay">
@@ -556,6 +592,10 @@
             </div>
             <div class="card-item-saldo">$ ${saldo}</div>
             <div class="card-actions">
+              <button class="icon-btn" title="Editar tarjeta"
+                      onclick="event.stopPropagation(); abrirModalEditar('${t.id}', '${t.titular.replace(/'/g,"\\'")}', '${t.tipo}')">
+                ✏️
+              </button>
               <button class="icon-btn" title="Ajustar saldo"
                       onclick="event.stopPropagation(); abrirModalSaldo('${t.id}', '${t.titular}', ${t.saldo})">
                 💰
@@ -692,6 +732,55 @@
         await cargarTarjetas();
       }
     }
+
+    // ── Editar tarjeta ───────────────────────────────────────────
+    function abrirModalEditar(id, titular, tipo) {
+      editandoId = id;
+      document.getElementById('editTitular').value = titular;
+      seleccionarTipoEditar(tipo);
+      document.getElementById('modalEditar').style.display = 'block';
+    }
+
+    function cerrarModalEditar() {
+      document.getElementById('modalEditar').style.display = 'none';
+      editandoId = null;
+    }
+
+    function seleccionarTipoEditar(tipo) {
+      document.getElementById('editTipoTarjeta').value = tipo;
+      document.getElementById('editChipCredito').classList.toggle('selected', tipo === 'credito');
+      document.getElementById('editChipDebito').classList.toggle('selected',  tipo === 'debito');
+    }
+
+    async function guardarEdicionTarjeta() {
+      const titular = document.getElementById('editTitular').value.trim();
+      const tipo    = document.getElementById('editTipoTarjeta').value;
+
+      if (!titular) {
+        showAlert('alertTarjetas', 'El nombre del titular no puede estar vacío.', 'error');
+        return;
+      }
+
+      const { error } = await client
+        .from('tarjetas')
+        .update({ titular, tipo })
+        .eq('id', editandoId);
+
+      cerrarModalEditar();
+
+      if (error) {
+        showAlert('alertTarjetas', 'Error al actualizar tarjeta: ' + error.message, 'error');
+      } else {
+        showAlert('alertTarjetas', '¡Tarjeta actualizada correctamente!', 'success');
+        await cargarTarjetas();
+      }
+    }
+
+    // Cerrar modal editar al hacer clic fuera
+    document.getElementById('modalEditar').addEventListener('click', e => {
+      if (e.target === document.getElementById('modalEditar').querySelector('.modal-overlay'))
+        cerrarModalEditar();
+    });
 
     // ── Ajustar saldo ────────────────────────────────────────────
     function abrirModalSaldo(id, titular, saldoActual) {

@@ -382,7 +382,7 @@
             <div class="detail-grid">
               <div><strong>Nombre Completo</strong>${cliente.nombre_completo}</div>
               <div><strong>Correo Electrónico</strong>${cliente.correo}</div>
-              <div><strong>Nombre de Usuario</strong>${cliente.nombre_usuario || 'N/A'}</div>
+              <div><strong>Nombre de Usuario</strong>${cliente.username || 'N/A'}</div>
               <div><strong>Fecha de Nacimiento</strong>${cliente.fecha_nacimiento || 'N/A'}</div>
             </div>
           </div>
@@ -390,8 +390,8 @@
           <div class="detail-section">
             <h4>Datos de Contacto / Envío</h4>
             <div class="detail-grid">
-              <div><strong>Departamento</strong>${cliente.dep_residencia || 'N/A'}</div>
-              <div><strong>Ciudad</strong>${cliente.ciudad_residencia || 'N/A'}</div>
+              <div><strong>Departamento</strong>${cliente.departamento || 'N/A'}</div>
+              <div><strong>Ciudad</strong>${cliente.ciudad || 'N/A'}</div>
               <div style="grid-column: 1 / -1;"><strong>Dirección Completa</strong>${cliente.direccion || 'N/A'}</div>
             </div>
           </div>
