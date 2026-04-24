@@ -373,7 +373,7 @@
       renderVista(data);
 
       // Formulario editar
-      document.getElementById('pNombre').value    = data.nombre_completo?.split(' ').slice(0, -2).join(' ') || data.nombre_completo || '';
+      document.getElementById('pNombre').value    = data.nombre || '';
       document.getElementById('pApellidos').value = data.apellidos || '';
       document.getElementById('pCorreo').value    = data.correo || '';
       document.getElementById('pFecha').value     = data.fecha_nacimiento || '';

@@ -105,7 +105,7 @@ function isPasswordStrong(pass) {
 // ── SESIÓN — BLOQUEO TRAS INACTIVIDAD ────────────────────────────────────────
 
 let sessionTimer = null;
-const SESSION_TIMEOUT = 300; // 5 minutos — cómodo para demos
+const SESSION_TIMEOUT = 60; // 60 segundos — según Términos y Condiciones
 
 function initSessionTimer() {
   const bar = document.getElementById('sessionBar');

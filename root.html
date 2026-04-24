@@ -126,7 +126,7 @@
     .input-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--texto-suave); }
     .input-group input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--borde); font-size: 0.9rem; }
     .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
-    .btn-cancel { flex: 1; padding: 11px; background: transparent; border: 1px solid var(--borde); border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .btn-cancel { flex: 1; padding: 11px; background: transparent; border: 1px solid var(--borde); border-radius: 8px; color: var(--texto-suave); font-weight: 600; cursor: pointer; }
     .btn-save { flex: 2; padding: 11px; background: #8b5cf6; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
     
     #toast { position: fixed; bottom: 24px; right: 24px; padding: 13px 20px; border-radius: 10px; font-size: 0.88rem; font-weight: 600; color: #fff; z-index: 9999; opacity: 0; transition: 0.3s; pointer-events: none; }
@@ -265,7 +265,7 @@
             </div>
           </td>
           <td style="color:var(--texto-suave); font-size:0.8rem;">
-            ${u.ciudad_residencia || 'Sin ciudad'}<br>${u.direccion || 'Sin dirección'}
+            ${u.ciudad || 'Sin ciudad'}<br>${u.direccion || 'Sin dirección'}
           </td>
           <td>${new Date(u.creado_en).toLocaleDateString()}</td>
           <td>
@@ -306,8 +306,8 @@
           </div>
 
           <div class="modal-actions">
-            <button class="btn-cancel" onclick="cerrarModal('modalAdmin')">Cancelar</button>
-            <button class="btn-save" onclick="guardarAdmin()">${admin ? 'Guardar Cambios' : 'Crear Administrador'}</button>
+            <button class="btn-cancel" onclick="cerrarModal('modalAdmin')">← Volver</button>
+            <button class="btn-save" onclick="guardarAdmin()">${admin ? '💾 Guardar cambios' : '✅ Crear administrador'}</button>
           </div>
         </div>
       `;
@@ -333,9 +333,9 @@
       
       if (!editandoAdminId) {
         payload.correo = correo;
-        payload.contrasena = pass; // En un entorno real Supabase Auth maneja esto de otra forma, pero es el mock de la BD.
+        payload.password = pass;
       } else if (pass) {
-        payload.contrasena = pass;
+        payload.password = pass;
       }
 
       let errorObj;
@@ -405,7 +405,7 @@
           </div>
 
           <div class="modal-actions">
-            <button class="btn-cancel" style="width:100%;" onclick="cerrarModal('modalCliente')">Cerrar Detalles</button>
+            <button class="btn-cancel" style="width:100%;" onclick="cerrarModal('modalCliente')">← Volver al listado</button>
           </div>
         </div>
       `;
