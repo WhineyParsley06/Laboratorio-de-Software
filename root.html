@@ -270,6 +270,7 @@
           <td>${new Date(u.creado_en).toLocaleDateString()}</td>
           <td>
             <button class="btn-icon" onclick="verDetallesCliente('${u.id}')" style="background:#f0fdf4; border-color:#bbf7d0; color:#16a34a;">👁️ Ver detalles</button>
+            <button class="btn-icon" onclick="confirmarAscenso('${u.id}', '${u.nombre_completo}')" style="background:#eff6ff; border-color:#bfdbfe; color:#1d4ed8;" title="Ascender a Administrador">⬆️ Ascender</button>
           </td>
         </tr>
       `).join('');
@@ -294,6 +295,17 @@
             <label>Nombre Completo *</label>
             <input type="text" id="mNombre" value="${admin?.nombre_completo || ''}" placeholder="Ej: Carlos Admin">
           </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="input-group">
+              <label>Nombre de Usuario *</label>
+              <input type="text" id="mUsername" value="${admin?.username || ''}" placeholder="carlos_admin" ${admin ? 'disabled title="El usuario no se puede cambiar"' : ''}>
+            </div>
+            <div class="input-group">
+              <label>Cédula / DNI *</label>
+              <input type="text" id="mDni" value="${admin?.id_dni || ''}" placeholder="Ej: 1234567890" ${admin ? 'disabled title="El DNI no se puede cambiar"' : ''}>
+            </div>
+          </div>
           
           <div class="input-group">
             <label>Correo Electrónico *</label>
@@ -315,12 +327,14 @@
     }
 
     async function guardarAdmin() {
-      const nombre = document.getElementById('mNombre').value.trim();
-      const correo = document.getElementById('mCorreo').value.trim();
-      const pass   = document.getElementById('mPass').value.trim();
+      const nombre   = document.getElementById('mNombre').value.trim();
+      const correo   = document.getElementById('mCorreo').value.trim();
+      const pass     = document.getElementById('mPass').value.trim();
+      const username = document.getElementById('mUsername')?.value.trim() || '';
+      const dni      = document.getElementById('mDni')?.value.trim() || '';
 
-      if (!nombre || (!editandoAdminId && !correo)) {
-        toast('El nombre y correo son obligatorios', 'error'); return;
+      if (!nombre || (!editandoAdminId && (!correo || !username || !dni))) {
+        toast('Nombre, usuario, DNI y correo son obligatorios', 'error'); return;
       }
       if (!editandoAdminId && pass.length < 8) {
         toast('La contraseña debe tener mínimo 8 caracteres', 'error'); return;
@@ -328,11 +342,15 @@
 
       const payload = {
         nombre_completo: nombre,
-        rol: 'administrador'
+        nombre:          nombre.split(' ')[0] || nombre,
+        rol:             'administrador',
+        verificado:      true,
       };
       
       if (!editandoAdminId) {
-        payload.correo = correo;
+        payload.correo   = correo;
+        payload.username = username;
+        payload.id_dni   = dni;
         payload.password = pass;
       } else if (pass) {
         payload.password = pass;
@@ -403,6 +421,10 @@
             <button class="btn-iter3" onclick="alert('La funcionalidad de Ver Métodos de Pago estará disponible en la Iteración 3.')">💳 Métodos de Pago</button>
             <button class="btn-iter3 danger" onclick="alert('La funcionalidad de Bloquear / Suspender usuarios estará disponible en la Iteración 3.')">🚫 Suspender Cuenta</button>
           </div>
+          <button onclick="cerrarModal('modalCliente'); confirmarAscenso('${cliente.id}', '${cliente.nombre_completo}')"
+            style="margin-top:14px; width:100%; padding:11px; background:#1d4ed8; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.92rem;">
+            ⬆️ Ascender a Administrador
+          </button>
 
           <div class="modal-actions">
             <button class="btn-cancel" style="width:100%;" onclick="cerrarModal('modalCliente')">← Volver al listado</button>
@@ -410,6 +432,46 @@
         </div>
       `;
       document.body.appendChild(overlay);
+    }
+
+    // ── Ascender Cliente a Administrador ────────────────────────
+    function confirmarAscenso(id, nombre) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'modalAscenso';
+      overlay.innerHTML = `
+        <div class="modal-admin" style="max-width:420px; text-align:center;">
+          <div style="font-size:2.5rem; margin-bottom:12px;">⬆️</div>
+          <h3 style="margin-bottom:8px;">¿Ascender a Administrador?</h3>
+          <p style="color:var(--texto-suave); font-size:0.88rem; margin-bottom:24px;">
+            <strong>${nombre}</strong> pasará de ser cliente a tener acceso al panel de administración.
+            Esta acción se puede revertir eliminando el administrador.
+          </p>
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="cerrarModal('modalAscenso')">← Cancelar</button>
+            <button class="btn-save" style="background:#1d4ed8;" onclick="ejecutarAscenso('${id}', '${nombre}')">
+              ✅ Sí, ascender
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    async function ejecutarAscenso(id, nombre) {
+      const { error } = await client
+        .from('usuarios')
+        .update({ rol: 'administrador' })
+        .eq('id', id);
+
+      cerrarModal('modalAscenso');
+
+      if (error) {
+        toast('Error al ascender usuario: ' + error.message, 'error');
+      } else {
+        toast(`✅ ${nombre} ahora es Administrador`, 'success');
+        cargarUsuarios();
+      }
     }
 
     // ── Utilidades ───────────────────────────────────────────────
