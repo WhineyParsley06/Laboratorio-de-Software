@@ -133,6 +133,27 @@
     #toast.show { opacity: 1; transform: translateY(-10px); }
     .success { background: #16a34a; }
     .error { background: #dc2626; }
+
+    .field-error {
+      display: block;
+      font-size: 0.72rem;
+      color: #e53e3e;
+      margin-top: 4px;
+      min-height: 0.9rem;
+      opacity: 0;
+      transform: translateY(-3px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .field-error.visible { opacity: 1; transform: translateY(0); }
+    .modal-admin input.invalid,
+    .modal-admin select.invalid { border-color: #e53e3e !important; background-color: #fff5f5 !important; }
+    .modal-admin input.valid { border-color: #38a169 !important; }
+    .pass-hint {
+      font-size: 0.72rem;
+      color: var(--texto-suave);
+      margin-top: 4px;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -239,6 +260,7 @@
           <td><span style="background:#dcfce7; color:#166534; padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:600;">Activo</span></td>
           <td>
             <button class="btn-icon" onclick="abrirModalAdmin('${u.id}')">✏️ Editar</button>
+            <button class="btn-icon" onclick="confirmarDescenso('${u.id}', '${u.nombre_completo}')" style="background:#fffbeb; border-color:#fde68a; color:#d97706;" title="Descender a Cliente">⬇️ Descender</button>
             <button class="btn-icon" onclick="eliminarUsuario('${u.id}', '${u.nombre_completo}')" style="color:#dc2626;">🗑️</button>
           </td>
         </tr>
@@ -294,27 +316,33 @@
           <div class="input-group">
             <label>Nombre Completo *</label>
             <input type="text" id="mNombre" value="${admin?.nombre_completo || ''}" placeholder="Ej: Carlos Admin">
+            <span class="field-error" id="err-mNombre"></span>
           </div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <div class="input-group">
               <label>Nombre de Usuario *</label>
               <input type="text" id="mUsername" value="${admin?.username || ''}" placeholder="carlos_admin" ${admin ? 'disabled title="El usuario no se puede cambiar"' : ''}>
+              <span class="field-error" id="err-mUsername"></span>
             </div>
             <div class="input-group">
               <label>Cédula / DNI *</label>
               <input type="text" id="mDni" value="${admin?.id_dni || ''}" placeholder="Ej: 1234567890" ${admin ? 'disabled title="El DNI no se puede cambiar"' : ''}>
+              <span class="field-error" id="err-mDni"></span>
             </div>
           </div>
           
           <div class="input-group">
             <label>Correo Electrónico *</label>
             <input type="email" id="mCorreo" value="${admin?.correo || ''}" placeholder="carlos@libreria.com" ${admin ? 'disabled title="El correo no se puede cambiar"' : ''}>
+            <span class="field-error" id="err-mCorreo"></span>
           </div>
 
           <div class="input-group">
             <label>Contraseña ${admin ? '(Opcional)' : '*'}</label>
             <input type="password" id="mPass" placeholder="${admin ? 'Dejar en blanco para mantener la actual' : 'Mínimo 8 caracteres...'}">
+            <span class="field-error" id="err-mPass"></span>
+            <span class="pass-hint">Mínimo 8 caracteres, una mayúscula, una minúscula, un número y un símbolo especial.</span>
           </div>
 
           <div class="modal-actions">
@@ -326,18 +354,70 @@
       document.body.appendChild(overlay);
     }
 
+    // ── Helpers validación inline modal admin ────────────────────
+    function rSetError(id, msg) {
+      const el  = document.getElementById(id);
+      const err = document.getElementById('err-' + id);
+      if (el)  { msg ? el.classList.add('invalid') : (el.classList.remove('invalid'), el.classList.add('valid')); }
+      if (err) { err.textContent = msg; msg ? err.classList.add('visible') : err.classList.remove('visible'); }
+    }
+    function rClear(id) {
+      const el  = document.getElementById(id);
+      const err = document.getElementById('err-' + id);
+      if (el)  el.classList.remove('invalid','valid');
+      if (err) { err.textContent=''; err.classList.remove('visible'); }
+    }
+
     async function guardarAdmin() {
       const nombre   = document.getElementById('mNombre').value.trim();
-      const correo   = document.getElementById('mCorreo').value.trim();
-      const pass     = document.getElementById('mPass').value.trim();
+      const correo   = document.getElementById('mCorreo')?.value.trim() || '';
+      const pass     = document.getElementById('mPass').value;
       const username = document.getElementById('mUsername')?.value.trim() || '';
       const dni      = document.getElementById('mDni')?.value.trim() || '';
 
-      if (!nombre || (!editandoAdminId && (!correo || !username || !dni))) {
-        toast('Nombre, usuario, DNI y correo son obligatorios', 'error'); return;
+      let valid = true;
+
+      // Nombre
+      if (!nombre) {
+        rSetError('mNombre', 'El nombre completo es obligatorio.'); valid = false;
+      } else { rSetError('mNombre', ''); }
+
+      if (!editandoAdminId) {
+        // Usuario
+        if (!username) {
+          rSetError('mUsername', 'El nombre de usuario es obligatorio.'); valid = false;
+        } else { rSetError('mUsername', ''); }
+
+        // DNI
+        if (!dni) {
+          rSetError('mDni', 'La cédula / DNI es obligatoria.'); valid = false;
+        } else { rSetError('mDni', ''); }
+
+        // Correo
+        if (!correo) {
+          rSetError('mCorreo', 'El correo es obligatorio.'); valid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+          rSetError('mCorreo', 'Ingresa un correo válido.'); valid = false;
+        } else { rSetError('mCorreo', ''); }
+
+        // Contraseña (requerida al crear)
+        if (!pass) {
+          rSetError('mPass', 'La contraseña es obligatoria.'); valid = false;
+        } else if (!isPasswordStrong(pass)) {
+          rSetError('mPass', 'Debe tener mínimo 8 caracteres, una mayúscula, una minúscula, un número y un símbolo especial.'); valid = false;
+        } else { rSetError('mPass', ''); }
+
+      } else if (pass) {
+        // Al editar, la contraseña es opcional pero si la escriben debe ser fuerte
+        if (!isPasswordStrong(pass)) {
+          rSetError('mPass', 'Debe tener mínimo 8 caracteres, una mayúscula, una minúscula, un número y un símbolo especial.'); valid = false;
+        } else { rSetError('mPass', ''); }
       }
-      if (!editandoAdminId && pass.length < 8) {
-        toast('La contraseña debe tener mínimo 8 caracteres', 'error'); return;
+
+      if (!valid) {
+        const primerError = document.querySelector('#modalAdmin .invalid');
+        if (primerError) primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
       }
 
       const payload = {
@@ -346,15 +426,18 @@
         rol:             'administrador',
         verificado:      true,
       };
-      
+
       if (!editandoAdminId) {
-        payload.correo   = correo;
+        payload.correo   = correo.toLowerCase();
         payload.username = username;
         payload.id_dni   = dni;
         payload.password = pass;
       } else if (pass) {
         payload.password = pass;
       }
+
+      const btnSave = document.querySelector('#modalAdmin .btn-save');
+      if (btnSave) setLoading(btnSave, true);
 
       let errorObj;
       if (editandoAdminId) {
@@ -365,10 +448,29 @@
         errorObj = error;
       }
 
-      if (errorObj) { toast('Error: ' + errorObj.message, 'error'); return; }
+      if (btnSave) setLoading(btnSave, false);
+
+      if (errorObj) {
+        // Detectar duplicados y mostrar error inline en el campo correcto
+        const msg = errorObj.message || '';
+        if (msg.includes('correo') || msg.includes('email') || (msg.includes('duplicate') && msg.includes('correo'))) {
+          rSetError('mCorreo', 'Este correo ya está registrado.'); return;
+        }
+        if (msg.includes('username') || (msg.includes('duplicate') && msg.includes('username'))) {
+          rSetError('mUsername', 'Este nombre de usuario ya existe.'); return;
+        }
+        if (msg.includes('id_dni') || (msg.includes('duplicate') && msg.includes('id_dni'))) {
+          rSetError('mDni', 'Esta cédula ya está registrada.'); return;
+        }
+        // Error genérico de duplicado (Supabase a veces solo dice "duplicate key value violates unique constraint")
+        if (msg.includes('duplicate') || msg.includes('unique')) {
+          rSetError('mCorreo', 'El correo o usuario ya está registrado.'); return;
+        }
+        toast('Error: ' + msg, 'error'); return;
+      }
 
       cerrarModal('modalAdmin');
-      toast(editandoAdminId ? 'Admin actualizado' : 'Admin creado', 'success');
+      toast(editandoAdminId ? '✅ Admin actualizado' : '✅ Admin creado', 'success');
       cargarUsuarios();
     }
 
@@ -470,6 +572,46 @@
         toast('Error al ascender usuario: ' + error.message, 'error');
       } else {
         toast(`✅ ${nombre} ahora es Administrador`, 'success');
+        cargarUsuarios();
+      }
+    }
+
+    // ── Descender Administrador a Cliente ───────────────────────
+    function confirmarDescenso(id, nombre) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.id = 'modalDescenso';
+      overlay.innerHTML = `
+        <div class="modal-admin" style="max-width:420px; text-align:center;">
+          <div style="font-size:2.5rem; margin-bottom:12px;">⬇️</div>
+          <h3 style="margin-bottom:8px;">¿Descender a Cliente?</h3>
+          <p style="color:var(--texto-suave); font-size:0.88rem; margin-bottom:24px;">
+            <strong>${nombre}</strong> perderá el acceso al panel de administración
+            y pasará a ser un cliente regular. Esta acción se puede revertir ascendiéndolo de nuevo.
+          </p>
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="cerrarModal('modalDescenso')">← Cancelar</button>
+            <button class="btn-save" style="background:#d97706;" onclick="ejecutarDescenso('${id}', '${nombre}')">
+              ⬇️ Sí, descender
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    async function ejecutarDescenso(id, nombre) {
+      const { error } = await client
+        .from('usuarios')
+        .update({ rol: 'cliente' })
+        .eq('id', id);
+
+      cerrarModal('modalDescenso');
+
+      if (error) {
+        toast('Error al descender usuario: ' + error.message, 'error');
+      } else {
+        toast(`⬇️ ${nombre} ahora es Cliente`, 'success');
         cargarUsuarios();
       }
     }
