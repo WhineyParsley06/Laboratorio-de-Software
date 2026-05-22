@@ -243,14 +243,19 @@
     }
 
     // ── Cargar compras ──
+    // Esquema real:
+    //   compras:       id, usuario_id, tarjeta_id, total, estado, estado_envio,
+    //                  direccion_envio, modalidad, creado_en
+    //   compras_items: id, compra_id, libro_id, cantidad, precio_unit
     async function cargarCompras() {
+      const lista = document.getElementById('listaCompras');
+
+      // 1. Traer compras
       const { data, error } = await client
         .from('compras')
-        .select('*')
+        .select('id, total, estado, estado_envio, direccion_envio, modalidad, creado_en, tarjeta_id, actualizado_en')
         .eq('usuario_id', sesion.id)
-        .order('created_at', { ascending: false });
-
-      const lista = document.getElementById('listaCompras');
+        .order('creado_en', { ascending: false });
 
       if (error) { lista.innerHTML = '<p>Error al cargar compras.</p>'; return; }
       if (!data || data.length === 0) {
@@ -264,27 +269,45 @@
         return;
       }
 
+      // 2. Traer ítems de todas las compras en una sola query
+      const compraIds = data.map(c => c.id);
+      const { data: todosItems } = await client
+        .from('compras_items')
+        .select('compra_id, libro_id, cantidad, precio_unit, libros(titulo, autor)')
+        .in('compra_id', compraIds);
+
+      // Agrupar ítems por compra_id
+      const itemsMap = {};
+      for (const item of (todosItems || [])) {
+        if (!itemsMap[item.compra_id]) itemsMap[item.compra_id] = [];
+        itemsMap[item.compra_id].push(item);
+      }
+
+      // El estado del envío está en estado_envio (o estado si estado_envio no existe)
       lista.innerHTML = data.map(c => {
-        const items    = JSON.parse(c.items || '[]');
-        const fecha    = new Date(c.created_at).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
+        const items     = itemsMap[c.id] || [];
+        const fecha     = new Date(c.creado_en).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
+        const estadoReal = c.estado_envio || c.estado || 'en_preparacion';
+        const esTienda  = (c.modalidad === 'tienda') || (c.direccion_envio || '').startsWith('Recogida');
+
         const estadoCls = {
           en_preparacion: 'estado-preparacion',
           enviado:        'estado-enviado',
           entregado:      'estado-entregado',
           cancelada:      'estado-cancelada',
-        }[c.estado] || 'estado-preparacion';
+        }[estadoReal] || 'estado-preparacion';
 
         const estadoLabel = {
           en_preparacion: '⏳ En preparación',
           enviado:        '🚚 Enviado',
           entregado:      '✅ Entregado',
           cancelada:      '❌ Cancelada',
-        }[c.estado] || c.estado;
+        }[estadoReal] || estadoReal;
 
         // Timeline visual
         const etapas = ['en_preparacion', 'enviado', 'entregado'];
-        const etIdx  = etapas.indexOf(c.estado);
-        const timelineHTML = c.estado !== 'cancelada' ? `
+        const etIdx  = etapas.indexOf(estadoReal);
+        const timelineHTML = estadoReal !== 'cancelada' ? `
           <div class="envio-timeline">
             <div class="et-step">
               <div class="et-dot ${etIdx >= 0 ? 'done' : ''}">📦</div>
@@ -292,43 +315,57 @@
             </div>
             <div class="et-line ${etIdx >= 1 ? 'done' : ''}"></div>
             <div class="et-step">
-              <div class="et-dot ${etIdx >= 1 ? 'done' : etIdx === 0 ? '' : ''}">🚚</div>
-              <span class="et-label">En camino</span>
+              <div class="et-dot ${etIdx >= 1 ? 'done' : ''}">🚚</div>
+              <span class="et-label">${esTienda ? 'Listo' : 'En camino'}</span>
             </div>
             <div class="et-line ${etIdx >= 2 ? 'done' : ''}"></div>
             <div class="et-step">
               <div class="et-dot ${etIdx >= 2 ? 'done' : ''}">🏠</div>
-              <span class="et-label">Entregado</span>
+              <span class="et-label">${esTienda ? 'Recogido' : 'Entregado'}</span>
             </div>
           </div>` : '';
 
-        const puedesCancelar = c.estado === 'en_preparacion' || c.estado === 'enviado';
+        // HU-F2: badge "¡Actualizado!" si el estado cambió en las últimas 24h
+        const actualizado_en = c.actualizado_en || c.creado_en;
+        const esReciente = actualizado_en && (Date.now() - new Date(actualizado_en).getTime()) < 86400000;
+        const esNuevoEstado = estadoReal !== 'en_preparacion';
+        const mostrarBadgeNuevo = esReciente && esNuevoEstado && estadoReal !== 'cancelada';
+
+        const puedesCancelar = estadoReal === 'en_preparacion' || estadoReal === 'enviado';
+        const subtotal = items.reduce((s, i) => s + parseFloat(i.precio_unit) * i.cantidad, 0);
+        const numero_factura = 'FAC-' + c.id.slice(0,8).toUpperCase();
 
         return `
           <div class="registro-card">
             <div class="reg-head">
               <div>
-                <div class="reg-id">Factura: ${c.numero_factura || 'N/A'}</div>
+                <div class="reg-id">Factura: ${numero_factura}</div>
                 <div class="reg-fecha">${fecha}</div>
-                <div style="margin-top:8px;"><span class="estado-badge ${estadoCls}">${estadoLabel}</span></div>
+                <div style="margin-top:8px;">
+                  <span class="estado-badge ${estadoCls}">${estadoLabel}</span>
+                  ${mostrarBadgeNuevo ? '<span style="background:#dcfce7;color:#166534;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px;">✨ Actualizado</span>' : ''}
+                </div>
               </div>
               <div style="text-align:right;">
                 <div class="reg-total">$${parseFloat(c.total).toLocaleString('es-CO')}</div>
-                <div style="font-size:0.75rem;color:var(--texto-suave);">Envío: $${parseFloat(c.costo_envio || 8500).toLocaleString('es-CO')}</div>
+                <div style="font-size:0.75rem;color:var(--texto-suave);">
+                  ${esTienda ? '🏪 Recogida en tienda' : '🚚 Envío a domicilio'}
+                </div>
               </div>
             </div>
 
             ${timelineHTML}
 
             <div class="reg-items">
-              ${items.map(i => `
+              ${items.length > 0 ? items.map(i => `
                 <div class="reg-item-chip">
-                  📖 <strong>${i.titulo?.slice(0,30) || 'Libro'}</strong> ×${i.cantidad}
-                </div>`).join('')}
+                  📖 <strong>${(i.libros?.titulo || 'Libro').slice(0,30)}</strong> ×${i.cantidad}
+                  <span style="color:var(--primario);margin-left:4px;">$${(parseFloat(i.precio_unit)*i.cantidad).toLocaleString('es-CO')}</span>
+                </div>`).join('') : '<span style="font-size:0.8rem;color:var(--texto-suave);">Cargando ítems...</span>'}
             </div>
 
             <div class="reg-footer">
-              <div class="reg-envio">🚚 ${c.direccion_envio || ''} · Est: ${c.tiempo_entrega || '3-5 días'}</div>
+              <div class="reg-envio">${esTienda ? '🏪 ' + (c.direccion_envio || 'Tienda') : '🚚 ' + (c.direccion_envio || '')}</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn-factura" onclick="reimprimir('${c.id}')">🖨️ Factura</button>
                 ${puedesCancelar ? `<button class="btn-cancelar" onclick="solicitarCancelacion('${c.id}')">❌ Cancelar pedido</button>` : ''}
@@ -339,14 +376,40 @@
     }
 
     // ── Cargar reservas ──
+    // ── Comprar desde reserva: carga el libro al carrito y redirige ──
+    function comprarReservaAhora(libroId, titulo, autor, precio, imagenUrl, cantidad, stock) {
+      const libro = {
+        id:         libroId,
+        titulo:     titulo,
+        autor:      autor,
+        precio:     precio,
+        imagen_url: imagenUrl,
+        stock:      stock,
+        cantidad:   cantidad,
+      };
+
+      // Fusionar con el carrito existente sin duplicar
+      const carrito = getCarrito();
+      const idx = carrito.findIndex(i => i.id === libroId);
+      if (idx >= 0) {
+        carrito[idx].cantidad = Math.min(carrito[idx].cantidad + cantidad, stock);
+      } else {
+        carrito.push(libro);
+      }
+      saveCarrito(carrito);
+      window.location.href = 'carrito.html';
+    }
+
+    // Esquema real:
+    //   reservas: id, usuario_id, libro_id, cantidad, estado, expira_en, creado_en
     async function cargarReservas() {
+      const lista = document.getElementById('listaReservas');
+
       const { data, error } = await client
         .from('reservas')
-        .select('*')
+        .select('id, libro_id, cantidad, estado, expira_en, creado_en, libros(titulo, autor, precio, imagen_url, stock)')
         .eq('usuario_id', sesion.id)
-        .order('created_at', { ascending: false });
-
-      const lista = document.getElementById('listaReservas');
+        .order('creado_en', { ascending: false });
 
       if (error) { lista.innerHTML = '<p>Error al cargar reservas.</p>'; return; }
       if (!data || data.length === 0) {
@@ -361,11 +424,11 @@
 
       const ahora = new Date();
       lista.innerHTML = data.map(r => {
-        const items    = JSON.parse(r.items || '[]');
-        const fecha    = new Date(r.created_at).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
+        const fecha    = new Date(r.creado_en).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
         const expira   = new Date(r.expira_en);
         const expirada = expira < ahora;
         const estado   = r.estado === 'cancelada' ? 'cancelada' : (expirada ? 'expirada' : r.estado);
+        const titulo   = r.libros?.titulo || 'Libro';
 
         const estadoCls   = estado === 'activa' ? 'estado-activa' : estado === 'cancelada' ? 'estado-cancelada' : 'estado-expirada';
         const estadoLabel = estado === 'activa' ? '✅ Activa' : estado === 'cancelada' ? '❌ Cancelada' : '⌛ Expirada';
@@ -389,17 +452,17 @@
             </div>
 
             <div class="reg-items">
-              ${items.map(i => `
-                <div class="reg-item-chip">
-                  📖 <strong>${i.titulo?.slice(0,30) || 'Libro'}</strong> ×${i.cantidad}
-                </div>`).join('')}
+              <div class="reg-item-chip">
+                📖 <strong>${titulo.slice(0,30)}</strong> ×${r.cantidad}
+                ${r.libros?.precio ? `<span style="color:var(--primario);margin-left:4px;">$${(parseFloat(r.libros.precio)*r.cantidad).toLocaleString('es-CO')}</span>` : ''}
+              </div>
             </div>
 
             <div class="reg-footer">
               <div></div>
               <div style="display:flex;gap:8px;">
                 ${estado === 'activa' ? `
-                  <button onclick="window.location.href='carrito.html'" style="background:var(--primario);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:0.82rem;font-weight:600;cursor:pointer;box-shadow:none;width:auto;">
+                  <button onclick="comprarReservaAhora('${r.libro_id}', ${JSON.stringify(r.libros?.titulo||'').replace(/"/g,'&quot;')}, ${JSON.stringify(r.libros?.autor||'').replace(/"/g,'&quot;')}, ${r.libros?.precio||0}, ${JSON.stringify(r.libros?.imagen_url||'').replace(/"/g,'&quot;')}, ${r.cantidad}, ${r.libros?.stock||1})" style="background:var(--primario);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:0.82rem;font-weight:600;cursor:pointer;box-shadow:none;width:auto;">
                     💳 Comprar ahora
                   </button>
                   <button class="btn-cancelar" onclick="solicitarCancelarReserva('${r.id}')">🗑️ Cancelar</button>
@@ -436,20 +499,40 @@
 
     // ── Reimprimir factura ──
     async function reimprimir(compraId) {
-      const { data, error } = await client.from('compras').select('*').eq('id', compraId).single();
+      const { data, error } = await client
+        .from('compras')
+        .select('id, total, direccion_envio, creado_en, tarjeta_id')
+        .eq('id', compraId)
+        .single();
       if (error || !data) { alert('No se pudo cargar la factura.'); return; }
 
-      const { data: tarjeta } = await client.from('tarjetas').select('nombre_titular').eq('id', data.tarjeta_id).single();
+      const { data: itemsData } = await client
+        .from('compras_items')
+        .select('cantidad, precio_unit, libros(titulo)')
+        .eq('compra_id', compraId);
+
+      const { data: tarjeta } = await client
+        .from('tarjetas').select('titular').eq('id', data.tarjeta_id).single();
+
+      const items = (itemsData || []).map(i => ({
+        titulo:     i.libros?.titulo || 'Libro',
+        cantidad:   i.cantidad,
+        precio_unit: parseFloat(i.precio_unit),
+        precio:     parseFloat(i.precio_unit),
+      }));
+
+      const subtotal = items.reduce((s,i) => s + i.precio * i.cantidad, 0);
+      const costo_envio = parseFloat(data.total) - subtotal;
 
       imprimirFactura({
-        numero_factura: data.numero_factura,
-        titular:        tarjeta?.nombre_titular || 'Cliente',
-        subtotal:       parseFloat(data.subtotal),
-        costo_envio:    parseFloat(data.costo_envio),
+        numero_factura: 'FAC-' + compraId.slice(0,8).toUpperCase(),
+        titular:        tarjeta?.titular || 'Cliente',
+        subtotal,
+        costo_envio:    costo_envio >= 0 ? costo_envio : 0,
         total:          parseFloat(data.total),
-        tiempo_entrega: data.tiempo_entrega,
+        tiempo_entrega: '3 a 5 días hábiles',
         direccion_envio: data.direccion_envio,
-        items:          JSON.parse(data.items || '[]'),
+        items,
       });
     }
 

@@ -399,11 +399,11 @@
           <div class="input-group">
             <label for="cvv">Código CVV</label>
             <input type="text" id="cvv" placeholder="•••" maxlength="4"
-                   inputmode="numeric" required>
+                   inputmode="numeric" required oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </div>
           <div class="input-group">
             <label for="saldoInicial">Saldo inicial (COP)</label>
-            <input type="number" id="saldoInicial" placeholder="500000" min="0" step="1000" required>
+            <input type="text" inputmode="numeric" id="saldoInicial" placeholder="500000" required oninput="this.value=this.value.replace(/[^0-9]/g,'')">
           </div>
         </div>
 
@@ -457,7 +457,7 @@
         <p id="modalSaldoDesc">Tarjeta seleccionada</p>
         <div class="input-group">
           <label for="nuevoSaldo">Nuevo saldo (COP)</label>
-          <input type="number" id="nuevoSaldo" placeholder="500000" min="0" step="1000">
+          <input type="text" inputmode="numeric" id="nuevoSaldo" placeholder="500000" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
         </div>
         <div class="modal-actions">
           <button onclick="cerrarModalSaldo()"

@@ -181,7 +181,7 @@
           </div>
           <div class="input-group" style="flex:1;">
             <label for="pTelefono">Teléfono</label>
-            <input type="tel" id="pTelefono" placeholder="300 123 4567">
+            <input type="tel" id="pTelefono" placeholder="300 123 4567" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
           </div>
         </div>
 

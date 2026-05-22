@@ -105,7 +105,7 @@ function isPasswordStrong(pass) {
 // ── SESIÓN — BLOQUEO TRAS INACTIVIDAD ────────────────────────────────────────
 
 let sessionTimer = null;
-const SESSION_TIMEOUT = 60; // 60 segundos — según Términos y Condiciones
+const SESSION_TIMEOUT = 60; 
 
 function initSessionTimer() {
   const bar = document.getElementById('sessionBar');
@@ -370,6 +370,325 @@ async function simularLogin(event) {
     id_dni:          data.id_dni,
   }));
 
+  const destino = data.rol === 'root' ? 'root.html'
+    : data.rol === 'administrador' ? 'admin.html'
+    : 'index.html';
   showAlert('alertLogin', `¡Bienvenido, ${data.nombre_completo}! Redirigiendo...`, 'success');
-  setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+  setTimeout(() => { window.location.href = destino; }, 1200);
+}
+
+// ============================================================
+//  ITERACIÓN 3 — Carrito, Compras, Reservas, Historial
+// ============================================================
+
+// ── CARRITO (en sessionStorage) ──────────────────────────────
+
+function getCarrito() {
+  try { return JSON.parse(sessionStorage.getItem('carrito') || '[]'); }
+  catch { return []; }
+}
+
+function saveCarrito(carrito) {
+  sessionStorage.setItem('carrito', JSON.stringify(carrito));
+  actualizarBadgeCarrito();
+}
+
+function actualizarBadgeCarrito() {
+  const carrito = getCarrito();
+  const total = carrito.reduce((s, i) => s + i.cantidad, 0);
+  document.querySelectorAll('.carrito-badge').forEach(b => {
+    b.textContent = total > 0 ? total : '';
+    b.style.display = total > 0 ? 'inline-flex' : 'none';
+  });
+}
+
+function agregarAlCarrito(libro) {
+  // libro: { id, titulo, autor, precio, imagen_url, stock }
+  const sesion = getSesion();
+  if (!sesion) { window.location.href = 'login.html'; return; }
+
+  const carrito = getCarrito();
+  const idx = carrito.findIndex(i => i.id === libro.id);
+
+  if (idx >= 0) {
+    if (carrito[idx].cantidad >= libro.stock) {
+      alert('No hay más stock disponible para este título.');
+      return;
+    }
+    carrito[idx].cantidad++;
+  } else {
+    if (libro.stock < 1) { alert('Este libro está agotado.'); return; }
+    carrito.push({ ...libro, cantidad: 1 });
+  }
+  saveCarrito(carrito);
+  mostrarToastCarrito(libro.titulo);
+}
+
+function mostrarToastCarrito(titulo) {
+  let toast = document.getElementById('toastCarrito');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toastCarrito';
+    toast.style.cssText = 'position:fixed;bottom:80px;right:20px;background:var(--primario);color:#fff;padding:10px 18px;border-radius:10px;font-size:0.85rem;font-weight:600;z-index:9999;opacity:0;transition:opacity 0.3s;box-shadow:0 4px 16px rgba(184,50,39,0.3);';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = `📚 "${titulo.slice(0,30)}..." añadido al carrito`;
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+}
+
+// ── RESERVAS ──────────────────────────────────────────────────
+// Esquema real:
+//   reservas: id, usuario_id, libro_id, cantidad, estado, expira_en, creado_en
+//   Una fila por libro (no JSON de items)
+
+async function crearReserva(items) {
+  // items: [{ libro_id, cantidad, titulo }]
+  const sesion = getSesion();
+  if (!sesion) return { error: 'Sin sesión' };
+
+  // Verificar límites HU-20: max 5 libros diferentes, max 3 del mismo
+  const diferentesLibros = items.length;
+  const excedeCantidad   = items.some(i => i.cantidad > 3);
+  if (diferentesLibros > 5) return { error: 'Máximo 5 libros diferentes por reserva.' };
+  if (excedeCantidad)       return { error: 'Máximo 3 ejemplares del mismo título por reserva.' };
+
+  const expira = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  // Insertar una fila por libro (esquema real)
+  const filas = items.map(i => ({
+    usuario_id: sesion.id,
+    libro_id:   i.libro_id,
+    cantidad:   i.cantidad,
+    expira_en:  expira,
+    estado:     'activa',
+  }));
+
+  const { data, error } = await client
+    .from('reservas')
+    .insert(filas)
+    .select('id');
+
+  if (error) return { error: error.message };
+
+  // Descontar stock temporalmente
+  for (const item of items) {
+    await client.rpc('decrementar_stock', { libro_id: item.libro_id, cantidad: item.cantidad });
+  }
+
+  return { reserva_id: data[0]?.id };
+}
+
+async function cancelarReserva(reservaId) {
+  // Una reserva = una fila con libro_id y cantidad
+  const { data: res, error } = await client
+    .from('reservas')
+    .select('libro_id, cantidad')
+    .eq('id', reservaId)
+    .single();
+
+  if (error || !res) return { error: 'Reserva no encontrada.' };
+
+  // Devolver stock
+  await client.rpc('incrementar_stock', { libro_id: res.libro_id, cantidad: res.cantidad });
+
+  const { error: err2 } = await client
+    .from('reservas')
+    .update({ estado: 'cancelada' })
+    .eq('id', reservaId);
+
+  return err2 ? { error: err2.message } : { ok: true };
+}
+
+// ── COMPRAS ───────────────────────────────────────────────────
+// Esquema real:
+//   compras:       id, usuario_id, tarjeta_id, total, estado, direccion_envio,
+//                  modalidad, estado_envio, factura_url, creado_en, actualizado_en
+//   compras_items: id, compra_id, libro_id, cantidad, precio_unit
+
+async function procesarCompra({ items, tarjeta_id, direccion_envio, costo_envio = 8500, tiempo_entrega = '3 a 5 días hábiles', modalidad = 'envio' }) {
+  const sesion = getSesion();
+  if (!sesion) return { error: 'Sin sesión' };
+
+  // Calcular total
+  let subtotal = 0;
+  for (const item of items) {
+    subtotal += parseFloat(item.precio) * item.cantidad;
+  }
+  const total = subtotal + costo_envio;
+
+  // Verificar saldo de tarjeta (columna real: titular)
+  const { data: tarjeta, error: errT } = await client
+    .from('tarjetas')
+    .select('saldo, titular')
+    .eq('id', tarjeta_id)
+    .eq('usuario_id', sesion.id)
+    .single();
+
+  if (errT || !tarjeta) return { error: 'Tarjeta no encontrada.' };
+  if (parseFloat(tarjeta.saldo) < total) {
+    return { error: `Saldo insuficiente. Necesitas $${total.toLocaleString('es-CO')} y tienes $${parseFloat(tarjeta.saldo).toLocaleString('es-CO')}.` };
+  }
+
+  // 1. Crear registro de compra PRIMERO (si falla, el saldo no se toca)
+  const { data: compra, error: errC } = await client
+    .from('compras')
+    .insert([{
+      usuario_id:      sesion.id,
+      tarjeta_id,
+      total,
+      direccion_envio,
+      modalidad,
+      estado:          'en_preparacion',
+      estado_envio:    'en_preparacion',
+    }])
+    .select('id')
+    .single();
+
+  if (errC) return { error: 'Error al registrar la compra: ' + errC.message };
+
+  // 2. Descontar saldo solo si la compra quedó registrada
+  const { error: errSaldo } = await client
+    .from('tarjetas')
+    .update({ saldo: parseFloat(tarjeta.saldo) - total })
+    .eq('id', tarjeta_id);
+
+  if (errSaldo) {
+    // Revertir la compra si el cobro falla
+    await client.from('compras').delete().eq('id', compra.id);
+    return { error: 'Error al procesar el pago: ' + errSaldo.message };
+  }
+
+  // Insertar ítems en compras_items
+  const itemsInsert = items.map(i => ({
+    compra_id:  compra.id,
+    libro_id:   i.id,
+    cantidad:   i.cantidad,
+    precio_unit: parseFloat(i.precio),
+  }));
+  const { error: errItems } = await client.from('compras_items').insert(itemsInsert);
+  if (errItems) return { error: 'Error al guardar ítems: ' + errItems.message };
+
+  // Descontar stock
+  for (const item of items) {
+    await client.rpc('decrementar_stock', { libro_id: item.id, cantidad: item.cantidad });
+  }
+
+  // Número de factura derivado del id
+  const numero_factura = 'FAC-' + compra.id.slice(0, 8).toUpperCase();
+
+  return {
+    ok: true,
+    compra_id:      compra.id,
+    numero_factura,
+    subtotal,
+    costo_envio,
+    total,
+    tiempo_entrega,
+    titular:        tarjeta.titular,
+    direccion_envio,
+    items,
+  };
+}
+
+async function cancelarCompra(compraId) {
+  // Obtener compra con sus ítems
+  const { data: compra, error } = await client
+    .from('compras')
+    .select('total, tarjeta_id, estado, estado_envio')
+    .eq('id', compraId)
+    .single();
+
+  if (error || !compra) return { error: 'Compra no encontrada.' };
+  if (compra.estado_envio === 'entregado') return { error: 'No se puede cancelar una compra ya entregada.' };
+  if (compra.estado === 'cancelada')       return { error: 'Esta compra ya fue cancelada.' };
+
+  // Obtener ítems de compras_items
+  const { data: compraItems } = await client
+    .from('compras_items')
+    .select('libro_id, cantidad')
+    .eq('compra_id', compraId);
+
+  // Reembolsar a tarjeta
+  const { data: tarjeta } = await client
+    .from('tarjetas').select('saldo').eq('id', compra.tarjeta_id).single();
+  if (tarjeta) {
+    await client.from('tarjetas')
+      .update({ saldo: parseFloat(tarjeta.saldo) + parseFloat(compra.total) })
+      .eq('id', compra.tarjeta_id);
+  }
+
+  // Devolver stock
+  for (const item of (compraItems || [])) {
+    await client.rpc('incrementar_stock', { libro_id: item.libro_id, cantidad: item.cantidad });
+  }
+
+  const { error: err2 } = await client
+    .from('compras')
+    .update({ estado: 'cancelada', estado_envio: 'cancelada', actualizado_en: new Date().toISOString() })
+    .eq('id', compraId);
+
+  return err2 ? { error: err2.message } : { ok: true };
+}
+
+// ── GENERAR FACTURA HTML (para imprimir / descargar) ──────────
+
+function generarFacturaHTML(datos) {
+  const fecha = new Date().toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
+  const filas = datos.items.map(i =>
+    `<tr>
+      <td style="padding:8px 12px;">${i.titulo}</td>
+      <td style="padding:8px 12px;text-align:center;">${i.cantidad}</td>
+      <td style="padding:8px 12px;text-align:right;">$${(i.precio * i.cantidad).toLocaleString('es-CO')}</td>
+    </tr>`
+  ).join('');
+
+  return `
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Factura ${datos.numero_factura}</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 680px; margin: 40px auto; color: #1e1a17; }
+  .head { background: #b83227; color: #fff; padding: 24px 32px; border-radius: 12px 12px 0 0; }
+  .head h1 { margin:0; font-size:1.4rem; }
+  .head p  { margin:4px 0 0; opacity:.8; font-size:.85rem; }
+  .body { border: 1px solid #e8ddd4; border-top:none; padding: 28px 32px; border-radius: 0 0 12px 12px; }
+  table { width:100%; border-collapse:collapse; margin-bottom:20px; }
+  thead { background:#faf6f1; }
+  th { padding:10px 12px; text-align:left; font-size:.78rem; text-transform:uppercase; color:#6b5e55; }
+  td { border-top: 1px solid #f0e8de; font-size:.9rem; }
+  .totals td { border:none; font-size:.9rem; }
+  .grand { font-size:1.1rem; font-weight:700; color:#b83227; }
+  .info { background:#faf6f1; border-radius:10px; padding:16px 20px; margin-bottom:20px; font-size:.88rem; line-height:1.7; }
+  .footer { text-align:center; font-size:.75rem; color:#6b5e55; margin-top:24px; }
+</style></head><body>
+<div class="head">
+  <h1>📚 Librería Pereira</h1>
+  <p>Factura de venta electrónica · ${datos.numero_factura}</p>
+</div>
+<div class="body">
+  <div class="info">
+    <strong>Fecha:</strong> ${fecha}<br>
+    <strong>Titular:</strong> ${datos.titular || '—'}<br>
+    <strong>Dirección de entrega:</strong> ${datos.direccion_envio || '—'}<br>
+    <strong>Tiempo estimado de entrega:</strong> ${datos.tiempo_entrega || '3 a 5 días hábiles'}
+  </div>
+  <table>
+    <thead><tr><th>Libro</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Subtotal</th></tr></thead>
+    <tbody>${filas}</tbody>
+  </table>
+  <table class="totals">
+    <tr><td>Subtotal</td><td style="text-align:right;">$${(datos.subtotal || datos.items.reduce((s,i)=>s+i.precio_unit*i.cantidad,0)).toLocaleString('es-CO')}</td></tr>
+    <tr><td>Costo de envío</td><td style="text-align:right;">$${(datos.costo_envio || 0).toLocaleString('es-CO')}</td></tr>
+    <tr class="grand"><td>TOTAL</td><td style="text-align:right;">$${parseFloat(datos.total).toLocaleString('es-CO')}</td></tr>
+  </table>
+  <p class="footer">Librería Pereira &copy; 2026 · Ley 1581 de 2012 · Política de devoluciones: 8 días hábiles</p>
+</div>
+</body></html>`;
+}
+
+function imprimirFactura(datos) {
+  const win = window.open('', '_blank');
+  win.document.write(generarFacturaHTML(datos));
+  win.document.close();
+  win.print();
 }

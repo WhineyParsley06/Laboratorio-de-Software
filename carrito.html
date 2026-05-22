@@ -485,7 +485,7 @@
     async function cargarTarjetas() {
       const { data, error } = await client
         .from('tarjetas')
-        .select('id, nombre_titular, numero_tarjeta, saldo, tipo')
+        .select('id, titular, numero, saldo, tipo')
         .eq('usuario_id', sesion.id);
 
       const sel  = document.getElementById('selectTarjeta');
@@ -498,7 +498,7 @@
       }
       const opts = data.map(t =>
         `<option value="${t.id}">
-          ${t.tipo === 'credito' ? '💳' : '🏦'} **** ${t.numero_tarjeta.slice(-4)} · ${t.nombre_titular} · Saldo: $${parseFloat(t.saldo).toLocaleString('es-CO')}
+          ${t.tipo === 'credito' ? '💳' : '🏦'} **** ${t.numero.replace(/\s/g,'').slice(-4)} · ${t.titular} · Saldo: $${parseFloat(t.saldo).toLocaleString('es-CO')}
         </option>`
       ).join('');
       sel.innerHTML  = opts;
@@ -596,7 +596,7 @@
         if (!tarjetaId) { showAlert('alertCarrito', 'Selecciona una tarjeta de pago.', 'error'); setLoading(btn, false); return; }
         if (!direccion) { showAlert('alertCarrito', 'Ingresa la dirección de entrega.', 'error'); setLoading(btn, false); return; }
 
-        resultado = await procesarCompra({ items: carrito, tarjeta_id: tarjetaId, direccion_envio: direccion });
+        resultado = await procesarCompra({ items: carrito, tarjeta_id: tarjetaId, direccion_envio: direccion, modalidad: 'envio' });
 
         if (resultado.error) {
           showAlert('alertCarrito', resultado.error, 'error');
@@ -622,6 +622,7 @@
           direccion_envio: direccionFinal,
           costo_envio:    0,
           tiempo_entrega: '24 a 48 horas hábiles (recogida en tienda)',
+          modalidad:      'recogida',
         });
 
         if (resultado.error) {

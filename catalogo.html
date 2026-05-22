@@ -100,6 +100,35 @@
       border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 1rem;
     }
 
+
+    /* ── Estado Agotado ─────────────────────────────────── */
+    .agotado-card { opacity: 0.82; pointer-events: auto; }
+    .agotado-card:hover { transform: none; box-shadow: none; cursor: default; }
+    .agotado-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.38);
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 0;
+    }
+    .agotado-label {
+      background: #dc2626;
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      padding: 7px 18px;
+      border-radius: 6px;
+      transform: rotate(-8deg);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .precio-agotado { opacity: 0.6; }
+    .tag-agotado {
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: #dc2626;
+      text-transform: uppercase;
+    }
     @media (max-width: 768px) {
       .detail-container { grid-template-columns: 1fr; }
       .filter-bar { flex-direction: column; align-items: stretch; }
@@ -194,7 +223,6 @@
       const { data, error } = await client
         .from('libros')
         .select('*')
-        .eq('agotado', false) // Solo mostramos los que no están agotados
         .order('titulo', { ascending: true });
 
       if (error) {
@@ -216,13 +244,18 @@
       }
 
       grid.innerHTML = lista.map(l => `
-        <a href="catalogo.html?id=${l.id}" class="book-card">
-          <img src="${l.imagen_url || 'https://via.placeholder.com/300x450?text=Sin+Portada'}" class="book-img" alt="${l.titulo}">
+        <a ${l.agotado ? '' : 'href="catalogo.html?id=' + l.id + '"'} class="book-card${l.agotado ? ' agotado-card' : ''}">
+          <div style="position:relative;">
+            <img src="${l.imagen_url || 'https://via.placeholder.com/300x450?text=Sin+Portada'}" class="book-img" alt="${l.titulo}">
+            ${l.agotado ? '<div class="agotado-overlay"><span class="agotado-label">AGOTADO</span></div>' : ''}
+          </div>
           <div class="book-info">
             <span class="book-tag">${l.genero || 'General'}</span>
             <h3 class="book-title">${l.titulo}</h3>
             <p class="book-author">${l.autor}</p>
-            <div class="book-price">$${parseFloat(l.precio).toLocaleString('es-CO')}</div>
+            <div class="book-price${l.agotado ? ' precio-agotado' : ''}">
+              ${l.agotado ? '<span class="tag-agotado">AGOTADO</span>' : '$' + parseFloat(l.precio).toLocaleString('es-CO')}
+            </div>
           </div>
         </a>
       `).join('');
