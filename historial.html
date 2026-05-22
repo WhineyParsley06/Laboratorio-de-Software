@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis Compras y Reservas — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .hist-wrap { max-width: 900px; margin: 36px auto; padding: 0 20px; }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      color: var(--primario-dark);
+      margin-bottom: 8px;
+    }
+
+    /* ── Tabs historial ── */
+    .hist-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--fondo);
+      border-radius: 12px;
+      padding: 4px;
+      border: 1px solid var(--borde);
+      margin-bottom: 24px;
+    }
+    .hist-tab {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: var(--texto-suave);
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transicion);
+      box-shadow: none;
+      width: auto;
+    }
+    .hist-tab.active {
+      background: #fff;
+      color: var(--primario);
+      font-weight: 600;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    }
+
+    /* ── Tarjeta de compra/reserva ── */
+    .registro-card {
+      background: #fff;
+      border: 1px solid var(--borde);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: box-shadow var(--transicion);
+    }
+    .registro-card:hover { box-shadow: var(--sombra-card); }
+
+    .reg-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--borde);
+    }
+    .reg-id { font-size: 0.78rem; color: var(--texto-suave); margin-bottom: 3px; }
+    .reg-fecha { font-size: 0.82rem; color: var(--texto-suave); }
+    .reg-total { font-size: 1.15rem; font-weight: 700; color: var(--primario-dark); }
+
+    .estado-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .estado-preparacion { background: #fffbeb; color: #92400e; }
+    .estado-enviado     { background: #eff6ff; color: #1d4ed8; }
+    .estado-entregado   { background: #f0fdf4; color: #16a34a; }
+    .estado-cancelada   { background: #fef2f2; color: #dc2626; }
+    .estado-activa      { background: #f0fdf4; color: #16a34a; }
+    .estado-expirada    { background: #f9fafb; color: #6b7280; }
+
+    .reg-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .reg-item-chip {
+      background: var(--fondo);
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      padding: 5px 11px;
+      font-size: 0.8rem;
+      color: var(--texto-suave);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .reg-item-chip strong { color: var(--texto); }
+
+    .reg-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reg-envio { font-size: 0.8rem; color: var(--texto-suave); }
+
+    /* Timeline de envío */
+    .envio-timeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 12px 0;
+    }
+    .et-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .et-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--borde);
+      background: var(--fondo);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--texto-suave);
+      transition: all 0.3s;
+    }
+    .et-dot.done { background: var(--primario); border-color: var(--primario); color: #fff; }
+    .et-dot.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+    .et-label { font-size: 0.68rem; color: var(--texto-suave); text-align: center; max-width: 70px; }
+    .et-line { flex: 1; height: 2px; background: var(--borde); min-width: 30px; }
+    .et-line.done { background: var(--primario); }
+
+    .btn-cancelar {
+      background: none;
+      border: 1.5px solid #dc2626;
+      box-shadow: none;
+      color: #dc2626;
+      font-size: 0.82rem;
+      width: auto;
+      padding: 7px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all var(--transicion);
+    }
+    .btn-cancelar:hover { background: #fef2f2; transform: none; }
+
+    .btn-factura {
+      background: none;
+      border: 1.5px solid var(--borde);
+      box-shadow: none;
+      color: var(--texto-suave);
+      font-size: 0.82rem;
+      width: auto;
+      padding: 7px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all var(--transicion);
+    }
+    .btn-factura:hover { border-color: var(--primario); color: var(--primario); transform: none; }
+
+    .vacio-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--texto-suave);
+    }
+    .vacio-state .icon { font-size: 3.5rem; margin-bottom: 14px; display: block; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="carrito.html">🛒 Carrito <span class="carrito-badge" id="badgeNav" style="background:var(--secundario);color:#fff;border-radius:99px;font-size:0.7rem;font-weight:700;padding:1px 7px;display:none;"></span></a>
+    <a href="historial.html" class="active">📋 Mis compras</a>
+    <a href="perfil.html">Mi Perfil</a>
+    <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
+  </nav>
+
+  <div class="session-bar" id="sessionBar">
+    <div class="session-dot"></div>
+    <span>Sesión activa: <strong id="sessionCount">60s</strong></span>
+  </div>
+
+  <div class="hist-wrap">
+    <h1 class="section-title">📋 Historial de operaciones</h1>
+    <p style="color:var(--texto-suave);font-size:0.88rem;margin-bottom:20px;">Todas tus compras, reservas y cancelaciones en un solo lugar.</p>
+
+    <div id="alertHist"></div>
+
+    <div class="hist-tabs">
+      <button class="hist-tab active" id="tabCompras"  onclick="cambiarTab('compras')">💳 Compras</button>
+      <button class="hist-tab"        id="tabReservas" onclick="cambiarTab('reservas')">🔖 Reservas</button>
+    </div>
+
+    <div id="panelCompras">
+      <div id="listaCompras"><div style="text-align:center;padding:40px;color:var(--texto-suave);">Cargando...</div></div>
+    </div>
+
+    <div id="panelReservas" style="display:none;">
+      <div id="listaReservas"><div style="text-align:center;padding:40px;color:var(--texto-suave);">Cargando...</div></div>
+    </div>
+  </div>
+
+  <footer>
+    <strong>Librería Pereira</strong> &copy; 2026 · Ley 1581 de 2012
+  </footer>
+
+  <script src="js/script.js"></script>
+  <script>
+    const sesion = requireSession();
+    if (sesion) initSessionTimer();
+
+    actualizarBadgeCarrito();
+
+    let tabActual = 'compras';
+
+    function cambiarTab(tab) {
+      tabActual = tab;
+      document.getElementById('tabCompras').classList.toggle('active', tab === 'compras');
+      document.getElementById('tabReservas').classList.toggle('active', tab === 'reservas');
+      document.getElementById('panelCompras').style.display  = tab === 'compras'  ? 'block' : 'none';
+      document.getElementById('panelReservas').style.display = tab === 'reservas' ? 'block' : 'none';
+    }
+
+    // ── Cargar compras ──
+    async function cargarCompras() {
+      const { data, error } = await client
+        .from('compras')
+        .select('*')
+        .eq('usuario_id', sesion.id)
+        .order('created_at', { ascending: false });
+
+      const lista = document.getElementById('listaCompras');
+
+      if (error) { lista.innerHTML = '<p>Error al cargar compras.</p>'; return; }
+      if (!data || data.length === 0) {
+        lista.innerHTML = `
+          <div class="vacio-state">
+            <span class="icon">💳</span>
+            <h3>Sin compras aún</h3>
+            <p style="margin-bottom:20px;">Explora el catálogo y realiza tu primera compra.</p>
+            <a href="index.html" style="display:inline-flex;align-items:center;gap:8px;background:var(--primario);color:#fff;padding:11px 22px;border-radius:10px;font-weight:700;text-decoration:none;">📚 Ir al catálogo</a>
+          </div>`;
+        return;
+      }
+
+      lista.innerHTML = data.map(c => {
+        const items    = JSON.parse(c.items || '[]');
+        const fecha    = new Date(c.created_at).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
+        const estadoCls = {
+          en_preparacion: 'estado-preparacion',
+          enviado:        'estado-enviado',
+          entregado:      'estado-entregado',
+          cancelada:      'estado-cancelada',
+        }[c.estado] || 'estado-preparacion';
+
+        const estadoLabel = {
+          en_preparacion: '⏳ En preparación',
+          enviado:        '🚚 Enviado',
+          entregado:      '✅ Entregado',
+          cancelada:      '❌ Cancelada',
+        }[c.estado] || c.estado;
+
+        // Timeline visual
+        const etapas = ['en_preparacion', 'enviado', 'entregado'];
+        const etIdx  = etapas.indexOf(c.estado);
+        const timelineHTML = c.estado !== 'cancelada' ? `
+          <div class="envio-timeline">
+            <div class="et-step">
+              <div class="et-dot ${etIdx >= 0 ? 'done' : ''}">📦</div>
+              <span class="et-label">Preparando</span>
+            </div>
+            <div class="et-line ${etIdx >= 1 ? 'done' : ''}"></div>
+            <div class="et-step">
+              <div class="et-dot ${etIdx >= 1 ? 'done' : etIdx === 0 ? '' : ''}">🚚</div>
+              <span class="et-label">En camino</span>
+            </div>
+            <div class="et-line ${etIdx >= 2 ? 'done' : ''}"></div>
+            <div class="et-step">
+              <div class="et-dot ${etIdx >= 2 ? 'done' : ''}">🏠</div>
+              <span class="et-label">Entregado</span>
+            </div>
+          </div>` : '';
+
+        const puedesCancelar = c.estado === 'en_preparacion' || c.estado === 'enviado';
+
+        return `
+          <div class="registro-card">
+            <div class="reg-head">
+              <div>
+                <div class="reg-id">Factura: ${c.numero_factura || 'N/A'}</div>
+                <div class="reg-fecha">${fecha}</div>
+                <div style="margin-top:8px;"><span class="estado-badge ${estadoCls}">${estadoLabel}</span></div>
+              </div>
+              <div style="text-align:right;">
+                <div class="reg-total">$${parseFloat(c.total).toLocaleString('es-CO')}</div>
+                <div style="font-size:0.75rem;color:var(--texto-suave);">Envío: $${parseFloat(c.costo_envio || 8500).toLocaleString('es-CO')}</div>
+              </div>
+            </div>
+
+            ${timelineHTML}
+
+            <div class="reg-items">
+              ${items.map(i => `
+                <div class="reg-item-chip">
+                  📖 <strong>${i.titulo?.slice(0,30) || 'Libro'}</strong> ×${i.cantidad}
+                </div>`).join('')}
+            </div>
+
+            <div class="reg-footer">
+              <div class="reg-envio">🚚 ${c.direccion_envio || ''} · Est: ${c.tiempo_entrega || '3-5 días'}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn-factura" onclick="reimprimir('${c.id}')">🖨️ Factura</button>
+                ${puedesCancelar ? `<button class="btn-cancelar" onclick="solicitarCancelacion('${c.id}')">❌ Cancelar pedido</button>` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Cargar reservas ──
+    async function cargarReservas() {
+      const { data, error } = await client
+        .from('reservas')
+        .select('*')
+        .eq('usuario_id', sesion.id)
+        .order('created_at', { ascending: false });
+
+      const lista = document.getElementById('listaReservas');
+
+      if (error) { lista.innerHTML = '<p>Error al cargar reservas.</p>'; return; }
+      if (!data || data.length === 0) {
+        lista.innerHTML = `
+          <div class="vacio-state">
+            <span class="icon">🔖</span>
+            <h3>Sin reservas activas</h3>
+            <p>Puedes apartar libros sin pagar por 24 horas.</p>
+          </div>`;
+        return;
+      }
+
+      const ahora = new Date();
+      lista.innerHTML = data.map(r => {
+        const items    = JSON.parse(r.items || '[]');
+        const fecha    = new Date(r.created_at).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
+        const expira   = new Date(r.expira_en);
+        const expirada = expira < ahora;
+        const estado   = r.estado === 'cancelada' ? 'cancelada' : (expirada ? 'expirada' : r.estado);
+
+        const estadoCls   = estado === 'activa' ? 'estado-activa' : estado === 'cancelada' ? 'estado-cancelada' : 'estado-expirada';
+        const estadoLabel = estado === 'activa' ? '✅ Activa' : estado === 'cancelada' ? '❌ Cancelada' : '⌛ Expirada';
+
+        const horasRestantes = !expirada && estado === 'activa'
+          ? Math.ceil((expira - ahora) / 3600000)
+          : null;
+
+        return `
+          <div class="registro-card">
+            <div class="reg-head">
+              <div>
+                <div class="reg-id">Reserva #${r.id.slice(0,8)}</div>
+                <div class="reg-fecha">${fecha}</div>
+                <div style="margin-top:8px;"><span class="estado-badge ${estadoCls}">${estadoLabel}</span></div>
+                ${horasRestantes !== null ? `<div style="font-size:0.78rem;color:#d97706;margin-top:4px;">⏱️ Expira en ${horasRestantes}h</div>` : ''}
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.8rem;color:var(--texto-suave);">Expira: ${expira.toLocaleDateString('es-CO')}</div>
+              </div>
+            </div>
+
+            <div class="reg-items">
+              ${items.map(i => `
+                <div class="reg-item-chip">
+                  📖 <strong>${i.titulo?.slice(0,30) || 'Libro'}</strong> ×${i.cantidad}
+                </div>`).join('')}
+            </div>
+
+            <div class="reg-footer">
+              <div></div>
+              <div style="display:flex;gap:8px;">
+                ${estado === 'activa' ? `
+                  <button onclick="window.location.href='carrito.html'" style="background:var(--primario);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:0.82rem;font-weight:600;cursor:pointer;box-shadow:none;width:auto;">
+                    💳 Comprar ahora
+                  </button>
+                  <button class="btn-cancelar" onclick="solicitarCancelarReserva('${r.id}')">🗑️ Cancelar</button>
+                ` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Cancelar compra ──
+    async function solicitarCancelacion(compraId) {
+      if (!confirm('¿Cancelar este pedido? Se reembolsará el monto a tu tarjeta.')) return;
+      const resultado = await cancelarCompra(compraId);
+      if (resultado.error) {
+        showAlert('alertHist', resultado.error, 'error');
+      } else {
+        showAlert('alertHist', '✅ Pedido cancelado. El saldo fue reembolsado a tu tarjeta.', 'success');
+        cargarCompras();
+      }
+    }
+
+    // ── Cancelar reserva ──
+    async function solicitarCancelarReserva(reservaId) {
+      if (!confirm('¿Cancelar esta reserva? Los libros volverán al catálogo.')) return;
+      const resultado = await cancelarReserva(reservaId);
+      if (resultado.error) {
+        showAlert('alertHist', resultado.error, 'error');
+      } else {
+        showAlert('alertHist', '✅ Reserva cancelada. Stock liberado.', 'success');
+        cargarReservas();
+      }
+    }
+
+    // ── Reimprimir factura ──
+    async function reimprimir(compraId) {
+      const { data, error } = await client.from('compras').select('*').eq('id', compraId).single();
+      if (error || !data) { alert('No se pudo cargar la factura.'); return; }
+
+      const { data: tarjeta } = await client.from('tarjetas').select('nombre_titular').eq('id', data.tarjeta_id).single();
+
+      imprimirFactura({
+        numero_factura: data.numero_factura,
+        titular:        tarjeta?.nombre_titular || 'Cliente',
+        subtotal:       parseFloat(data.subtotal),
+        costo_envio:    parseFloat(data.costo_envio),
+        total:          parseFloat(data.total),
+        tiempo_entrega: data.tiempo_entrega,
+        direccion_envio: data.direccion_envio,
+        items:          JSON.parse(data.items || '[]'),
+      });
+    }
+
+    // ── Init ──
+    cargarCompras();
+    cargarReservas();
+  </script>
+</body>
+</html>

@@ -34,13 +34,34 @@
       width: 100%; padding: 12px 16px; border-radius: 10px;
       border: 1.5px solid var(--borde); font-size: 0.9rem;
     }
-    .genre-filters { display: flex; gap: 8px; flex-wrap: wrap; }
-    .genre-btn {
-      padding: 8px 16px; border-radius: 99px; border: 1px solid var(--borde);
-      background: #fff; color: var(--texto-suave); cursor: pointer; font-size: 0.85rem;
-      transition: all 0.2s;
+    .genre-filters { display: flex; gap: 8px; align-items: center; }
+    .genre-btn-todos {
+      padding: 9px 18px; border-radius: 99px; border: 1.5px solid var(--primario);
+      background: var(--primario); color: #fff; cursor: pointer; font-size: 0.85rem;
+      font-weight: 600; transition: all 0.2s; white-space: nowrap;
     }
-    .genre-btn.active { background: var(--primario); color: #fff; border-color: var(--primario); }
+    .genre-btn-todos.inactive {
+      background: #fff; color: var(--texto-suave); border-color: var(--borde);
+    }
+    .genre-drop-btn {
+      padding: 9px 18px; border-radius: 99px; border: 1.5px solid var(--borde);
+      background: #fff; color: var(--texto); cursor: pointer; font-size: 0.85rem;
+      font-weight: 500; display: flex; align-items: center; gap: 6px;
+      transition: all 0.2s; white-space: nowrap;
+    }
+    .genre-drop-btn:hover { border-color: var(--primario); color: var(--primario); }
+    .genre-dropdown {
+      display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
+      background: #fff; border: 1.5px solid var(--borde); border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12); min-width: 170px; padding: 6px 0;
+    }
+    .genre-dropdown button {
+      display: block; width: 100%; padding: 9px 18px; background: none; border: none;
+      text-align: left; font-size: 0.85rem; cursor: pointer; color: var(--texto);
+      font-family: inherit; transition: background 0.15s;
+    }
+    .genre-dropdown button:hover { background: #fdf6f0; }
+    .genre-dropdown button.active { color: var(--primario); font-weight: 700; }
 
     /* ── Grid de Libros ─────────────────────────────────── */
     .books-grid {
@@ -86,6 +107,17 @@
   </style>
 </head>
 <body>
+<script>
+  // El catálogo ahora vive en la página de inicio.
+  // Preservamos el ?id= para ir directo al detalle si viene un enlace directo.
+  const params = new URLSearchParams(window.location.search);
+  const libroId = params.get('id');
+  if (libroId) {
+    window.location.replace('index.html?libro=' + libroId);
+  } else {
+    window.location.replace('index.html');
+  }
+</script>
 
   <nav id="navbar-placeholder">
     <a href="index.html" class="nav-brand">Librería Pereira</a>
@@ -105,9 +137,16 @@
       <div class="search-box">
         <input type="text" id="inputBuscar" placeholder="Buscar por título, autor o ISBN..." oninput="manejarFiltros()">
       </div>
-      <div class="genre-filters" id="listaGeneros">
-        <button class="genre-btn active" onclick="filtrarPorGenero('Todos')">Todos</button>
+      <div class="genre-filters">
+        <button class="genre-btn-todos" id="btnTodosCat" onclick="filtrarPorGenero('Todos')">Todos</button>
+        <div style="position:relative;">
+          <button class="genre-drop-btn" id="catDropBtn" onclick="toggleCatDropdown()">
+            <span id="catGeneroLabel">Géneros</span>
+            <span id="catDropArrow" style="font-size:0.7rem;">▾</span>
+          </button>
+          <div class="genre-dropdown" id="catGeneroDropdown"></div>
         </div>
+      </div>
     </div>
 
     <div class="books-grid" id="gridLibros">
@@ -192,11 +231,42 @@
     // 4. Filtros
     function filtrarPorGenero(genero) {
       generoActual = genero;
-      document.querySelectorAll('.genre-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent === genero);
+      const btnTodos = document.getElementById('btnTodosCat');
+      if (genero === 'Todos') {
+        btnTodos.classList.remove('inactive');
+        document.getElementById('catGeneroLabel').textContent = 'Géneros';
+      } else {
+        btnTodos.classList.add('inactive');
+        document.getElementById('catGeneroLabel').textContent = genero;
+      }
+      // Marcar activo en dropdown
+      document.querySelectorAll('#catGeneroDropdown button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.genero === genero);
       });
+      // Cerrar dropdown
+      document.getElementById('catGeneroDropdown').style.display = 'none';
+      document.getElementById('catDropArrow').textContent = '▾';
       manejarFiltros();
     }
+
+    function toggleCatDropdown() {
+      const dd    = document.getElementById('catGeneroDropdown');
+      const arrow = document.getElementById('catDropArrow');
+      const open  = dd.style.display === 'block';
+      dd.style.display = open ? 'none' : 'block';
+      arrow.textContent = open ? '▾' : '▴';
+    }
+
+    // Cerrar dropdown al hacer click fuera
+    document.addEventListener('click', e => {
+      const btn = document.getElementById('catDropBtn');
+      const dd  = document.getElementById('catGeneroDropdown');
+      if (dd && btn && !btn.contains(e.target) && !dd.contains(e.target)) {
+        dd.style.display = 'none';
+        const arrow = document.getElementById('catDropArrow');
+        if (arrow) arrow.textContent = '▾';
+      }
+    });
 
     function manejarFiltros() {
       const busqueda = document.getElementById('inputBuscar').value.toLowerCase();
@@ -215,15 +285,11 @@
     }
 
     function generarBotonesGeneros() {
-      const generos = [...new Set(todosLosLibros.map(l => l.genero).filter(g => g))];
-      const contenedor = document.getElementById('listaGeneros');
-      generos.forEach(g => {
-        const btn = document.createElement('button');
-        btn.className = 'genre-btn';
-        btn.textContent = g;
-        btn.onclick = () => filtrarPorGenero(g);
-        contenedor.appendChild(btn);
-      });
+      const generos = [...new Set(todosLosLibros.map(l => l.genero).filter(g => g))].sort();
+      const dd = document.getElementById('catGeneroDropdown');
+      dd.innerHTML = generos.map(g => `
+        <button data-genero="${g}" onclick="filtrarPorGenero('${g}')">${g}</button>
+      `).join('');
     }
 
     // 5. Vista Detalle

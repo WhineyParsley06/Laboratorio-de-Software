@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Carrito — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .carrito-wrap { max-width: 900px; margin: 36px auto; padding: 0 20px; }
+
+    .carrito-grid { display: grid; grid-template-columns: 1fr 320px; gap: 28px; align-items: start; }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      color: var(--primario-dark);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── Ítem de carrito ── */
+    .item-card {
+      background: #fff;
+      border: 1px solid var(--borde);
+      border-radius: 14px;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 70px 1fr auto;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 12px;
+      transition: box-shadow var(--transicion);
+    }
+    .item-card:hover { box-shadow: var(--sombra-card); }
+    .item-img {
+      width: 70px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #eee;
+    }
+    .item-titulo { font-weight: 600; font-size: 0.95rem; margin-bottom: 3px; color: var(--texto); }
+    .item-autor  { font-size: 0.82rem; color: var(--texto-suave); margin-bottom: 8px; }
+    .item-precio { font-size: 1rem; font-weight: 700; color: var(--primario-dark); }
+
+    .qty-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .qty-btn {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 1.5px solid var(--borde);
+      background: var(--fondo);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--transicion);
+      box-shadow: none;
+      color: var(--texto);
+      padding: 0;
+    }
+    .qty-btn:hover { border-color: var(--primario); color: var(--primario); background: #fff; transform: none; }
+    .qty-num { font-weight: 600; font-size: 0.95rem; min-width: 24px; text-align: center; }
+
+    .btn-remove {
+      background: none;
+      border: none;
+      box-shadow: none;
+      color: #dc2626;
+      font-size: 0.8rem;
+      width: auto;
+      padding: 4px 8px;
+      cursor: pointer;
+      transition: opacity var(--transicion);
+      margin-top: 6px;
+    }
+    .btn-remove:hover { opacity: 0.7; transform: none; }
+
+    .item-subtotal {
+      text-align: right;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primario);
+      white-space: nowrap;
+    }
+
+    /* ── Panel de resumen ── */
+    .resumen-card {
+      background: #fff;
+      border: 1px solid var(--borde);
+      border-radius: 16px;
+      padding: 24px;
+      position: sticky;
+      top: 84px;
+    }
+    .resumen-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      color: var(--primario-dark);
+    }
+    .resumen-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      margin-bottom: 10px;
+      color: var(--texto-suave);
+    }
+    .resumen-row.total {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--texto);
+      border-top: 1px solid var(--borde);
+      padding-top: 12px;
+      margin-top: 8px;
+    }
+    .resumen-row.total span:last-child { color: var(--primario); }
+
+    .envio-badge {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      color: #16a34a;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Selección de tarjeta */
+    .select-tarjeta {
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .select-dir {
+      width: 100%;
+      margin-bottom: 16px;
+      font-size: 0.88rem;
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    /* Vacío */
+    .carrito-vacio {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--texto-suave);
+    }
+    .carrito-vacio .icon { font-size: 4rem; margin-bottom: 16px; display: block; }
+
+    /* Tabs reserva / compra */
+    .modo-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .modo-tab {
+      flex: 1;
+      padding: 9px;
+      border-radius: 9px;
+      border: 1.5px solid var(--borde);
+      background: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--texto-suave);
+      transition: all var(--transicion);
+      box-shadow: none;
+      width: auto;
+    }
+    .modo-tab.active {
+      background: var(--primario);
+      color: #fff;
+      border-color: var(--primario);
+    }
+
+    @media (max-width: 700px) {
+      .carrito-grid { grid-template-columns: 1fr; }
+      .item-card { grid-template-columns: 60px 1fr; }
+      .item-subtotal { grid-column: 1/-1; text-align: left; }
+    }
+
+    /* ── Tienda badge ── */
+    .tienda-card {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 0.85rem;
+      margin-bottom: 14px;
+      line-height: 1.7;
+    }
+    .tienda-card strong { color: #166534; }
+    .tienda-no-col {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 0.85rem;
+      color: #92400e;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="carrito.html" class="active">🛒 Carrito <span class="carrito-badge" id="badgeNav" style="background:var(--secundario);color:#fff;border-radius:99px;font-size:0.7rem;font-weight:700;padding:1px 7px;display:none;"></span></a>
+    <a href="historial.html">📋 Mis compras</a>
+    <a href="perfil.html">Mi Perfil</a>
+    <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
+  </nav>
+
+  <!-- Session timer -->
+  <div class="session-bar" id="sessionBar">
+    <div class="session-dot"></div>
+    <span>Sesión activa: <strong id="sessionCount">60s</strong></span>
+  </div>
+
+  <div class="carrito-wrap">
+    <h1 class="section-title">🛒 Mi carrito</h1>
+
+    <div id="alertCarrito"></div>
+
+    <!-- Carrito vacío -->
+    <div id="carritoVacio" class="carrito-vacio" style="display:none;">
+      <span class="icon">🛒</span>
+      <h3>Tu carrito está vacío</h3>
+      <p style="margin-bottom:24px;">Explora el catálogo y añade libros que te interesen.</p>
+      <a href="index.html" style="display:inline-flex;align-items:center;gap:8px;background:var(--primario);color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;text-decoration:none;">
+        📚 Explorar catálogo
+      </a>
+    </div>
+
+    <!-- Grid principal -->
+    <div id="carritoGrid" class="carrito-grid">
+      <!-- Columna izquierda: ítems -->
+      <div>
+        <div id="listaItems">
+          <div style="text-align:center;padding:40px;color:var(--texto-suave);">Cargando...</div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+          <button onclick="vaciarCarrito()"
+                  style="background:none;border:none;box-shadow:none;color:#dc2626;font-size:0.82rem;width:auto;padding:6px 12px;cursor:pointer;">
+            🗑️ Vaciar carrito
+          </button>
+        </div>
+      </div>
+
+      <!-- Columna derecha: resumen y pago -->
+      <div class="resumen-card">
+        <h3>Resumen del pedido</h3>
+
+        <div id="resumenItems"></div>
+
+        <div class="envio-badge" id="envioBadge">
+          🚚 Envío estándar: $8.500 · 3 a 5 días hábiles
+        </div>
+
+        <div class="resumen-row">
+          <span>Subtotal</span>
+          <span id="resumenSubtotal">$0</span>
+        </div>
+        <div class="resumen-row">
+          <span>Costo de envío</span>
+          <span>$8.500</span>
+        </div>
+        <div class="resumen-row total">
+          <span>Total</span>
+          <span id="resumenTotal">$0</span>
+        </div>
+
+        <div style="margin: 20px 0 8px; font-size:0.78rem; font-weight:600; color:var(--texto-suave); text-transform:uppercase; letter-spacing:0.05em;">
+          ¿Qué deseas hacer?
+        </div>
+        <div class="modo-tabs">
+          <button class="modo-tab active" id="tabCompra"  onclick="setModo('compra')">💳 Comprar</button>
+          <button class="modo-tab"        id="tabReserva" onclick="setModo('reserva')">🔖 Reservar</button>
+          <button class="modo-tab"        id="tabTienda"  onclick="setModo('tienda')">🏪 Recoger</button>
+        </div>
+
+        <!-- Sección compra -->
+        <div id="secCompra">
+          <div style="font-size:0.8rem; font-weight:600; color:var(--texto-suave); margin-bottom:6px; text-transform:uppercase;">Tarjeta de pago</div>
+          <select id="selectTarjeta" class="select-tarjeta">
+            <option value="">Cargando tarjetas...</option>
+          </select>
+
+          <div style="font-size:0.8rem; font-weight:600; color:var(--texto-suave); margin-bottom:6px; text-transform:uppercase;">Dirección de entrega</div>
+          <textarea id="inputDireccion" class="select-dir" placeholder="Calle 123 # 45-67, Pereira, Risaralda"></textarea>
+
+          <button id="btnComprar" onclick="procesarPedido('compra')">
+            💳 Confirmar compra
+          </button>
+        </div>
+
+        <!-- Sección reserva -->
+        <div id="secReserva" style="display:none;">
+          <div class="alert alert-info" style="font-size:0.82rem; margin-bottom:12px;">
+            ℹ️ La reserva congela el stock por <strong>24 horas</strong>. Máx. 5 libros distintos y 3 del mismo título.
+          </div>
+          <button id="btnReservar" onclick="procesarPedido('reserva')">
+            🔖 Confirmar reserva
+          </button>
+        </div>
+
+        <!-- Sección recogida en tienda (HU-F3) -->
+        <div id="secTienda" style="display:none;">
+          <div id="tiendaInfo"></div>
+          <div id="secTiendaPago" style="display:none;">
+            <div style="font-size:0.8rem; font-weight:600; color:var(--texto-suave); margin-bottom:6px; text-transform:uppercase;">Tarjeta de pago</div>
+            <select id="selectTarjetaTienda" class="select-tarjeta"></select>
+            <button id="btnTienda" onclick="procesarPedido('tienda')">
+              🏪 Confirmar recogida en tienda
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de éxito compra -->
+  <div id="modalExito" style="display:none;" class="modal-overlay">
+    <div class="modal" style="max-width:500px; text-align:center;">
+      <div style="font-size:2.5rem; margin-bottom:12px;">🎉</div>
+      <h3 id="modalTitulo">¡Compra realizada!</h3>
+      <div id="modalCuerpo" style="text-align:left; margin: 16px 0;"></div>
+      <div class="modal-actions" style="flex-direction:column; gap:10px;">
+        <button onclick="imprimirFacturaActual()" style="background:var(--primario);">🖨️ Imprimir factura</button>
+        <button onclick="window.location.href='historial.html'" style="background:transparent;color:var(--texto-suave);border:1.5px solid var(--borde);box-shadow:none;">Ver mis compras →</button>
+        <button onclick="window.location.href='index.html'" style="background:transparent;color:var(--texto-suave);border:1.5px solid var(--borde);box-shadow:none;">Volver al inicio</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <strong>Librería Pereira</strong> &copy; 2026 · Ley 1581 de 2012
+  </footer>
+
+  <script src="js/script.js"></script>
+  <script>
+    const sesion = requireSession();
+    if (sesion) initSessionTimer();
+
+    let modoActual = 'compra';
+    let datosFacturaActual = null;
+    let usuarioEnColombia = false;
+    const TIENDAS = [
+      { nombre: 'Sede Principal — Pereira',  direccion: 'Cra. 7 #19-29, Centro, Pereira, Risaralda',   ciudad: 'Pereira' },
+      { nombre: 'Sucursal Dosquebradas',     direccion: 'Cll. 15 #22-40, Dosquebradas, Risaralda',      ciudad: 'Dosquebradas' },
+    ];
+
+    // ── Renderizar carrito ──
+    async function renderCarrito() {
+      const carrito = getCarrito();
+
+      if (carrito.length === 0) {
+        document.getElementById('carritoVacio').style.display = 'block';
+        document.getElementById('carritoGrid').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('carritoVacio').style.display = 'none';
+      document.getElementById('carritoGrid').style.display = 'grid';
+
+      // Verificar stock actual contra BD
+      const ids = carrito.map(i => i.id);
+      const { data: libros } = await client.from('libros').select('id, stock, agotado').in('id', ids);
+      const stockMap = {};
+      (libros || []).forEach(l => { stockMap[l.id] = l; });
+
+      // Ajustar cantidades si el stock cambió
+      let ajustado = false;
+      const carritoLimpio = carrito.map(item => {
+        const info = stockMap[item.id];
+        if (!info || info.agotado || info.stock < 1) {
+          ajustado = true;
+          return null; // eliminar
+        }
+        if (item.cantidad > info.stock) {
+          ajustado = true;
+          return { ...item, cantidad: info.stock };
+        }
+        return item;
+      }).filter(Boolean);
+
+      if (ajustado) {
+        saveCarrito(carritoLimpio);
+        showAlert('alertCarrito', 'Se ajustó tu carrito porque el stock de algunos libros cambió.', 'info');
+        renderCarrito();
+        return;
+      }
+
+      // Renderizar ítems
+      const lista = document.getElementById('listaItems');
+      lista.innerHTML = carrito.map(item => `
+        <div class="item-card" id="item-${item.id}">
+          <img src="${item.imagen_url || 'https://via.placeholder.com/70x100?text=📚'}" class="item-img" alt="${item.titulo}">
+          <div>
+            <div class="item-titulo">${item.titulo}</div>
+            <div class="item-autor">${item.autor}</div>
+            <div class="item-precio">$${parseFloat(item.precio).toLocaleString('es-CO')}</div>
+            <div class="qty-ctrl">
+              <button class="qty-btn" onclick="cambiarCantidad('${item.id}', -1)">−</button>
+              <span class="qty-num" id="qty-${item.id}">${item.cantidad}</span>
+              <button class="qty-btn" onclick="cambiarCantidad('${item.id}', 1)">+</button>
+            </div>
+            <button class="btn-remove" onclick="eliminarItem('${item.id}')">🗑️ Quitar</button>
+          </div>
+          <div class="item-subtotal">$${(parseFloat(item.precio) * item.cantidad).toLocaleString('es-CO')}</div>
+        </div>
+      `).join('');
+
+      actualizarResumen();
+    }
+
+    function actualizarResumen() {
+      const carrito = getCarrito();
+      const subtotal   = carrito.reduce((s, i) => s + parseFloat(i.precio) * i.cantidad, 0);
+      const costoEnvio = modoActual === 'tienda' ? 0 : 8500;
+      const total      = subtotal + costoEnvio;
+
+      document.getElementById('resumenSubtotal').textContent = '$' + subtotal.toLocaleString('es-CO');
+      document.getElementById('resumenTotal').textContent    = '$' + total.toLocaleString('es-CO');
+
+      const resItems = document.getElementById('resumenItems');
+      resItems.innerHTML = carrito.map(i =>
+        `<div class="resumen-row" style="font-size:0.8rem;">
+          <span style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i.titulo} ×${i.cantidad}</span>
+          <span>$${(parseFloat(i.precio) * i.cantidad).toLocaleString('es-CO')}</span>
+        </div>`
+      ).join('');
+    }
+
+    async function cambiarCantidad(id, delta) {
+      const carrito = getCarrito();
+      const idx = carrito.findIndex(i => i.id == id);
+      if (idx === -1) return;
+
+      const nueva = carrito[idx].cantidad + delta;
+      if (nueva < 1) { eliminarItem(id); return; }
+
+      // Verificar stock en BD
+      const { data } = await client.from('libros').select('stock').eq('id', id).single();
+      if (data && nueva > data.stock) {
+        showAlert('alertCarrito', 'No hay suficiente stock disponible.', 'error');
+        return;
+      }
+
+      carrito[idx].cantidad = nueva;
+      saveCarrito(carrito);
+      document.getElementById('qty-' + id).textContent = nueva;
+      document.getElementById('item-' + id).querySelector('.item-subtotal').textContent =
+        '$' + (parseFloat(carrito[idx].precio) * nueva).toLocaleString('es-CO');
+      actualizarResumen();
+    }
+
+    function eliminarItem(id) {
+      let carrito = getCarrito();
+      carrito = carrito.filter(i => i.id != id);
+      saveCarrito(carrito);
+      renderCarrito();
+    }
+
+    function vaciarCarrito() {
+      if (!confirm('¿Estás seguro de vaciar el carrito?')) return;
+      saveCarrito([]);
+      renderCarrito();
+    }
+
+    // ── Tarjetas ──
+    async function cargarTarjetas() {
+      const { data, error } = await client
+        .from('tarjetas')
+        .select('id, nombre_titular, numero_tarjeta, saldo, tipo')
+        .eq('usuario_id', sesion.id);
+
+      const sel  = document.getElementById('selectTarjeta');
+      const sel2 = document.getElementById('selectTarjetaTienda');
+      if (error || !data || data.length === 0) {
+        const txt = '<option value="">Sin tarjetas — ve a Mi Monedero</option>';
+        sel.innerHTML  = txt;
+        sel2.innerHTML = txt;
+        return;
+      }
+      const opts = data.map(t =>
+        `<option value="${t.id}">
+          ${t.tipo === 'credito' ? '💳' : '🏦'} **** ${t.numero_tarjeta.slice(-4)} · ${t.nombre_titular} · Saldo: $${parseFloat(t.saldo).toLocaleString('es-CO')}
+        </option>`
+      ).join('');
+      sel.innerHTML  = opts;
+      sel2.innerHTML = opts;
+    }
+
+    // ── Info de tienda según ubicación del usuario ──
+    async function cargarInfoTienda() {
+      const { data: usuario } = await client
+        .from('usuarios')
+        .select('departamento, ciudad')
+        .eq('id', sesion.id)
+        .single();
+
+      const infoEl    = document.getElementById('tiendaInfo');
+      const pagoEl    = document.getElementById('secTiendaPago');
+      const depto     = (usuario?.departamento || '').toLowerCase();
+      const colombiaDeptos = ['risaralda','antioquia','cundinamarca','valle','atlantico',
+        'bolivar','santander','boyaca','caldas','tolima','huila','narino','cauca',
+        'quindio','meta','cesar','magdalena','cordoba','sucre','guajira','choco'];
+
+      usuarioEnColombia = colombiaDeptos.some(d => depto.includes(d)) || depto !== '';
+
+      if (!usuarioEnColombia) {
+        infoEl.innerHTML = `<div class="tienda-no-col">
+          ⚠️ La recogida en tienda está disponible solo para clientes ubicados en Colombia.<br>
+          Actualiza tu departamento de residencia en <a href="perfil.html">Mi Perfil</a>.
+        </div>`;
+        pagoEl.style.display = 'none';
+        return;
+      }
+
+      // Seleccionar tienda más cercana: si es Pereira → sede principal, sino → la más cercana
+      const ciudadUsuario = (usuario?.ciudad || '').toLowerCase();
+      const tienda = TIENDAS.find(t => ciudadUsuario.includes(t.ciudad.toLowerCase())) || TIENDAS[0];
+
+      infoEl.innerHTML = `
+        <div class="tienda-card">
+          <strong>📍 ${tienda.nombre}</strong><br>
+          ${tienda.direccion}<br>
+          <span style="font-size:0.78rem; color:#166534;">
+            ✅ Disponible · Recoge en 24-48 horas hábiles · <strong>Envío gratis</strong>
+          </span>
+        </div>`;
+      pagoEl.style.display = 'block';
+    }
+
+    // ── Modo compra / reserva / tienda ──
+    function setModo(modo) {
+      modoActual = modo;
+      document.getElementById('tabCompra').classList.toggle('active',  modo === 'compra');
+      document.getElementById('tabReserva').classList.toggle('active', modo === 'reserva');
+      document.getElementById('tabTienda').classList.toggle('active',  modo === 'tienda');
+      document.getElementById('secCompra').style.display  = modo === 'compra'  ? 'block' : 'none';
+      document.getElementById('secReserva').style.display = modo === 'reserva' ? 'block' : 'none';
+      document.getElementById('secTienda').style.display  = modo === 'tienda'  ? 'block' : 'none';
+
+      // Actualizar badge de envío
+      const badge = document.getElementById('envioBadge');
+      if (modo === 'tienda') {
+        badge.innerHTML = '🏪 Recogida en tienda: <strong>Gratis</strong> · 24-48 h hábiles';
+        badge.style.background = '#f0fdf4';
+        badge.style.color = '#16a34a';
+        badge.style.borderColor = '#bbf7d0';
+      } else {
+        badge.innerHTML = '🚚 Envío estándar: $8.500 · 3 a 5 días hábiles';
+        badge.style.background = '';
+        badge.style.color = '';
+        badge.style.borderColor = '';
+      }
+      // Actualizar totales cuando sea tienda
+      actualizarResumen();
+    }
+
+    // ── Pre-cargar dirección del perfil ──
+    async function preCargarDireccion() {
+      const { data } = await client.from('usuarios').select('direccion').eq('id', sesion.id).single();
+      if (data?.direccion) document.getElementById('inputDireccion').value = data.direccion;
+    }
+
+    // ── Procesar pedido ──
+    async function procesarPedido(modo) {
+      const carrito = getCarrito();
+      if (carrito.length === 0) return;
+
+      const btnId = modo === 'compra' ? 'btnComprar' : modo === 'reserva' ? 'btnReservar' : 'btnTienda';
+      const btn   = document.getElementById(btnId);
+      setLoading(btn, true);
+
+      let resultado;
+
+      if (modo === 'compra') {
+        const tarjetaId = document.getElementById('selectTarjeta').value;
+        const direccion = document.getElementById('inputDireccion').value.trim();
+        if (!tarjetaId) { showAlert('alertCarrito', 'Selecciona una tarjeta de pago.', 'error'); setLoading(btn, false); return; }
+        if (!direccion) { showAlert('alertCarrito', 'Ingresa la dirección de entrega.', 'error'); setLoading(btn, false); return; }
+
+        resultado = await procesarCompra({ items: carrito, tarjeta_id: tarjetaId, direccion_envio: direccion });
+
+        if (resultado.error) {
+          showAlert('alertCarrito', resultado.error, 'error');
+        } else {
+          saveCarrito([]);
+          datosFacturaActual = resultado;
+          mostrarModalExito(resultado, 'compra');
+        }
+
+      } else if (modo === 'tienda') {
+        const tarjetaId = document.getElementById('selectTarjetaTienda').value;
+        if (!tarjetaId) { showAlert('alertCarrito', 'Selecciona una tarjeta de pago.', 'error'); setLoading(btn, false); return; }
+        if (!usuarioEnColombia) { showAlert('alertCarrito', 'La recogida en tienda es solo para clientes en Colombia.', 'error'); setLoading(btn, false); return; }
+
+        // Obtener la tienda asignada del DOM
+        const tiendaDireccion = document.querySelector('#tiendaInfo .tienda-card strong')?.textContent?.replace('📍 ', '') || 'Sede Principal — Pereira';
+        const tiendaDir       = document.querySelector('#tiendaInfo .tienda-card')?.childNodes[2]?.textContent?.trim() || TIENDAS[0].direccion;
+        const direccionFinal  = `Recogida en tienda: ${tiendaDireccion} — ${tiendaDir}`;
+
+        resultado = await procesarCompra({
+          items:          carrito,
+          tarjeta_id:     tarjetaId,
+          direccion_envio: direccionFinal,
+          costo_envio:    0,
+          tiempo_entrega: '24 a 48 horas hábiles (recogida en tienda)',
+        });
+
+        if (resultado.error) {
+          showAlert('alertCarrito', resultado.error, 'error');
+        } else {
+          saveCarrito([]);
+          datosFacturaActual = resultado;
+          mostrarModalExito(resultado, 'tienda');
+        }
+
+      } else {
+        // reserva
+        const items = carrito.map(i => ({ libro_id: i.id, cantidad: i.cantidad, titulo: i.titulo }));
+        resultado = await crearReserva(items);
+
+        if (resultado.error) {
+          showAlert('alertCarrito', resultado.error, 'error');
+        } else {
+          saveCarrito([]);
+          mostrarModalExito(resultado, 'reserva');
+        }
+      }
+
+      setLoading(btn, false);
+    }
+
+    function mostrarModalExito(datos, modo) {
+      const modal  = document.getElementById('modalExito');
+      const titulo = document.getElementById('modalTitulo');
+      const cuerpo = document.getElementById('modalCuerpo');
+      const btnFactura = document.querySelector('#modalExito .modal-actions button:first-child');
+
+      if (modo === 'compra') {
+        titulo.textContent = '🎉 ¡Compra confirmada!';
+        cuerpo.innerHTML = `
+          <div style="background:#f0fdf4;border-radius:10px;padding:14px 18px;font-size:0.88rem;line-height:1.8;">
+            <strong>N.° Factura:</strong> ${datos.numero_factura}<br>
+            <strong>Total cobrado:</strong> $${datos.total.toLocaleString('es-CO')}<br>
+            <strong>Envío:</strong> $${datos.costo_envio.toLocaleString('es-CO')}<br>
+            <strong>Entrega estimada:</strong> ${datos.tiempo_entrega}<br>
+            <strong>Dirección:</strong> ${datos.direccion_envio}
+          </div>`;
+        if (btnFactura) btnFactura.style.display = '';
+      } else if (modo === 'tienda') {
+        titulo.textContent = '🏪 ¡Pedido confirmado para recoger!';
+        cuerpo.innerHTML = `
+          <div style="background:#f0fdf4;border-radius:10px;padding:14px 18px;font-size:0.88rem;line-height:1.8;">
+            <strong>N.° Factura:</strong> ${datos.numero_factura}<br>
+            <strong>Total cobrado:</strong> $${datos.total.toLocaleString('es-CO')}<br>
+            <strong>Costo de envío:</strong> $0 (recogida en tienda)<br>
+            <strong>Disponible en:</strong> ${datos.tiempo_entrega}<br>
+            <strong>Punto de recogida:</strong> ${datos.direccion_envio.replace('Recogida en tienda: ','')}
+          </div>`;
+        if (btnFactura) btnFactura.style.display = '';
+      } else {
+        titulo.textContent = '🔖 ¡Reserva confirmada!';
+        cuerpo.innerHTML = `
+          <div style="background:#eff6ff;border-radius:10px;padding:14px 18px;font-size:0.88rem;line-height:1.8;">
+            Tu reserva está activa por <strong>24 horas</strong>. Tienes hasta mañana para completar la compra.
+          </div>`;
+        if (btnFactura) btnFactura.style.display = 'none';
+      }
+
+      modal.style.display = 'flex';
+    }
+
+    function imprimirFacturaActual() {
+      if (datosFacturaActual) imprimirFactura(datosFacturaActual);
+    }
+
+    // ── Init ──
+    actualizarBadgeCarrito();
+    renderCarrito();
+    cargarTarjetas();
+    preCargarDireccion();
+    cargarInfoTienda();
+
+    // Abrir en modo reserva si viene de index.html con ?modo=reserva
+    const urlModo = new URLSearchParams(window.location.search).get('modo');
+    if (urlModo === 'reserva') setModo('reserva');
+    if (urlModo === 'tienda')  setModo('tienda');
+  </script>
+</body>
+</html>

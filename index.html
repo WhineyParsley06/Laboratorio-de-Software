@@ -112,6 +112,9 @@
 </head>
 <body>
 
+  <!-- ══════════════════════════════════════════
+       NAV VISITANTE
+  ══════════════════════════════════════════ -->
   <nav id="nav-visitante">
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html" class="active">Inicio</a>
@@ -119,19 +122,21 @@
     <a href="registro.html" class="nav-cta">Registrarse</a>
   </nav>
 
+  <!-- ══════════════════════════════════════════
+       NAV USUARIO LOGUEADO
+  ══════════════════════════════════════════ -->
   <nav id="nav-usuario">
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html" class="active">Inicio</a>
     <a href="tarjetas.html">💳 Monedero</a>
     <a href="perfil.html">Mi Perfil</a>
-    
     <a href="admin.html" id="nav-admin" style="display:none;background:rgba(255,255,255,0.15);border-radius:6px;padding:4px 10px;">🛠️ Admin</a>
-    
-    <a href="root.html" id="nav-root" style="display:none;background:#8b5cf6;color:#fff;border-radius:6px;padding:4px 10px;font-weight:600;">👑 Root</a>
-    
     <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
   </nav>
 
+  <!-- ══════════════════════════════════════════
+       HERO VISITANTE
+  ══════════════════════════════════════════ -->
   <div class="hero" id="hero-visitante">
     <h1>Bienvenido a Librería Pereira</h1>
     <p>Descubre, reserva y compra libros desde Pereira para el mundo. Más de miles de títulos disponibles.</p>
@@ -147,19 +152,20 @@
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════
+       HERO USUARIO LOGUEADO
+  ══════════════════════════════════════════ -->
   <div class="hero" id="hero-usuario">
     <h1 id="saludoHero">Bienvenido de vuelta</h1>
     <p>Tu espacio para descubrir, reservar y comprar libros desde Pereira para el mundo.</p>
-    <a href="catalogo.html"
-       style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--primario);padding:13px 28px;border-radius:9px;font-weight:700;font-size:1rem;text-decoration:none;position:relative;">
-      🔍 Explorar catálogo
-    </a>
   </div>
 
+  <!-- ══════════════════════════════════════════
+       SECCIÓN VISITANTE
+  ══════════════════════════════════════════ -->
   <div id="seccion-visitante">
-
-    <div class="container container-wide" style="margin-top:36px;">
-
+    <!-- Banner únete: solo visitantes -->
+    <div class="container container-wide" style="margin-top:36px; margin-bottom:0;">
       <div class="join-banner">
         <div>
           <h3>¿Aún no tienes cuenta?</h3>
@@ -170,88 +176,26 @@
           <a href="registro.html" class="btn-reg">✨ Crear cuenta</a>
         </div>
       </div>
-
-      <div style="text-align:center; margin-bottom:20px;">
-        <h2 style="font-size:1.3rem; margin-bottom:4px;">Explora sin registrarte</h2>
-        <p style="color:var(--texto-suave); font-size:0.88rem;">Estas funciones están disponibles para todos</p>
-      </div>
-
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:36px;">
-        <a href="catalogo.html" style="text-decoration:none;">
-          <div class="feature-card">
-            <span class="f-icon">📚</span>
-            <h3>Catálogo</h3>
-            <p>Busca libros por título, autor, género y más</p>
-          </div>
-        </a>
-        
-        <a href="#" onclick="alert('Funcionalidad de Noticias disponible en la Iteración 3'); return false;" style="text-decoration:none;">
-          <div class="feature-card">
-            <span class="f-icon">📰</span>
-            <h3>Noticias</h3>
-            <p>Novedades y nuevos títulos disponibles</p>
-          </div>
-        </a>
-
-        <a href="terminos.html" style="text-decoration:none;">
-          <div class="feature-card">
-            <span class="f-icon">📋</span>
-            <h3>Términos</h3>
-            <p>Condiciones de uso y política de datos</p>
-          </div>
-        </a>
-        <div class="feature-card locked" title="Requiere iniciar sesión">
-          <span class="f-icon">🔒</span>
-          <h3>Reservar</h3>
-          <p>Inicia sesión para reservar libros</p>
-        </div>
-        <div class="feature-card locked" title="Requiere iniciar sesión">
-          <span class="f-icon">🔒</span>
-          <h3>Comprar</h3>
-          <p>Inicia sesión para usar el carrito</p>
-        </div>
-        <div class="feature-card locked" title="Requiere iniciar sesión">
-          <span class="f-icon">🔒</span>
-          <h3>Mi monedero</h3>
-          <p>Inicia sesión para gestionar tarjetas</p>
-        </div>
-      </div>
-
-      <div style="text-align:center; margin-bottom:20px;">
-        <h2 style="font-size:1.3rem; margin-bottom:4px;">Últimas novedades</h2>
-        <p style="color:var(--texto-suave); font-size:0.88rem;">Los libros más recientes en nuestra librería</p>
-      </div>
-
-      <div id="novedadesGrid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin-bottom:16px;">
-        <div style="text-align:center; padding:32px; color:var(--texto-suave); grid-column:1/-1;" id="novedadesLoading">
-          Cargando novedades...
-        </div>
-      </div>
-
-      <div style="text-align:center; margin-bottom:8px;">
-        <a href="catalogo.html"
-           style="font-size:0.88rem; font-weight:600; color:var(--secundario); text-decoration:none;">
-          Ver catálogo completo →
-        </a>
-      </div>
-
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════
+       SECCIÓN USUARIO LOGUEADO
+  ══════════════════════════════════════════ -->
   <div id="seccion-usuario">
 
+    <!-- Accesos rápidos -->
     <div class="quick-links" style="margin-top:32px;">
-      <a href="catalogo.html">📚 Catálogo</a>
-      <a href="#" onclick="alert('Funcionalidad de Mi Carrito disponible en la Iteración 3'); return false;">🛒 Mi carrito</a>
-      <a href="#" onclick="alert('Funcionalidad de Historial de Compras disponible en la Iteración 3'); return false;">📋 Mis compras</a>
+      <a href="carrito.html">🛒 Mi carrito</a>
+      <a href="historial.html">📋 Mis compras</a>
       <a href="tarjetas.html">💳 Mi monedero</a>
       <a href="perfil.html">👤 Mi perfil</a>
-      <a href="#" onclick="alert('Funcionalidad de Noticias disponible en la Iteración 3'); return false;">📰 Noticias</a>
-      <a href="#" onclick="alert('Funcionalidad de Mensajes disponible en la Iteración 3'); return false;">💬 Mensajes</a>
+      <a href="noticias.html">📰 Noticias</a>
+      <a href="mensajes.html">💬 Mensajes</a>
     </div>
 
-    <div class="container container-wide" style="margin-top:0;">
-
+    <!-- Tarjeta de perfil en contenedor centrado -->
+    <div class="container container-wide" style="margin-top:0; margin-bottom:0;">
       <div class="profile-card" id="userCard">
         <div class="avatar" id="userAvatar">👤</div>
         <div class="profile-info">
@@ -260,27 +204,75 @@
           <span class="badge badge-orange" id="userRol">cliente</span>
         </div>
       </div>
-
-      <div style="text-align:center; margin-bottom:24px;">
-        <h2 style="font-size:1.4rem; margin-bottom:4px;">¿Qué puedes hacer?</h2>
-        <p style="color:var(--texto-suave); font-size:0.9rem;">Todo lo que necesitas en un solo lugar</p>
-      </div>
-
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px;">
-        <div class="feature-card"><span class="f-icon">🔍</span><h3>Buscar libros</h3><p>Por título, autor, género y más</p></div>
-        <div class="feature-card" onclick="alert('Funcionalidad de Reserva disponible en la Iteración 3');" style="cursor:pointer;"><span class="f-icon">📌</span><h3>Reservar</h3><p>Aparta hasta 5 libros por 24 horas</p></div>
-        <div class="feature-card" onclick="alert('Funcionalidad de Carrito disponible en la Iteración 3');" style="cursor:pointer;"><span class="f-icon">🛒</span><h3>Comprar</h3><p>Carrito con saldo simulado</p></div>
-        <div class="feature-card" onclick="window.location.href='tarjetas.html';" style="cursor:pointer;"><span class="f-icon">💳</span><h3>Monedero</h3><p>Gestiona tus tarjetas y saldo</p></div>
-        <div class="feature-card"><span class="f-icon">🔄</span><h3>Devoluciones</h3><p>Hasta 8 días tras recibir</p></div>
-        <div class="feature-card"><span class="f-icon">🤖</span><h3>Recomendaciones</h3><p>Chatbot IA según tu historial</p></div>
-        <div class="feature-card"><span class="f-icon">🎂</span><h3>Bono cumpleaños</h3><p>Descuento especial en tu día</p></div>
-        <div class="feature-card" onclick="alert('Funcionalidad de Mensajería disponible en la Iteración 3');" style="cursor:pointer;"><span class="f-icon">💬</span><h3>Mensajería</h3><p>Chatea con administradores</p></div>
-      </div>
-
     </div>
 
   </div>
 
+  <!-- ══════════════════════════════════════════
+       CATÁLOGO COMPARTIDO — ancho completo
+  ══════════════════════════════════════════ -->
+  <div id="seccion-catalogo" style="display:none; padding: 0 28px 56px;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between;
+                flex-wrap:wrap; gap:12px; margin-bottom:18px; padding-top:28px;">
+      <div>
+        <h2 style="font-size:1.3rem; margin:0 0 2px;">Catálogo</h2>
+        <p style="color:var(--texto-suave); font-size:0.85rem; margin:0;">Explora y reserva tus próximos libros</p>
+      </div>
+    </div>
+
+    <!-- Búsqueda + filtro género -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:22px; align-items:center;">
+      <input type="text" id="homeBuscar" placeholder="🔍 Buscar por título o autor..."
+             oninput="homeFiltrar()"
+             style="flex:1; min-width:220px; padding:10px 14px; border:1.5px solid var(--borde);
+                    border-radius:10px; font-size:0.88rem; background:var(--fondo-input); color:var(--texto);">
+      <button id="homeBtnTodos" onclick="homeSetGenero('Todos')"
+              style="padding:9px 18px; border-radius:99px; border:1.5px solid var(--primario);
+                     background:var(--primario); color:#fff; font-size:0.85rem; font-weight:600;
+                     cursor:pointer; white-space:nowrap;">
+        Todos
+      </button>
+      <div style="position:relative;">
+        <button id="homeDropBtn" onclick="toggleHomeDropdown()"
+                style="padding:9px 18px; border-radius:99px; border:1.5px solid var(--borde);
+                       background:#fff; color:var(--texto); font-size:0.85rem; font-weight:500;
+                       cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap;">
+          <span id="homeGeneroLabel">Géneros</span>
+          <span id="homeDropArrow" style="font-size:0.7rem;">▾</span>
+        </button>
+        <div id="homeGeneroDropdown"
+             style="display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:200;
+                    background:#fff; border:1.5px solid var(--borde); border-radius:12px;
+                    box-shadow:0 8px 24px rgba(0,0,0,0.12); min-width:170px; padding:6px 0; white-space:nowrap;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid libros: ancho completo -->
+    <div id="homeBooksGrid"
+         style="display:grid; grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:20px;">
+      <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--texto-suave);">
+        Cargando catálogo...
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       DETALLE DE LIBRO
+  ══════════════════════════════════════════ -->
+  <div id="vista-detalle" style="display:none; padding:28px 28px 56px;">
+    <button onclick="volverAlCatalogo()"
+            style="background:none; border:none; cursor:pointer; color:var(--primario);
+                   font-weight:600; font-size:0.9rem; margin-bottom:24px; padding:0;
+                   display:inline-flex; align-items:center; gap:6px;">
+      ← Volver al catálogo
+    </button>
+    <div id="detalleContenido"></div>
+  </div>
+
+  <!-- Session timer (solo usuarios logueados) -->
   <div class="session-bar" id="sessionBar" style="display:none;">
     <div class="session-dot"></div>
     Sesión activa · <span id="sessionCount">300s</span>
@@ -292,7 +284,14 @@
 
   <script src="js/script.js"></script>
   <script>
-    const sesion = getSesion(); 
+    const sesion = getSesion(); // No redirige — solo consulta
+
+    // Admin y root no tienen acceso al inicio
+    if (sesion && sesion.rol === 'administrador') {
+      window.location.href = 'admin.html'; 
+    } else if (sesion && sesion.rol === 'root') {
+      window.location.href = 'root.html';
+    }
 
     if (sesion) {
       // ── MODO USUARIO LOGUEADO ──────────────────────────────────
@@ -301,11 +300,13 @@
       document.getElementById('seccion-usuario').style.display = 'block';
       document.getElementById('sessionBar').style.display     = 'flex';
 
+      // Saludo personalizado
       const hora   = new Date().getHours();
       const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
       document.getElementById('saludoHero').textContent =
         `${saludo}, ${sesion.nombre_completo.split(' ')[0]} 👋`;
 
+      // Tarjeta de usuario
       document.getElementById('userName').textContent  = sesion.nombre_completo;
       document.getElementById('userEmail').textContent = sesion.correo;
       document.getElementById('userRol').textContent   = sesion.rol;
@@ -314,14 +315,12 @@
       document.getElementById('userAvatar').textContent = iniciales || '👤';
 
       initSessionTimer();
+      document.getElementById('seccion-catalogo').style.display = 'block';
+      cargarHomeCatalogo();
 
-      // 👑 LÓGICA DE ROLES PARA MOSTRAR BOTONES EN EL NAVBAR
+      // Mostrar enlace admin si corresponde
       if (sesion.rol === 'administrador') {
         document.getElementById('nav-admin').style.display = 'inline-block';
-      } else if (sesion.rol === 'root') {
-        // Al root le mostramos su botón principal, y si quieres también el de admin
-        document.getElementById('nav-root').style.display = 'inline-block';
-        document.getElementById('nav-admin').style.display = 'inline-block'; // Opcional, por si Root también quiere ver libros
       }
 
     } else {
@@ -329,8 +328,225 @@
       document.getElementById('nav-visitante').style.display    = 'flex';
       document.getElementById('hero-visitante').style.display   = 'block';
       document.getElementById('seccion-visitante').style.display = 'block';
+      document.getElementById('seccion-catalogo').style.display  = 'block';
 
-      cargarNovedades();
+      cargarHomeCatalogo();
+    }
+
+    // ── Catálogo embebido (solo usuarios logueados) ───────────────
+    let homeTodosLibros = [];
+    let homeGeneroActual = 'Todos';
+    let libroActual = null;
+
+    async function cargarHomeCatalogo() {
+      const { data, error } = await client
+        .from('libros')
+        .select('id, titulo, autor, genero, precio, imagen_url')
+        .eq('agotado', false)
+        .order('titulo', { ascending: true });
+
+      if (error || !data) return;
+      homeTodosLibros = data;
+      homeGenerarDropdown();
+      homeRenderGrid(homeTodosLibros);
+    }
+
+    function homeRenderGrid(lista) {
+      const grid = document.getElementById('homeBooksGrid');
+      if (!lista.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--texto-suave);">
+          No se encontraron libros con esos criterios.</div>`;
+        return;
+      }
+      grid.innerHTML = lista.map(l => `
+        <a href="#" onclick="verDetalleLibro('${l.id}'); return false;"
+           style="text-decoration:none; color:inherit; background:#fff; border-radius:12px;
+                  border:1px solid var(--borde); overflow:hidden; display:flex; flex-direction:column;
+                  transition:transform 0.2s, box-shadow 0.2s;"
+           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--sombra)'"
+           onmouseout="this.style.transform='';this.style.boxShadow=''">
+          <img src="${l.imagen_url || 'https://via.placeholder.com/300x450?text=Sin+Portada'}"
+               style="width:100%; aspect-ratio:2/3; object-fit:cover; background:#eee;">
+          <div style="padding:12px; flex-grow:1;">
+            <span style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--primario);">
+              ${l.genero || 'General'}
+            </span>
+            <p style="font-size:0.88rem; font-weight:700; margin:4px 0 2px; color:var(--texto); line-height:1.3;">
+              ${l.titulo}
+            </p>
+            <p style="font-size:0.78rem; color:var(--texto-suave); margin-bottom:8px;">${l.autor}</p>
+            <p style="font-size:1rem; font-weight:800; color:var(--primario-dark);">
+              $${parseFloat(l.precio).toLocaleString('es-CO')}
+            </p>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    function homeGenerarDropdown() {
+      const generos = [...new Set(homeTodosLibros.map(l => l.genero).filter(g => g))].sort();
+      const dd = document.getElementById('homeGeneroDropdown');
+      dd.innerHTML = generos.map(g => `
+        <button onclick="homeSetGenero('${g}')" id="homeDrop_${g.replace(/\s/g,'_')}"
+                style="display:block; width:100%; padding:9px 18px; background:none; border:none;
+                       text-align:left; font-size:0.85rem; cursor:pointer; color:var(--texto);
+                       font-family:inherit;"
+                onmouseover="this.style.background='#fdf6f0'"
+                onmouseout="this.style.background='none'">
+          ${g}
+        </button>
+      `).join('');
+    }
+
+    function toggleHomeDropdown() {
+      const dd    = document.getElementById('homeGeneroDropdown');
+      const arrow = document.getElementById('homeDropArrow');
+      const open  = dd.style.display === 'block';
+      dd.style.display = open ? 'none' : 'block';
+      arrow.textContent = open ? '▾' : '▴';
+    }
+
+    function homeSetGenero(genero) {
+      homeGeneroActual = genero;
+      // Estilos botón "Todos"
+      const btnTodos = document.getElementById('homeBtnTodos');
+      if (genero === 'Todos') {
+        btnTodos.style.background     = 'var(--primario)';
+        btnTodos.style.color          = '#fff';
+        btnTodos.style.borderColor    = 'var(--primario)';
+        document.getElementById('homeGeneroLabel').textContent = 'Géneros';
+      } else {
+        btnTodos.style.background     = '#fff';
+        btnTodos.style.color          = 'var(--texto-suave)';
+        btnTodos.style.borderColor    = 'var(--borde)';
+        document.getElementById('homeGeneroLabel').textContent = genero;
+      }
+      // Cerrar dropdown
+      document.getElementById('homeGeneroDropdown').style.display = 'none';
+      document.getElementById('homeDropArrow').textContent = '▾';
+      homeFiltrar();
+    }
+
+    function homeFiltrar() {
+      const q = (document.getElementById('homeBuscar')?.value || '').toLowerCase();
+      const filtrados = homeTodosLibros.filter(l => {
+        const matchGenero  = homeGeneroActual === 'Todos' || l.genero === homeGeneroActual;
+        const matchBusqueda = !q || l.titulo.toLowerCase().includes(q) || l.autor.toLowerCase().includes(q);
+        return matchGenero && matchBusqueda;
+      });
+      homeRenderGrid(filtrados);
+    }
+
+    // Cerrar dropdown al hacer click fuera
+    document.addEventListener('click', e => {
+      const btn = document.getElementById('homeDropBtn');
+      const dd  = document.getElementById('homeGeneroDropdown');
+      if (dd && btn && !btn.contains(e.target) && !dd.contains(e.target)) {
+        dd.style.display = 'none';
+        const arrow = document.getElementById('homeDropArrow');
+        if (arrow) arrow.textContent = '▾';
+      }
+    });
+
+    // ── Detalle de libro ──────────────────────────────────────────
+    async function verDetalleLibro(id) {
+      // Ocultar catálogo, mostrar detalle
+      document.getElementById('seccion-catalogo').style.display = 'none';
+      document.getElementById('vista-detalle').style.display    = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      const contenedor = document.getElementById('detalleContenido');
+      contenedor.innerHTML = '<p style="color:var(--texto-suave);padding:40px 0;text-align:center;">Cargando libro...</p>';
+
+      const { data: l, error } = await client
+        .from('libros')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !l) {
+        contenedor.innerHTML = '<p style="color:#dc2626;">El libro no existe o fue eliminado.</p>';
+        return;
+      }
+
+      libroActual = l;
+
+      const estadoColor = {
+        'disponible':    '#16a34a',
+        'pre-venta':     '#2563eb',
+        'reservado':     '#d97706',
+        'no disponible': '#dc2626',
+      }[l.estado_libro] || '#6b7280';
+
+      contenedor.innerHTML = `
+        <div style="display:grid; grid-template-columns:280px 1fr; gap:40px; align-items:start;">
+          <img src="${l.imagen_url || 'https://via.placeholder.com/400x600?text=Sin+Portada'}"
+               style="width:100%; border-radius:16px; box-shadow:var(--sombra);">
+          <div>
+            <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--primario);">
+              ${l.genero || 'General'}
+            </span>
+            <h2 style="font-family:'Playfair Display',serif; font-size:2rem; margin:8px 0 6px; line-height:1.2;">
+              ${l.titulo}
+            </h2>
+            <p style="font-size:1.1rem; color:var(--texto-suave); margin-bottom:20px;">
+              de <strong style="color:var(--texto);">${l.autor}</strong>
+            </p>
+
+            <div style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom:24px; font-size:0.88rem; color:var(--texto-suave);">
+              ${l.editorial ? `<span><strong>Editorial:</strong> ${l.editorial}</span>` : ''}
+              ${l.idioma    ? `<span><strong>Idioma:</strong> ${l.idioma}</span>` : ''}
+              ${l.numero_paginas ? `<span><strong>Páginas:</strong> ${l.numero_paginas}</span>` : ''}
+            </div>
+
+            <p style="line-height:1.75; color:var(--texto); margin-bottom:28px; font-size:0.95rem;">
+              ${l.descripcion || '<em style="color:var(--texto-suave)">Sin descripción disponible.</em>'}
+            </p>
+
+            <p style="font-size:2rem; font-weight:800; color:var(--primario); margin-bottom:14px;">
+              $${parseFloat(l.precio).toLocaleString('es-CO')}
+            </p>
+
+            <div style="font-size:0.88rem; margin-bottom:24px;">
+              Estado:
+              <span style="font-weight:700; color:${estadoColor}; text-transform:capitalize;">
+                ${l.estado_libro}
+              </span>
+              &nbsp;·&nbsp; Stock: <strong>${l.stock} unidades</strong>
+            </div>
+
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+              <button
+                onclick="agregarAlCarrito(libroActual)"
+                style="padding:14px 28px; background:var(--primario); color:#fff; border:none;
+                       border-radius:10px; font-weight:700; font-size:1rem; cursor:pointer;
+                       transition:opacity 0.2s;"
+                onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+                🛒 Agregar al carrito
+              </button>
+              <button
+                onclick="agregarAlCarrito(libroActual); window.location.href='carrito.html?modo=reserva';"
+                style="padding:14px 28px; background:#fff; color:var(--primario); border:2px solid var(--primario);
+                       border-radius:10px; font-weight:700; font-size:1rem; cursor:pointer;
+                       transition:all 0.2s;"
+                onmouseover="this.style.background='#fdf6f0'" onmouseout="this.style.background='#fff'">
+                🔖 Reservar
+              </button>
+            </div>
+          </div>
+        </div>
+        <style>
+          @media(max-width:640px){
+            #detalleContenido > div { grid-template-columns:1fr !important; }
+          }
+        </style>
+      `;
+    }
+
+    function volverAlCatalogo() {
+      document.getElementById('vista-detalle').style.display    = 'none';
+      document.getElementById('seccion-catalogo').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function cargarNovedades() {

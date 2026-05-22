@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Novedades — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .nov-header {
+      background: linear-gradient(135deg, var(--primario-dark), var(--primario));
+      color: #fff;
+      padding: 48px 20px 60px;
+      text-align: center;
+    }
+    .nov-header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+    }
+    .nov-header p { opacity: 0.85; font-size: 0.95rem; }
+
+    /* ── Barra de búsqueda y filtros (HU-17 + HU-F1) ── */
+    .filtros-bar {
+      max-width: 1060px;
+      margin: -28px auto 36px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: var(--sombra);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .f-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+    .f-group label { font-size: 0.72rem; font-weight: 600; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.05em; }
+    .f-group input,
+    .f-group select { padding: 9px 12px; border: 1.5px solid var(--borde); border-radius: 9px; font-size: 0.87rem; background: var(--fondo-input); }
+    .f-group.full { flex: 2; min-width: 240px; }
+    .btn-filtrar {
+      padding: 10px 22px;
+      background: var(--primario);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      align-self: flex-end;
+      box-shadow: none;
+      width: auto;
+    }
+    .btn-filtrar:hover { opacity: 0.85; transform: none; }
+    .btn-limpiar {
+      padding: 10px 16px;
+      background: transparent;
+      color: var(--texto-suave);
+      border: 1.5px solid var(--borde);
+      border-radius: 9px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: none;
+      width: auto;
+      align-self: flex-end;
+    }
+
+    /* ── Rango de precio ── */
+    .precio-range { display: flex; gap: 8px; align-items: center; }
+    .precio-range input { width: 90px; }
+    .precio-range span { color: var(--texto-suave); font-size: 0.85rem; }
+
+    /* ── Resultados ── */
+    .results-bar {
+      max-width: 1060px;
+      margin: 0 auto 16px;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--texto-suave);
+    }
+
+    /* ── Grid de libros ── */
+    .libros-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 24px;
+      max-width: 1060px;
+      margin: 0 auto 60px;
+      padding: 0 20px;
+    }
+
+    .libro-card {
+      background: #fff;
+      border: 1px solid var(--borde);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+    }
+    .libro-card:hover { transform: translateY(-5px); box-shadow: var(--sombra); }
+
+    .libro-img {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: cover;
+      background: #f0ebe4;
+    }
+
+    .libro-info { padding: 14px; flex-grow: 1; display: flex; flex-direction: column; }
+    .libro-tag  { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: var(--primario); margin-bottom: 5px; }
+    .libro-titulo { font-size: 0.95rem; font-weight: 700; margin-bottom: 3px; line-height: 1.3; }
+    .libro-autor  { font-size: 0.8rem; color: var(--texto-suave); margin-bottom: 10px; }
+    .libro-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
+    .libro-precio { font-size: 1rem; font-weight: 800; color: var(--primario-dark); }
+
+    .badge-agotado {
+      display: inline-block;
+      background: #fef2f2;
+      color: #dc2626;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-nuevo {
+      display: inline-block;
+      background: rgba(34,197,94,0.1);
+      color: #16a34a;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    .badge-usado {
+      display: inline-block;
+      background: rgba(224,117,32,0.1);
+      color: var(--secundario-dk);
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+
+    /* Banner visitante */
+    .banner-registro {
+      background: linear-gradient(135deg, var(--primario-dark), var(--primario));
+      color: #fff;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin: 0 auto 28px;
+      max-width: 1060px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .banner-registro p { font-size: 0.88rem; opacity: 0.9; margin-top: 4px; }
+    .banner-registro h4 { font-size: 1rem; margin: 0; }
+    .banner-btns { display: flex; gap: 10px; flex-shrink: 0; }
+    .banner-btns a {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border-radius: 8px; font-size: 0.85rem;
+      font-weight: 600; text-decoration: none; transition: all var(--transicion);
+    }
+    .btn-login-banner { background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.3); }
+    .btn-login-banner:hover { background: rgba(255,255,255,0.25); }
+    .btn-reg-banner { background: #fff; color: var(--primario); }
+
+    /* Vista detalle inline */
+    #panelDetalle { display: none; max-width: 1060px; margin: 0 auto 60px; padding: 0 20px; }
+    .detalle-grid { display: grid; grid-template-columns: 260px 1fr; gap: 40px; }
+    .detalle-img { width: 100%; border-radius: 14px; box-shadow: var(--sombra); }
+    .detalle-titulo { font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 8px; }
+    .detalle-meta { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; font-size: 0.85rem; color: var(--texto-suave); }
+    .detalle-desc { line-height: 1.8; color: var(--texto); margin-bottom: 24px; }
+    .detalle-precio { font-size: 2rem; font-weight: 800; color: var(--primario); margin-bottom: 16px; }
+
+    .btn-agregar {
+      padding: 13px 26px;
+      background: var(--primario);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      box-shadow: 0 4px 14px var(--primario-glow);
+      width: auto;
+    }
+    .btn-agregar:hover { opacity: 0.88; transform: none; }
+
+    @media (max-width: 680px) {
+      .detalle-grid { grid-template-columns: 1fr; }
+      .filtros-bar { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav visitante -->
+  <nav id="navVisitante" style="display:none;">
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="noticias.html" class="active">Novedades</a>
+    <a href="login.html">Iniciar sesión</a>
+    <a href="registro.html" class="nav-cta">Registrarse</a>
+  </nav>
+
+  <!-- Nav usuario -->
+  <nav id="navUsuario" style="display:none;">
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="noticias.html" class="active">Novedades</a>
+    <a href="carrito.html">🛒 Carrito <span class="carrito-badge" id="badgeNav" style="background:var(--secundario);color:#fff;border-radius:99px;font-size:0.7rem;font-weight:700;padding:1px 7px;display:none;"></span></a>
+    <a href="historial.html">📋 Mis compras</a>
+    <a href="perfil.html">Mi Perfil</a>
+    <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
+  </nav>
+
+  <div class="session-bar" id="sessionBar" style="display:none;">
+    <div class="session-dot"></div>
+    <span>Sesión activa: <strong id="sessionCount">60s</strong></span>
+  </div>
+
+  <header class="nov-header">
+    <h1>📰 Novedades y Catálogo</h1>
+    <p>Todos los títulos disponibles en Librería Pereira · Filtra por cualquier criterio</p>
+  </header>
+
+  <!-- Filtros (HU-17: búsqueda multi-criterio) -->
+  <div class="filtros-bar">
+    <div class="f-group full">
+      <label>Título, autor o ISBN</label>
+      <input type="text" id="fTexto" placeholder="Ej: García Márquez, 978...">
+    </div>
+    <div class="f-group">
+      <label>Género</label>
+      <select id="fGenero">
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <label>Estado</label>
+      <select id="fEstado">
+        <option value="">Todos</option>
+        <option value="nuevo">Nuevo</option>
+        <option value="usado">Usado</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <label>Idioma</label>
+      <select id="fIdioma">
+        <option value="">Todos</option>
+        <option value="Español">Español</option>
+        <option value="Inglés">Inglés</option>
+        <option value="Francés">Francés</option>
+        <option value="Portugués">Portugués</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <label>Precio</label>
+      <div class="precio-range">
+        <input type="number" id="fPrecioMin" placeholder="Min" min="0">
+        <span>–</span>
+        <input type="number" id="fPrecioMax" placeholder="Max" min="0">
+      </div>
+    </div>
+    <div class="f-group">
+      <label>Año publicación</label>
+      <input type="number" id="fAnio" placeholder="2024" min="1900" max="2026">
+    </div>
+    <button class="btn-filtrar" onclick="aplicarFiltros()">🔍 Filtrar</button>
+    <button class="btn-limpiar" onclick="limpiarFiltros()">✕ Limpiar</button>
+  </div>
+
+  <!-- Banner visitante (se muestra si no hay sesión) -->
+  <div id="bannerVisitante" class="banner-registro" style="display:none;padding-left:40px;padding-right:40px;">
+    <div>
+      <h4>¿Te gusta lo que ves?</h4>
+      <p>Regístrate gratis para reservar, comprar y recibir recomendaciones personalizadas.</p>
+    </div>
+    <div class="banner-btns">
+      <a href="login.html" class="btn-login-banner">Iniciar sesión</a>
+      <a href="registro.html" class="btn-reg-banner">✨ Crear cuenta</a>
+    </div>
+  </div>
+
+  <!-- Resultados -->
+  <div class="results-bar">
+    <span id="contadorResultados">Cargando...</span>
+    <span id="labelAgotados" style="color:#dc2626;font-size:0.8rem;display:none;">Incluye libros agotados</span>
+  </div>
+
+  <!-- Catálogo -->
+  <div id="panelCatalogo">
+    <div class="libros-grid" id="gridLibros">
+      <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--texto-suave);">Cargando libros...</div>
+    </div>
+  </div>
+
+  <!-- Detalle de un libro -->
+  <div id="panelDetalle">
+    <button onclick="cerrarDetalle()"
+            style="display:inline-flex;align-items:center;gap:6px;background:none;border:none;box-shadow:none;color:var(--primario);font-weight:600;font-size:0.9rem;cursor:pointer;padding:0;width:auto;margin-bottom:24px;">
+      ← Volver al catálogo
+    </button>
+    <div id="detalleContenido"></div>
+  </div>
+
+  <footer>
+    <strong>Librería Pereira</strong> &copy; 2026 · Ley 1581 de 2012
+  </footer>
+
+  <script src="js/script.js"></script>
+  <script>
+    let todosLosLibros = [];
+    const sesion = getSesion();
+
+    // Nav según sesión
+    if (sesion) {
+      document.getElementById('navUsuario').style.display = 'flex';
+      document.getElementById('sessionBar').style.display = 'flex';
+      initSessionTimer();
+      actualizarBadgeCarrito();
+    } else {
+      document.getElementById('navVisitante').style.display  = 'flex';
+      document.getElementById('bannerVisitante').style.display = 'flex';
+    }
+
+    // ── Cargar todos los libros (incluyendo agotados con etiqueta) ──
+    async function cargarLibros() {
+      const { data, error } = await client
+        .from('libros')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) { console.error(error); return; }
+      todosLosLibros = data || [];
+
+      // Cargar géneros en select
+      const generos = [...new Set(todosLosLibros.map(l => l.genero).filter(Boolean))].sort();
+      const selGen  = document.getElementById('fGenero');
+      selGen.innerHTML = '<option value="">Todos</option>' +
+        generos.map(g => `<option value="${g}">${g}</option>`).join('');
+
+      renderGrid(todosLosLibros);
+    }
+
+    // ── Render grid ──
+    function renderGrid(lista) {
+      const grid = document.getElementById('gridLibros');
+      const agotados = lista.filter(l => l.agotado).length;
+
+      document.getElementById('contadorResultados').textContent =
+        `${lista.length} libro${lista.length !== 1 ? 's' : ''} encontrado${lista.length !== 1 ? 's' : ''}`;
+
+      const labelAg = document.getElementById('labelAgotados');
+      if (agotados > 0) { labelAg.style.display = 'inline'; labelAg.textContent = `Incluye ${agotados} agotado${agotados > 1 ? 's' : ''}`; }
+      else labelAg.style.display = 'none';
+
+      if (lista.length === 0) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--texto-suave);">
+          <div style="font-size:3rem;margin-bottom:12px;">🔍</div>
+          <p>No se encontraron libros con esos criterios.</p>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = lista.map(l => {
+        const estadoBadge = l.agotado
+          ? '<span class="badge-agotado">Agotado</span>'
+          : (l.estado_libro === 'usado' ? '<span class="badge-usado">Usado</span>' : '<span class="badge-nuevo">Nuevo</span>');
+
+        return `
+          <div class="libro-card" onclick="verDetalle('${l.id}')">
+            <img src="${l.imagen_url || 'https://via.placeholder.com/300x450?text=📚'}"
+                 class="libro-img" alt="${l.titulo}"
+                 style="${l.agotado ? 'opacity:0.55;filter:grayscale(30%)' : ''}">
+            <div class="libro-info">
+              <span class="libro-tag">${l.genero || 'General'}</span>
+              <div class="libro-titulo">${l.titulo}</div>
+              <div class="libro-autor">${l.autor}</div>
+              <div class="libro-footer">
+                <span class="libro-precio">$${parseFloat(l.precio).toLocaleString('es-CO')}</span>
+                ${estadoBadge}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Filtros multi-criterio (HU-17) ──
+    function aplicarFiltros() {
+      const texto    = document.getElementById('fTexto').value.toLowerCase().trim();
+      const genero   = document.getElementById('fGenero').value;
+      const estado   = document.getElementById('fEstado').value;
+      const idioma   = document.getElementById('fIdioma').value;
+      const precioMin = parseFloat(document.getElementById('fPrecioMin').value) || 0;
+      const precioMax = parseFloat(document.getElementById('fPrecioMax').value) || Infinity;
+      const anio      = document.getElementById('fAnio').value;
+
+      const filtrados = todosLosLibros.filter(l => {
+        if (texto && !(
+          l.titulo?.toLowerCase().includes(texto) ||
+          l.autor?.toLowerCase().includes(texto) ||
+          l.isbn?.includes(texto) ||
+          l.editorial?.toLowerCase().includes(texto)
+        )) return false;
+        if (genero && l.genero !== genero) return false;
+        if (estado && l.estado_libro !== estado) return false;
+        if (idioma && l.idioma !== idioma) return false;
+        if (parseFloat(l.precio) < precioMin || parseFloat(l.precio) > precioMax) return false;
+        if (anio && String(l.anio_publicacion) !== anio) return false;
+        return true;
+      });
+
+      renderGrid(filtrados);
+    }
+
+    // Filtrar en tiempo real al escribir
+    document.getElementById('fTexto').addEventListener('input', aplicarFiltros);
+
+    function limpiarFiltros() {
+      ['fTexto','fPrecioMin','fPrecioMax','fAnio'].forEach(id => document.getElementById(id).value = '');
+      ['fGenero','fEstado','fIdioma'].forEach(id => document.getElementById(id).value = '');
+      renderGrid(todosLosLibros);
+    }
+
+    // ── Detalle de libro ──
+    async function verDetalle(id) {
+      const l = todosLosLibros.find(x => x.id == id);
+      if (!l) return;
+
+      document.getElementById('panelCatalogo').style.display = 'none';
+      document.getElementById('panelDetalle').style.display  = 'block';
+      document.getElementById('filtros-bar') && (document.querySelector('.filtros-bar').style.display = 'none');
+
+      const estadoBadge = l.agotado
+        ? '<span class="badge-agotado" style="font-size:0.8rem;padding:4px 12px;">AGOTADO</span>'
+        : (l.estado_libro === 'usado' ? '<span class="badge-usado" style="font-size:0.8rem;padding:4px 12px;">Usado</span>' : '<span class="badge-nuevo" style="font-size:0.8rem;padding:4px 12px;">Nuevo</span>');
+
+      // Botón de acción según sesión y stock
+      let btnAccion = '';
+      if (l.agotado) {
+        btnAccion = `<div style="background:#fef2f2;border-radius:10px;padding:12px 16px;color:#dc2626;font-size:0.88rem;font-weight:600;">❌ Este libro está agotado actualmente.</div>`;
+      } else if (!sesion) {
+        // HU-F1: visitante no puede comprar/reservar, se le pide registrarse
+        btnAccion = `
+          <div style="background:#fffbeb;border-radius:10px;padding:14px 18px;font-size:0.88rem;color:#92400e;margin-bottom:12px;">
+            🔒 Para reservar o comprar este libro, necesitas una cuenta.
+          </div>
+          <div style="display:flex;gap:10px;">
+            <a href="login.html" style="flex:1;text-align:center;padding:12px;background:var(--primario);color:#fff;border-radius:9px;font-weight:700;text-decoration:none;">Iniciar sesión</a>
+            <a href="registro.html" style="flex:1;text-align:center;padding:12px;background:var(--fondo);border:1.5px solid var(--borde);color:var(--texto);border-radius:9px;font-weight:600;text-decoration:none;">Registrarse</a>
+          </div>`;
+      } else {
+        btnAccion = `
+          <button class="btn-agregar" onclick='agregarAlCarrito(${JSON.stringify({id:l.id,titulo:l.titulo,autor:l.autor,precio:l.precio,imagen_url:l.imagen_url,stock:l.stock})})'>
+            🛒 Añadir al carrito
+          </button>
+          <a href="carrito.html" style="display:inline-flex;align-items:center;gap:6px;margin-left:12px;font-size:0.85rem;color:var(--texto-suave);">Ver carrito →</a>`;
+      }
+
+      document.getElementById('detalleContenido').innerHTML = `
+        <div class="detalle-grid">
+          <div>
+            <img src="${l.imagen_url || 'https://via.placeholder.com/400x600?text=📚'}" class="detalle-img" alt="${l.titulo}">
+          </div>
+          <div>
+            <span class="libro-tag">${l.genero || 'General'}</span>
+            <h2 class="detalle-titulo">${l.titulo}</h2>
+            <p style="font-size:1.1rem;color:var(--texto-suave);margin-bottom:16px;">de <strong style="color:var(--texto)">${l.autor}</strong></p>
+            <div style="display:flex;gap:8px;margin-bottom:20px;">${estadoBadge}</div>
+            <div class="detalle-meta">
+              <span>📅 <strong>Año:</strong> ${l.anio_publicacion || 'N/A'}</span>
+              <span>🏢 <strong>Editorial:</strong> ${l.editorial || 'N/A'}</span>
+              <span>🌐 <strong>Idioma:</strong> ${l.idioma || 'Español'}</span>
+              <span>📄 <strong>Páginas:</strong> ${l.numero_paginas || '—'}</span>
+              <span>🔖 <strong>ISBN:</strong> ${l.isbn || 'N/A'}</span>
+            </div>
+            <div class="detalle-desc">${l.descripcion || 'Sin descripción disponible.'}</div>
+            <div class="detalle-precio">$${parseFloat(l.precio).toLocaleString('es-CO')}</div>
+            ${btnAccion}
+          </div>
+        </div>`;
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cerrarDetalle() {
+      document.getElementById('panelDetalle').style.display  = 'none';
+      document.getElementById('panelCatalogo').style.display = 'block';
+      document.querySelector('.filtros-bar').style.display   = 'flex';
+    }
+
+    // ── Init ──
+    cargarLibros();
+  </script>
+</body>
+</html>

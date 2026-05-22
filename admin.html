@@ -67,20 +67,6 @@
       transition: opacity 0.2s;
     }
     .btn-add:hover { opacity: 0.88; }
-    .filter-estado {
-      padding: 7px 13px;
-      border: 1.5px solid var(--borde);
-      border-radius: 8px;
-      background: var(--fondo-card);
-      color: var(--texto-suave);
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .filter-estado:hover { border-color: var(--primario); color: var(--primario); }
-    .filter-estado.active { background: var(--primario); color: #fff; border-color: var(--primario); }
     .stat-chips { display: flex; gap: 8px; flex-wrap: wrap; }
     .stat-chip {
       background: var(--fondo-card);
@@ -312,16 +298,17 @@
 <body>
 
   <nav>
-    <a href="index.html" class="nav-brand">Librería Pereira</a>
-    <a href="index.html">Inicio</a>
+    <span class="nav-brand" style="cursor:default;">Librería Pereira</span>
     <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
   </nav>
 
+  <!-- Session timer -->
   <div class="session-bar" id="sessionBar" style="display:none;">
     <div class="session-dot"></div>
     Sesión activa · <span id="sessionCount">300s</span>
   </div>
 
+  <!-- Header del panel -->
   <div class="admin-header">
     <div>
       <h1>🛠️ Panel de Administración</h1>
@@ -330,10 +317,30 @@
     <span class="badge-admin">Administrador</span>
   </div>
 
+  <!-- Contenido principal -->
   <div class="admin-wrap">
 
     <div id="alertAdmin"></div>
 
+    <!-- Tabs principales -->
+    <div style="display:flex; gap:0; margin-bottom:24px; border-bottom:2px solid var(--borde);">
+      <button id="tabBtnCatalogo" onclick="switchTab('catalogo')"
+              style="padding:10px 22px; border:none; background:none; font-size:0.9rem; font-weight:700;
+                     color:var(--primario); border-bottom:3px solid var(--primario); margin-bottom:-2px;
+                     cursor:pointer;">
+        📚 Catálogo
+      </button>
+      <button id="tabBtnPedidos" onclick="switchTab('pedidos')"
+              style="padding:10px 22px; border:none; background:none; font-size:0.9rem; font-weight:600;
+                     color:var(--texto-suave); border-bottom:3px solid transparent; margin-bottom:-2px;
+                     cursor:pointer;">
+        📦 Pedidos
+      </button>
+    </div>
+
+    <!-- ── SECCIÓN CATÁLOGO ── -->
+    <div id="secCatalogo">
+    <!-- Toolbar -->
     <div class="toolbar">
       <div class="toolbar-left">
         <input class="search-input" type="search" id="searchLibros"
@@ -344,16 +351,10 @@
           <div class="stat-chip">Agotados: <strong id="statOcultos">—</strong></div>
         </div>
       </div>
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <div style="display:flex; gap:6px;">
-          <button class="filter-estado active" id="btnTodos"    onclick="filtrarPorEstado('todos')"   >📚 Todos</button>
-          <button class="filter-estado"        id="btnActivos"  onclick="filtrarPorEstado('activos')" >📗 Activos</button>
-          <button class="filter-estado"        id="btnAgotados" onclick="filtrarPorEstado('agotados')">📕 Agotados</button>
-        </div>
-        <button class="btn-add" onclick="abrirModal()">＋ Agregar libro</button>
-      </div>
+      <button class="btn-add" onclick="abrirModal()">＋ Agregar libro</button>
     </div>
 
+    <!-- Tabla -->
     <div class="table-wrap">
       <table id="tablaLibros">
         <thead>
@@ -371,9 +372,49 @@
         </tbody>
       </table>
     </div>
+    </div><!-- /secCatalogo -->
+
+    <!-- ── SECCIÓN PEDIDOS (HU-F2) ── -->
+    <div id="secPedidos" style="display:none;">
+
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <input class="search-input" type="search" id="searchPedidos"
+                 placeholder="🔍 Buscar por factura o cliente..." oninput="filtrarPedidos()">
+          <div class="stat-chips">
+            <div class="stat-chip">En preparación: <strong id="statPrep">—</strong></div>
+            <div class="stat-chip">Enviados: <strong id="statEnv">—</strong></div>
+            <div class="stat-chip">Entregados: <strong id="statEnt">—</strong></div>
+          </div>
+        </div>
+        <button class="btn-add" onclick="cargarPedidos()" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);">
+          🔄 Actualizar
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table id="tablaPedidos">
+          <thead>
+            <tr>
+              <th>Factura</th>
+              <th>Cliente</th>
+              <th>Fecha</th>
+              <th>Total</th>
+              <th>Entrega</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyPedidos">
+            <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--texto-suave);">Cargando pedidos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /secPedidos -->
 
   </div>
 
+  <!-- Toast -->
   <div id="toast"></div>
 
   <footer>
@@ -382,12 +423,10 @@
 
   <script src="js/script.js"></script>
   <script>
-// ── Proteger: administradores y root ───────────────────────────
+    // ── Proteger: solo administradores ───────────────────────────
     const sesion = requireSession();
-    // Bloquear el acceso si el rol NO es ni administrador ni root
-    if (sesion && sesion.rol !== 'administrador' && sesion.rol !== 'root') {
-      alert('⛔ Acceso denegado. Esta sección es solo para personal autorizado.');
-      window.location.href = 'index.html';
+    if (sesion && sesion.rol !== 'administrador') {
+      window.location.href = sesion?.rol === 'root' ? 'root.html' : sesion?.rol === 'cliente' ? 'index.html' : 'login.html';
     }
 
     document.getElementById('adminWelcome').textContent =
@@ -399,7 +438,6 @@
     // ── Estado global ─────────────────────────────────────────────
     let libros = [];
     let editandoId = null;
-    let filtroEstado = 'todos'; // 'todos' | 'activos' | 'agotados'
 
     // ── Cargar libros ─────────────────────────────────────────────
     async function cargarLibros() {
@@ -439,8 +477,7 @@
       tbody.innerHTML = lista.map(l => {
         const stockClass = (l.stock ?? 0) < 5 ? 'stock-low' : 'stock-ok';
         const agotado    = l.agotado === true;
-        const estadoLibroFisico = l.estado_libro ? l.estado_libro.charAt(0).toUpperCase() + l.estado_libro.slice(1) : 'Nuevo';
-        
+        const estadoLibro = l.estado_libro || 'disponible';
         return `
           <tr data-id="${l.id}">
             <td class="td-titulo">
@@ -454,7 +491,7 @@
             <td class="td-stock ${stockClass}">${l.stock ?? 0}</td>
             <td>
               <span class="badge-genero" style="background:${agotado ? '#fef2f2' : '#dcfce7'};color:${agotado ? '#dc2626' : '#166534'};">
-                ${agotado ? 'Agotado' : estadoLibroFisico}
+                ${agotado ? 'Agotado' : estadoLibro}
               </span>
             </td>
             <td>
@@ -467,32 +504,15 @@
       }).join('');
     }
 
-    // ── Filtro por estado ─────────────────────────────────────────
-    function filtrarPorEstado(estado) {
-      filtroEstado = estado;
-      ['btnTodos','btnActivos','btnAgotados'].forEach(id =>
-        document.getElementById(id).classList.remove('active')
-      );
-      const mapa = { todos: 'btnTodos', activos: 'btnActivos', agotados: 'btnAgotados' };
-      document.getElementById(mapa[estado]).classList.add('active');
-      filtrarTabla();
-    }
-
     // ── Filtro de búsqueda ────────────────────────────────────────
     function filtrarTabla() {
       const q = document.getElementById('searchLibros').value.toLowerCase().trim();
-      let resultado = libros;
-
-      if (filtroEstado === 'activos')  resultado = resultado.filter(l => !l.agotado);
-      if (filtroEstado === 'agotados') resultado = resultado.filter(l => l.agotado === true);
-
-      if (q) {
-        resultado = resultado.filter(l =>
-          (l.titulo || '').toLowerCase().includes(q) ||
-          (l.autor  || '').toLowerCase().includes(q)
-        );
-      }
-      renderTabla(resultado);
+      if (!q) { renderTabla(libros); return; }
+      const filtrado = libros.filter(l =>
+        (l.titulo || '').toLowerCase().includes(q) ||
+        (l.autor  || '').toLowerCase().includes(q)
+      );
+      renderTabla(filtrado);
     }
 
     // ── Modal CREAR / EDITAR ──────────────────────────────────────
@@ -500,9 +520,6 @@
       editandoId = id;
       const libro = id ? libros.find(l => l.id == id) : null;
       const titulo = libro ? '✏️ Editar libro' : '＋ Nuevo libro';
-
-      // Obtenemos la fecha de hoy para bloquear fechas futuras
-      const fechaHoy = new Date().toISOString().split('T')[0];
 
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
@@ -524,18 +541,10 @@
               <span class="field-error" id="err-mAutor"></span>
             </div>
           </div>
-          <div class="modal-row">
-            <div class="input-group">
-              <label>Editorial</label>
-              <input type="text" id="mEditorial" placeholder="Ej: Planeta"
-                     value="${escAttr(libro?.editorial || '')}">
-            </div>
-            <div class="input-group">
-              <label>Código único</label>
-              <input type="text" id="mCodigo" placeholder="Ej: LP-2026-001"
-                     value="${escAttr(libro?.codigo_unico || '')}">
-              <span class="field-error" id="err-mCodigo"></span>
-            </div>
+          <div class="input-group">
+            <label>Editorial</label>
+            <input type="text" id="mEditorial" placeholder="Ej: Planeta"
+                   value="${escAttr(libro?.editorial || '')}">
           </div>
           <div class="modal-row">
             <div class="input-group">
@@ -548,45 +557,35 @@
             </div>
             <div class="input-group">
               <label>Idioma</label>
-              <select id="mIdioma">
-                ${['Español','Inglés']
-                  .map(i => `<option value="${i}" ${(libro?.idioma||'Español')==i?'selected':''}>${i}</option>`)
-                  .join('')}
-              </select>
+              <input type="text" id="mIdioma" placeholder="Español"
+                     value="${escAttr(libro?.idioma || 'Español')}">
             </div>
           </div>
           <div class="modal-row">
-            <div class="input-group">
-              <label>ISBN</label>
-              <input type="text" id="mIsbn" placeholder="978-xxxxxxxxxx"
-                     value="${escAttr(libro?.isbn || '')}">
-              <span class="field-error" id="err-mIsbn"></span>
-            </div>
             <div class="input-group">
               <label>Número de páginas</label>
               <input type="number" id="mPaginas" min="1"
                      placeholder="Ej: 320" value="${libro?.numero_paginas || ''}">
             </div>
-          </div>
-          <div class="modal-row">
             <div class="input-group">
-              <label>Fecha de publicación</label>
-              <input type="date" id="mFechaPub" max="${fechaHoy}"
-                     value="${libro?.fecha_publicacion || ''}">
-              <span class="field-error" id="err-mFechaPub"></span>
-            </div>
-            <div class="input-group">
-              <label>Condición del libro</label>
+              <label>Estado del libro</label>
               <select id="mEstadoLibro">
-                ${['nuevo','usado']
-                  .map(e => {
-                    const savedValue = (libro?.estado_libro || 'nuevo').toLowerCase();
-                    const textoMostrar = e === 'nuevo' ? 'Nuevo' : 'Usado';
-                    return `<option value="${e}" ${savedValue === e ? 'selected' : ''}>${textoMostrar}</option>`;
-                  })
+                ${['disponible','pre-venta','reservado','no disponible']
+                  .map(e => `<option value="${e}" ${(libro?.estado_libro||'disponible')===e?'selected':''}>${e.charAt(0).toUpperCase()+e.slice(1)}</option>`)
                   .join('')}
               </select>
             </div>
+          </div>
+          <div class="input-group">
+            <label>
+              Disponible desde
+              <span style="font-weight:400; color:var(--texto-suave); margin-left:6px; font-size:0.75rem;">
+                — Deja en blanco para hoy. Puedes poner una fecha futura para pre-lanzamientos.
+              </span>
+            </label>
+            <input type="date" id="mFechaPub"
+                   value="${libro?.fecha_publicacion || ''}"
+                   oninput="sincronizarEstadoPreventa()">
           </div>
           <div class="modal-row">
             <div class="input-group">
@@ -640,6 +639,12 @@
         msg ? errEl.classList.add('visible') : errEl.classList.remove('visible');
       }
     }
+    function mClearError(id) {
+      const el    = document.getElementById(id);
+      const errEl = document.getElementById('err-' + id);
+      if (el)    el.classList.remove('invalid', 'valid');
+      if (errEl) { errEl.textContent = ''; errEl.classList.remove('visible'); }
+    }
 
     // ── Guardar (crear o editar) ───────────────────────────────────
     async function guardarLibro() {
@@ -649,11 +654,6 @@
       const autor  = document.getElementById('mAutor').value.trim();
       const precio = parseFloat(document.getElementById('mPrecio').value);
       const stock  = parseInt(document.getElementById('mStock').value);
-      const fechaPub = document.getElementById('mFechaPub').value;
-      const fechaHoy = new Date().toISOString().split('T')[0];
-
-      // Limpiamos el error del ISBN antes de evaluar
-      mSetError('mIsbn', '');
 
       if (!titulo) {
         mSetError('mTitulo', 'El título es obligatorio.'); valid = false;
@@ -671,12 +671,6 @@
         mSetError('mStock', 'Ingresa un stock válido (mínimo 0).'); valid = false;
       } else { mSetError('mStock', ''); }
 
-      if (fechaPub && fechaPub > fechaHoy) {
-        mSetError('mFechaPub', 'La fecha de publicación no puede ser en el futuro.'); valid = false;
-      } else { 
-        mSetError('mFechaPub', ''); 
-      }
-
       if (!valid) {
         const primerError = document.querySelector('#modalLibro .invalid');
         if (primerError) primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -687,12 +681,10 @@
         titulo,
         autor,
         editorial:         document.getElementById('mEditorial').value.trim() || null,
-        codigo_unico:      document.getElementById('mCodigo').value.trim() || null,
         genero:            document.getElementById('mGenero').value || null,
-        idioma:            document.getElementById('mIdioma').value, 
-        isbn:              document.getElementById('mIsbn').value.trim() || null,
+        idioma:            document.getElementById('mIdioma').value.trim() || 'Español',
         numero_paginas:    parseInt(document.getElementById('mPaginas').value) || null,
-        fecha_publicacion: fechaPub || null,
+        fecha_publicacion: document.getElementById('mFechaPub').value || null,
         precio,
         stock,
         estado_libro:      document.getElementById('mEstadoLibro').value,
@@ -701,6 +693,11 @@
         descripcion:       document.getElementById('mDescripcion').value.trim() || null,
         registrado_por:    sesion?.id || null,
       };
+
+      // Generar código único de 8 dígitos solo al crear (no al editar)
+      if (!editandoId) {
+        payload.codigo_unico = generarCodigoUnico();
+      }
 
       const btnSave = document.querySelector('#modalLibro .btn-save');
       if (btnSave) setLoading(btnSave, true);
@@ -715,22 +712,15 @@
       if (btnSave) setLoading(btnSave, false);
 
       if (error) {
-        if (error.code === '23505' && error.message.includes('codigo_unico')) {
-          mSetError('mCodigo', 'Ya hay otro libro con ese mismo código único.');
-          document.getElementById('mCodigo').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else if (error.code === '23505' && error.message.includes('isbn')) {
-          mSetError('mIsbn', 'Ya hay un libro registrado con ese mismo ISBN.');
-          document.getElementById('mIsbn').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-          toast('Error: ' + error.message, 'error');
-        }
-        return;
+        toast('Error: ' + error.message, 'error'); return;
       }
 
       cerrarModal('modalLibro');
       toast(editandoId ? '✅ Libro actualizado' : '✅ Libro creado', 'success');
       await cargarLibros();
     }
+
+
 
     // ── Confirmar eliminar ────────────────────────────────────────
     function confirmarEliminar(id, titulo) {
@@ -775,8 +765,165 @@
       return String(str).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
 
+    // ── Generar código único de 8 dígitos numéricos ───────────────
+    function generarCodigoUnico() {
+      const existentes = new Set(libros.map(l => l.codigo_unico).filter(Boolean));
+      let codigo;
+      let intentos = 0;
+      do {
+        // Número entre 10000000 y 99999999 (siempre 8 dígitos)
+        codigo = String(Math.floor(10000000 + Math.random() * 90000000));
+        intentos++;
+        if (intentos > 1000) break; // salvaguarda ante catálogos muy grandes
+      } while (existentes.has(codigo));
+      return codigo;
+    }
+
+    // ── Sincronizar estado a "pre-venta" si la fecha es futura ────
+    function sincronizarEstadoPreventa() {
+      const fechaInput = document.getElementById('mFechaPub');
+      const estadoSel  = document.getElementById('mEstadoLibro');
+      if (!fechaInput || !estadoSel) return;
+
+      const hoy   = new Date(); hoy.setHours(0,0,0,0);
+      const valor = fechaInput.value;
+      if (!valor) return;
+
+      const elegida = new Date(valor + 'T00:00:00');
+      if (elegida > hoy) {
+        estadoSel.value = 'pre-venta';
+      } else if (estadoSel.value === 'pre-venta') {
+        // Si corrigen a fecha pasada/hoy, volver a disponible
+        estadoSel.value = 'disponible';
+      }
+    }
+
     // ── Init ──────────────────────────────────────────────────────
     cargarLibros();
+
+    // ── Cambiar tab principal ─────────────────────────────────────
+    function switchTab(tab) {
+      const esCat = tab === 'catalogo';
+      document.getElementById('secCatalogo').style.display = esCat ? 'block' : 'none';
+      document.getElementById('secPedidos').style.display  = esCat ? 'none'  : 'block';
+
+      const btnCat = document.getElementById('tabBtnCatalogo');
+      const btnPed = document.getElementById('tabBtnPedidos');
+      btnCat.style.color       = esCat ? 'var(--primario)' : 'var(--texto-suave)';
+      btnCat.style.fontWeight  = esCat ? '700' : '600';
+      btnCat.style.borderBottom = esCat ? '3px solid var(--primario)' : '3px solid transparent';
+      btnPed.style.color       = !esCat ? 'var(--primario)' : 'var(--texto-suave)';
+      btnPed.style.fontWeight  = !esCat ? '700' : '600';
+      btnPed.style.borderBottom = !esCat ? '3px solid var(--primario)' : '3px solid transparent';
+
+      if (tab === 'pedidos') cargarPedidos();
+    }
+
+    // ── Gestión de Pedidos (HU-F2) ────────────────────────────────
+    let todosPedidos = [];
+
+    const ESTADO_CONFIG = {
+      en_preparacion: { label: '📦 En preparación', cls: 'background:#fffbeb;color:#92400e;', next: 'enviado',    nextLabel: '🚚 Marcar enviado'   },
+      enviado:        { label: '🚚 Enviado',          cls: 'background:#eff6ff;color:#1d4ed8;', next: 'entregado', nextLabel: '✅ Marcar entregado' },
+      entregado:      { label: '✅ Entregado',         cls: 'background:#f0fdf4;color:#166534;', next: null,        nextLabel: null                   },
+      cancelada:      { label: '❌ Cancelada',         cls: 'background:#fef2f2;color:#dc2626;', next: null,        nextLabel: null                   },
+    };
+
+    async function cargarPedidos() {
+      const tbody = document.getElementById('tbodyPedidos');
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--texto-suave);">Cargando...</td></tr>';
+
+      // Traer compras con datos de usuarios
+      const { data, error } = await client
+        .from('compras')
+        .select('id, numero_factura, usuario_id, total, costo_envio, estado, tiempo_entrega, direccion_envio, created_at, items')
+        .order('created_at', { ascending: false });
+
+      if (error) { toast('Error al cargar pedidos: ' + error.message, 'error'); return; }
+
+      // Obtener nombres de clientes
+      const userIds = [...new Set((data || []).map(c => c.usuario_id))];
+      let usuariosMap = {};
+      if (userIds.length > 0) {
+        const { data: usuarios } = await client
+          .from('usuarios')
+          .select('id, nombre_completo, correo')
+          .in('id', userIds);
+        (usuarios || []).forEach(u => { usuariosMap[u.id] = u; });
+      }
+
+      todosPedidos = (data || []).map(c => ({ ...c, _usuario: usuariosMap[c.usuario_id] || {} }));
+      actualizarStatsPedidos();
+      renderPedidos(todosPedidos);
+    }
+
+    function actualizarStatsPedidos() {
+      document.getElementById('statPrep').textContent = todosPedidos.filter(p => p.estado === 'en_preparacion').length;
+      document.getElementById('statEnv').textContent  = todosPedidos.filter(p => p.estado === 'enviado').length;
+      document.getElementById('statEnt').textContent  = todosPedidos.filter(p => p.estado === 'entregado').length;
+    }
+
+    function renderPedidos(lista) {
+      const tbody = document.getElementById('tbodyPedidos');
+      if (!lista.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">📭</div><p>No hay pedidos.</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = lista.map(p => {
+        const cfg    = ESTADO_CONFIG[p.estado] || ESTADO_CONFIG.en_preparacion;
+        const fecha  = new Date(p.created_at).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
+        const esTienda = (p.direccion_envio || '').startsWith('Recogida en tienda');
+        const entregaLabel = esTienda ? '🏪 Tienda' : '🚚 Domicilio';
+        const clienteNombre = escHtml(p._usuario?.nombre_completo || p.usuario_id?.slice(0,8) || '—');
+        const clienteCorreo = escHtml(p._usuario?.correo || '');
+
+        const btnSig = cfg.next
+          ? `<button class="btn-icon btn-edit" onclick="cambiarEstado('${p.id}','${cfg.next}','${escAttr(p.numero_factura)}')"
+                    style="white-space:nowrap;">${cfg.nextLabel}</button>`
+          : `<span style="font-size:0.78rem;color:var(--texto-suave);">—</span>`;
+
+        return `
+          <tr>
+            <td style="font-family:monospace;font-size:0.8rem;">${escHtml(p.numero_factura || p.id)}</td>
+            <td>
+              <div style="font-weight:600;font-size:0.88rem;">${clienteNombre}</div>
+              <div style="font-size:0.75rem;color:var(--texto-suave);">${clienteCorreo}</div>
+            </td>
+            <td style="font-size:0.82rem;white-space:nowrap;">${fecha}</td>
+            <td class="td-precio">$${parseFloat(p.total || 0).toLocaleString('es-CO')}</td>
+            <td style="font-size:0.82rem;">${entregaLabel}</td>
+            <td>
+              <span class="badge-genero" style="${cfg.cls} border-radius:99px; padding:3px 10px; font-size:0.75rem;">
+                ${cfg.label}
+              </span>
+            </td>
+            <td><div class="td-acciones">${btnSig}</div></td>
+          </tr>`;
+      }).join('');
+    }
+
+    function filtrarPedidos() {
+      const q = document.getElementById('searchPedidos').value.toLowerCase().trim();
+      if (!q) { renderPedidos(todosPedidos); return; }
+      renderPedidos(todosPedidos.filter(p =>
+        (p.numero_factura || '').toLowerCase().includes(q) ||
+        (p._usuario?.nombre_completo || '').toLowerCase().includes(q) ||
+        (p._usuario?.correo || '').toLowerCase().includes(q)
+      ));
+    }
+
+    async function cambiarEstado(pedidoId, nuevoEstado, factura) {
+      const { error } = await client
+        .from('compras')
+        .update({ estado: nuevoEstado })
+        .eq('id', pedidoId);
+
+      if (error) { toast('Error: ' + error.message, 'error'); return; }
+
+      const estadoLabel = ESTADO_CONFIG[nuevoEstado]?.label || nuevoEstado;
+      toast(`✅ Pedido ${factura} → ${estadoLabel}`, 'success');
+      await cargarPedidos();
+    }
   </script>
 </body>
 </html>

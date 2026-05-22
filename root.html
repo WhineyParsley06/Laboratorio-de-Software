@@ -159,8 +159,7 @@
 <body>
 
   <nav>
-    <a href="index.html" class="nav-brand">Librería Pereira</a>
-    <a href="index.html">Inicio</a>
+    <span class="nav-brand" style="cursor:default;">Librería Pereira</span>
     <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
   </nav>
 
@@ -213,8 +212,7 @@
     // El rol ROOT debe ser el único que puede entrar aquí.
     const sesion = requireSession();
     if (sesion && sesion.rol !== 'root') {
-      alert('⛔ Acceso denegado. Esta sección es exclusiva para el Superusuario (Root).');
-      window.location.href = 'index.html';
+      window.location.href = sesion?.rol === 'administrador' ? 'admin.html' : sesion?.rol === 'cliente' ? 'index.html' : 'login.html';
     }
 
     let todosLosUsuarios = [];
@@ -260,7 +258,6 @@
           <td><span style="background:#dcfce7; color:#166534; padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:600;">Activo</span></td>
           <td>
             <button class="btn-icon" onclick="abrirModalAdmin('${u.id}')">✏️ Editar</button>
-            <button class="btn-icon" onclick="confirmarDescenso('${u.id}', '${u.nombre_completo}')" style="background:#fffbeb; border-color:#fde68a; color:#d97706;" title="Descender a Cliente">⬇️ Descender</button>
             <button class="btn-icon" onclick="eliminarUsuario('${u.id}', '${u.nombre_completo}')" style="color:#dc2626;">🗑️</button>
           </td>
         </tr>
@@ -292,7 +289,6 @@
           <td>${new Date(u.creado_en).toLocaleDateString()}</td>
           <td>
             <button class="btn-icon" onclick="verDetallesCliente('${u.id}')" style="background:#f0fdf4; border-color:#bbf7d0; color:#16a34a;">👁️ Ver detalles</button>
-            <button class="btn-icon" onclick="confirmarAscenso('${u.id}', '${u.nombre_completo}')" style="background:#eff6ff; border-color:#bfdbfe; color:#1d4ed8;" title="Ascender a Administrador">⬆️ Ascender</button>
           </td>
         </tr>
       `).join('');
@@ -523,97 +519,12 @@
             <button class="btn-iter3" onclick="alert('La funcionalidad de Ver Métodos de Pago estará disponible en la Iteración 3.')">💳 Métodos de Pago</button>
             <button class="btn-iter3 danger" onclick="alert('La funcionalidad de Bloquear / Suspender usuarios estará disponible en la Iteración 3.')">🚫 Suspender Cuenta</button>
           </div>
-          <button onclick="cerrarModal('modalCliente'); confirmarAscenso('${cliente.id}', '${cliente.nombre_completo}')"
-            style="margin-top:14px; width:100%; padding:11px; background:#1d4ed8; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.92rem;">
-            ⬆️ Ascender a Administrador
-          </button>
-
           <div class="modal-actions">
             <button class="btn-cancel" style="width:100%;" onclick="cerrarModal('modalCliente')">← Volver al listado</button>
           </div>
         </div>
       `;
       document.body.appendChild(overlay);
-    }
-
-    // ── Ascender Cliente a Administrador ────────────────────────
-    function confirmarAscenso(id, nombre) {
-      const overlay = document.createElement('div');
-      overlay.className = 'modal-overlay';
-      overlay.id = 'modalAscenso';
-      overlay.innerHTML = `
-        <div class="modal-admin" style="max-width:420px; text-align:center;">
-          <div style="font-size:2.5rem; margin-bottom:12px;">⬆️</div>
-          <h3 style="margin-bottom:8px;">¿Ascender a Administrador?</h3>
-          <p style="color:var(--texto-suave); font-size:0.88rem; margin-bottom:24px;">
-            <strong>${nombre}</strong> pasará de ser cliente a tener acceso al panel de administración.
-            Esta acción se puede revertir eliminando el administrador.
-          </p>
-          <div class="modal-actions">
-            <button class="btn-cancel" onclick="cerrarModal('modalAscenso')">← Cancelar</button>
-            <button class="btn-save" style="background:#1d4ed8;" onclick="ejecutarAscenso('${id}', '${nombre}')">
-              ✅ Sí, ascender
-            </button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(overlay);
-    }
-
-    async function ejecutarAscenso(id, nombre) {
-      const { error } = await client
-        .from('usuarios')
-        .update({ rol: 'administrador' })
-        .eq('id', id);
-
-      cerrarModal('modalAscenso');
-
-      if (error) {
-        toast('Error al ascender usuario: ' + error.message, 'error');
-      } else {
-        toast(`✅ ${nombre} ahora es Administrador`, 'success');
-        cargarUsuarios();
-      }
-    }
-
-    // ── Descender Administrador a Cliente ───────────────────────
-    function confirmarDescenso(id, nombre) {
-      const overlay = document.createElement('div');
-      overlay.className = 'modal-overlay';
-      overlay.id = 'modalDescenso';
-      overlay.innerHTML = `
-        <div class="modal-admin" style="max-width:420px; text-align:center;">
-          <div style="font-size:2.5rem; margin-bottom:12px;">⬇️</div>
-          <h3 style="margin-bottom:8px;">¿Descender a Cliente?</h3>
-          <p style="color:var(--texto-suave); font-size:0.88rem; margin-bottom:24px;">
-            <strong>${nombre}</strong> perderá el acceso al panel de administración
-            y pasará a ser un cliente regular. Esta acción se puede revertir ascendiéndolo de nuevo.
-          </p>
-          <div class="modal-actions">
-            <button class="btn-cancel" onclick="cerrarModal('modalDescenso')">← Cancelar</button>
-            <button class="btn-save" style="background:#d97706;" onclick="ejecutarDescenso('${id}', '${nombre}')">
-              ⬇️ Sí, descender
-            </button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(overlay);
-    }
-
-    async function ejecutarDescenso(id, nombre) {
-      const { error } = await client
-        .from('usuarios')
-        .update({ rol: 'cliente' })
-        .eq('id', id);
-
-      cerrarModal('modalDescenso');
-
-      if (error) {
-        toast('Error al descender usuario: ' + error.message, 'error');
-      } else {
-        toast(`⬇️ ${nombre} ahora es Cliente`, 'success');
-        cargarUsuarios();
-      }
     }
 
     // ── Utilidades ───────────────────────────────────────────────

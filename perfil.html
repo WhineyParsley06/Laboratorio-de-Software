@@ -341,6 +341,9 @@
 
     // Verificar sesión
     const sesion = requireSession();
+    if (sesion && (sesion.rol === 'administrador' || sesion.rol === 'root')) {
+      window.location.href = sesion.rol === 'root' ? 'root.html' : 'admin.html';
+    }
     if (!sesion) throw new Error('no session');
 
     // Cabecera
@@ -373,15 +376,15 @@
       renderVista(data);
 
       // Formulario editar
-      document.getElementById('pNombre').value    = data.nombre || '';
+      document.getElementById('pNombre').value    = data.nombre_completo?.split(' ').slice(0, -2).join(' ') || data.nombre_completo || '';
       document.getElementById('pApellidos').value = data.apellidos || '';
       document.getElementById('pCorreo').value    = data.correo || '';
       document.getElementById('pFecha').value     = data.fecha_nacimiento || '';
       // Restaurar departamento y ciudad de residencia
-      if (data.departamento) {
+      if (data.dep_residencia) {
         const selDep = document.getElementById('pDepResidencia');
-        selDep.value = data.departamento;
-        cargarCiudadesPerfil(data.ciudad);
+        selDep.value = data.dep_residencia;
+        cargarCiudadesPerfil(data.ciudad_residencia);
       }
       document.getElementById('pDireccion').value = data.direccion || '';
       document.getElementById('pTelefono').value  = data.telefono || '';
@@ -407,8 +410,8 @@
         { label: 'Correo',               value: d.correo },
         { label: 'Teléfono',             value: d.telefono || '—' },
         { label: 'Fecha de nacimiento',  value: d.fecha_nacimiento ? new Date(d.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' }) : '—' },
-        { label: 'Departamento de residencia', value: d.departamento || '—' },
-        { label: 'Ciudad de residencia', value: d.ciudad || '—' },
+        { label: 'Departamento de residencia', value: d.dep_residencia || '—' },
+        { label: 'Ciudad de residencia', value: d.ciudad_residencia || '—' },
         { label: 'Género',               value: GENERO_LABEL[d.genero] || '—' },
         { label: 'Dirección de envío',   value: d.direccion || '—' },
         { label: 'Rol en el sistema',    value: d.rol },
@@ -462,8 +465,8 @@
         apellidos:        apellidos,
         correo:           document.getElementById('pCorreo').value.trim(),
         fecha_nacimiento: document.getElementById('pFecha').value,
-        departamento:     document.getElementById('pDepResidencia').value,
-        ciudad: document.getElementById('pCiudadResidencia').value,
+        dep_residencia:   document.getElementById('pDepResidencia').value,
+        ciudad_residencia: document.getElementById('pCiudadResidencia').value,
         genero:           document.getElementById('pGenero').value,
         telefono:         document.getElementById('pTelefono').value.trim(),
         direccion:        document.getElementById('pDireccion').value.trim(),
