@@ -269,6 +269,16 @@
       .search-input { width: 100%; }
       td, th { padding: 10px 10px; }
     }
+
+    /* HU-26: Chat admin responsive */
+    @media (max-width: 768px) {
+      #secMensajes > div:nth-of-type(2) {
+        grid-template-columns: 1fr !important;
+      }
+      #listaConversaciones { max-height: 200px !important; }
+    }
+    #listaConversaciones > div:hover { background: #faf6f1 !important; }
+    #chatAdminInputArea { display: flex; }
     .field-error {
       display: block;
       font-size: 0.72rem;
@@ -305,7 +315,7 @@
   <!-- Session timer -->
   <div class="session-bar" id="sessionBar" style="display:none;">
     <div class="session-dot"></div>
-    Sesión activa · <span id="sessionCount">300s</span>
+    Sesión activa · <span id="sessionCount">60s</span>
   </div>
 
   <!-- Header del panel -->
@@ -335,6 +345,17 @@
                      color:var(--texto-suave); border-bottom:3px solid transparent; margin-bottom:-2px;
                      cursor:pointer;">
         📦 Pedidos
+      </button>
+      <!-- HU-26: Tab de Mensajes -->
+      <button id="tabBtnMensajes" onclick="switchTab('mensajes')"
+              style="padding:10px 22px; border:none; background:none; font-size:0.9rem; font-weight:600;
+                     color:var(--texto-suave); border-bottom:3px solid transparent; margin-bottom:-2px;
+                     cursor:pointer;position:relative;">
+        💬 Mensajes
+        <span id="badgeMensajes"
+          style="position:absolute;top:6px;right:6px;background:#ef4444;color:#fff;
+                 font-size:0.6rem;font-weight:800;padding:1px 5px;border-radius:99px;
+                 display:none;min-width:16px;text-align:center;line-height:1.5;">0</span>
       </button>
     </div>
 
@@ -412,6 +433,89 @@
       </div>
     </div><!-- /secPedidos -->
 
+    <!-- ── SECCIÓN MENSAJES (HU-26) ── -->
+    <div id="secMensajes" style="display:none;">
+
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <input class="search-input" type="search" id="searchMensajes"
+                 placeholder="🔍 Buscar por nombre o mensaje..." oninput="filtrarMensajes()">
+          <div class="stat-chips">
+            <div class="stat-chip">Total usuarios: <strong id="statMsgUsuarios">—</strong></div>
+            <div class="stat-chip">Sin leer: <strong id="statMsgNoLeidos" style="color:#ef4444;">—</strong></div>
+          </div>
+        </div>
+        <button class="btn-add" onclick="adminCargarConversaciones()"
+                style="background:linear-gradient(135deg,#059669,#10b981);">
+          🔄 Actualizar
+        </button>
+      </div>
+
+      <!-- Layout: lista conversaciones + panel detalle -->
+      <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;min-height:480px;">
+
+        <!-- Lista de conversaciones -->
+        <div style="background:var(--fondo-card);border:1px solid var(--borde);border-radius:14px;overflow:hidden;">
+          <div style="padding:12px 16px;background:#f5ede6;border-bottom:1px solid var(--borde);">
+            <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
+                         letter-spacing:0.06em;color:var(--texto-suave);">Conversaciones</span>
+          </div>
+          <div id="listaConversaciones" style="overflow-y:auto;max-height:520px;">
+            <div style="text-align:center;padding:40px 20px;color:var(--texto-suave);font-size:0.85rem;">
+              Cargando...
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel de conversación activa -->
+        <div style="background:var(--fondo-card);border:1px solid var(--borde);border-radius:14px;
+                    display:flex;flex-direction:column;overflow:hidden;">
+
+          <!-- Header del chat -->
+          <div id="chatAdminHeader"
+            style="padding:14px 20px;border-bottom:1px solid var(--borde);
+                   display:flex;align-items:center;gap:12px;background:#faf6f1;">
+            <div style="width:40px;height:40px;background:var(--primario);border-radius:50%;
+                        display:flex;align-items:center;justify-content:center;
+                        color:#fff;font-size:1.1rem;flex-shrink:0;">👤</div>
+            <div id="chatAdminNombreHeader">
+              <div style="font-weight:700;color:var(--texto);" id="chatAdminNombreH">
+                Selecciona una conversación
+              </div>
+              <div style="font-size:0.75rem;color:var(--texto-suave);" id="chatAdminCorreoH"></div>
+            </div>
+          </div>
+
+          <!-- Mensajes -->
+          <div id="chatAdminMensajes"
+            style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;
+                   gap:10px;min-height:300px;max-height:380px;background:#faf8f6;">
+            <div style="text-align:center;padding:60px 20px;color:var(--texto-suave);">
+              <div style="font-size:2.5rem;margin-bottom:12px;">💬</div>
+              <p style="font-size:0.88rem;">Selecciona un cliente para ver su conversación.</p>
+            </div>
+          </div>
+
+          <!-- Input respuesta admin -->
+          <div id="chatAdminInputArea"
+            style="padding:14px 16px;border-top:1px solid var(--borde);
+                   display:none;gap:8px;align-items:flex-end;background:#fff;">
+            <textarea id="chatAdminInput" rows="1" placeholder="Escribe tu respuesta..."
+              style="flex:1;padding:10px 13px;border:1.5px solid var(--borde);border-radius:10px;
+                     font-size:0.87rem;resize:none;background:var(--fondo-input);color:var(--texto);
+                     max-height:100px;line-height:1.4;font-family:inherit;"
+              onkeydown="adminChatKeyEnter(event)"
+              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+            <button onclick="adminEnviarRespuesta()"
+              style="width:42px;height:42px;background:var(--primario);color:#fff;border:none;
+                     border-radius:10px;cursor:pointer;font-size:1.1rem;flex-shrink:0;
+                     display:flex;align-items:center;justify-content:center;">➤</button>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /secMensajes -->
+
   </div>
 
   <!-- Toast -->
@@ -427,6 +531,10 @@
     const sesion = requireSession();
     if (sesion && sesion.rol !== 'administrador') {
       window.location.href = sesion?.rol === 'root' ? 'root.html' : sesion?.rol === 'cliente' ? 'index.html' : 'login.html';
+    }
+    if (!sesion || sesion.rol !== 'administrador') {
+      // Detener ejecución del resto del script si no es admin
+      throw new Error('Acceso denegado');
     }
 
     document.getElementById('adminWelcome').textContent =
@@ -564,8 +672,9 @@
           <div class="modal-row">
             <div class="input-group">
               <label>Número de páginas</label>
-              <input type="number" id="mPaginas" min="1"
-                     placeholder="Ej: 320" value="${libro?.numero_paginas || ''}">
+              <input type="text" inputmode="numeric" id="mPaginas" min="1"
+                     placeholder="Ej: 320" value="${libro?.numero_paginas || ''}"
+                     oninput="this.value=this.value.replace(/[^0-9]/g,'')">
             </div>
             <div class="input-group">
               <label>Estado del libro</label>
@@ -590,14 +699,16 @@
           <div class="modal-row">
             <div class="input-group">
               <label>Precio (COP) *</label>
-              <input type="number" id="mPrecio" min="0" step="500"
-                     placeholder="25000" value="${libro?.precio || ''}">
+              <input type="text" inputmode="numeric" id="mPrecio" min="0"
+                     placeholder="25000" value="${libro?.precio || ''}"
+                     oninput="this.value=this.value.replace(/[^0-9]/g,'')">
               <span class="field-error" id="err-mPrecio"></span>
             </div>
             <div class="input-group">
               <label>Stock *</label>
-              <input type="number" id="mStock" min="0" step="1"
-                     placeholder="10" value="${libro?.stock ?? ''}">
+              <input type="text" inputmode="numeric" id="mStock" min="0"
+                     placeholder="10" value="${libro?.stock ?? ''}"
+                     oninput="this.value=this.value.replace(/[^0-9]/g,'')">
               <span class="field-error" id="err-mStock"></span>
             </div>
           </div>
@@ -663,8 +774,8 @@
         mSetError('mAutor', 'El autor es obligatorio.'); valid = false;
       } else { mSetError('mAutor', ''); }
 
-      if (isNaN(precio) || precio < 0) {
-        mSetError('mPrecio', 'Ingresa un precio válido.'); valid = false;
+      if (isNaN(precio) || precio <= 0) {
+        mSetError('mPrecio', 'Ingresa un precio válido (mayor que cero).'); valid = false;
       } else { mSetError('mPrecio', ''); }
 
       if (isNaN(stock) || stock < 0) {
@@ -683,7 +794,7 @@
         editorial:         document.getElementById('mEditorial').value.trim() || null,
         genero:            document.getElementById('mGenero').value || null,
         idioma:            document.getElementById('mIdioma').value.trim() || 'Español',
-        numero_paginas:    parseInt(document.getElementById('mPaginas').value) || null,
+        numero_paginas:    (() => { const p = parseInt(document.getElementById('mPaginas').value); return (!isNaN(p) && p > 0) ? p : null; })(),
         fecha_publicacion: document.getElementById('mFechaPub').value || null,
         precio,
         stock,
@@ -831,20 +942,283 @@
 
     // ── Cambiar tab principal ─────────────────────────────────────
     function switchTab(tab) {
-      const esCat = tab === 'catalogo';
-      document.getElementById('secCatalogo').style.display = esCat ? 'block' : 'none';
-      document.getElementById('secPedidos').style.display  = esCat ? 'none'  : 'block';
+      const tabs = ['catalogo', 'pedidos', 'mensajes'];
+      tabs.forEach(t => {
+        const sec = document.getElementById('sec' + t.charAt(0).toUpperCase() + t.slice(1));
+        const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (!sec || !btn) return;
+        const activo = t === tab;
+        sec.style.display      = activo ? 'block' : 'none';
+        btn.style.color        = activo ? 'var(--primario)' : 'var(--texto-suave)';
+        btn.style.fontWeight   = activo ? '700' : '600';
+        btn.style.borderBottom = activo ? '3px solid var(--primario)' : '3px solid transparent';
+      });
 
-      const btnCat = document.getElementById('tabBtnCatalogo');
-      const btnPed = document.getElementById('tabBtnPedidos');
-      btnCat.style.color       = esCat ? 'var(--primario)' : 'var(--texto-suave)';
-      btnCat.style.fontWeight  = esCat ? '700' : '600';
-      btnCat.style.borderBottom = esCat ? '3px solid var(--primario)' : '3px solid transparent';
-      btnPed.style.color       = !esCat ? 'var(--primario)' : 'var(--texto-suave)';
-      btnPed.style.fontWeight  = !esCat ? '700' : '600';
-      btnPed.style.borderBottom = !esCat ? '3px solid var(--primario)' : '3px solid transparent';
+      if (tab === 'pedidos')  { cargarPedidos(); }
+      if (tab === 'mensajes') { adminCargarConversaciones(); adminIniciarPolling(); }
+      // Detener polling de mensajes al salir del tab
+      if (tab !== 'mensajes') { if (adminPollInterval) { clearInterval(adminPollInterval); adminPollInterval = null; } }
+    }
 
-      if (tab === 'pedidos') cargarPedidos();
+    // ════════════════════════════════════════════════════════════
+    //  HU-26 — PANEL DE MENSAJES (ADMINISTRADOR)
+    // ════════════════════════════════════════════════════════════
+
+    let adminConvTodas    = [];   // todos los mensajes traídos de Supabase
+    let adminConvAgrupadas = {}; // { usuarioId: { usuario, mensajes[] } }
+    let adminConvActual   = null; // usuarioId actualmente seleccionado
+    let adminPollInterval = null;
+
+    // ── Cargar todas las conversaciones ──────────────────────────
+    async function adminCargarConversaciones() {
+      const lista = document.getElementById('listaConversaciones');
+      lista.innerHTML = '<div style="text-align:center;padding:30px;color:var(--texto-suave);font-size:0.85rem;">Cargando...</div>';
+
+      const mensajes = await chatCargarTodasConversaciones();
+      if (!mensajes.length) {
+        lista.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--texto-suave);font-size:0.84rem;"><div style="font-size:2rem;margin-bottom:8px;">📭</div>No hay mensajes aún.</div>';
+        document.getElementById('statMsgUsuarios').textContent = '0';
+        document.getElementById('statMsgNoLeidos').textContent = '0';
+        return;
+      }
+
+      // Agrupar por usuario
+      adminConvAgrupadas = {};
+      for (const m of mensajes) {
+        const uid = m.de_usuario_id;
+        if (!adminConvAgrupadas[uid]) {
+          adminConvAgrupadas[uid] = { usuario: null, mensajes: [], noLeidos: 0 };
+        }
+        adminConvAgrupadas[uid].mensajes.push(m);
+        if (!m.leido && m.remitente_rol === 'cliente') {
+          adminConvAgrupadas[uid].noLeidos++;
+        }
+      }
+
+      // Cargar datos de usuarios en paralelo
+      const uids = Object.keys(adminConvAgrupadas);
+      await Promise.all(uids.map(async uid => {
+        adminConvAgrupadas[uid].usuario = await chatObtenerUsuario(parseInt(uid));
+      }));
+
+      // Ordenar: más reciente primero
+      const uidOrdenados = uids.sort((a, b) => {
+        const ma = adminConvAgrupadas[a].mensajes[0]?.creado_en || '';
+        const mb = adminConvAgrupadas[b].mensajes[0]?.creado_en || '';
+        return mb.localeCompare(ma);
+      });
+
+      // Stats
+      const totalNoLeidos = uidOrdenados.reduce((s, u) => s + adminConvAgrupadas[u].noLeidos, 0);
+      document.getElementById('statMsgUsuarios').textContent = uidOrdenados.length;
+      document.getElementById('statMsgNoLeidos').textContent = totalNoLeidos;
+      const badge = document.getElementById('badgeMensajes');
+      badge.textContent = totalNoLeidos;
+      badge.style.display = totalNoLeidos > 0 ? 'inline' : 'none';
+
+      // Renderizar lista
+      lista.innerHTML = uidOrdenados.map(uid => {
+        const conv   = adminConvAgrupadas[uid];
+        const u      = conv.usuario;
+        const nombre = u?.nombre_completo || u?.username || `Usuario #${uid}`;
+        const ultimo = conv.mensajes[0]; // ya vienen desc
+        const hora   = chatFormatearFechaHora(ultimo.creado_en);
+        const preview = (ultimo.contenido || '').slice(0, 48) + (ultimo.contenido?.length > 48 ? '…' : '');
+        const esActivo = adminConvActual == uid;
+        const noLeidos = conv.noLeidos;
+
+        return `
+          <div id="conv-item-${uid}" onclick="adminSeleccionarConv(${uid})"
+            style="padding:13px 16px;border-bottom:1px solid var(--borde);cursor:pointer;
+                   transition:background 0.15s;
+                   background:${esActivo ? '#fef3f0' : 'transparent'};">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+              <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--primario);
+                            color:#fff;display:flex;align-items:center;justify-content:center;
+                            font-size:0.85rem;font-weight:700;flex-shrink:0;">
+                  ${nombre.charAt(0).toUpperCase()}
+                </div>
+                <div style="min-width:0;">
+                  <div style="font-weight:${noLeidos > 0 ? '700' : '600'};font-size:0.87rem;
+                               color:var(--texto);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    ${escHtml(nombre)}
+                  </div>
+                  <div style="font-size:0.75rem;color:var(--texto-suave);margin-top:2px;
+                               white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    ${escHtml(preview)}
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+                <span style="font-size:0.68rem;color:var(--texto-suave);">${hora}</span>
+                ${noLeidos > 0 ? `<span style="background:#ef4444;color:#fff;font-size:0.65rem;
+                  font-weight:800;padding:1px 6px;border-radius:99px;">${noLeidos}</span>` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Filtro de búsqueda si ya había texto
+      const busq = document.getElementById('searchMensajes')?.value;
+      if (busq) filtrarMensajes();
+
+      // Si había una conv seleccionada, recargar
+      if (adminConvActual) adminMostrarConv(adminConvActual);
+
+      // Iniciar polling admin
+      adminIniciarPolling();
+    }
+
+    // ── Seleccionar conversación ─────────────────────────────────
+    async function adminSeleccionarConv(uid) {
+      // Deseleccionar anterior
+      if (adminConvActual) {
+        const prev = document.getElementById(`conv-item-${adminConvActual}`);
+        if (prev) prev.style.background = 'transparent';
+      }
+      adminConvActual = uid;
+
+      // Marcar activo en lista
+      const item = document.getElementById(`conv-item-${uid}`);
+      if (item) item.style.background = '#fef3f0';
+
+      // Marcar mensajes como leídos
+      await chatMarcarLeidos(uid);
+      if (adminConvAgrupadas[uid]) adminConvAgrupadas[uid].noLeidos = 0;
+
+      // Actualizar badge de la lista y stats
+      const totalNoLeidos = Object.values(adminConvAgrupadas).reduce((s, c) => s + c.noLeidos, 0);
+      document.getElementById('statMsgNoLeidos').textContent = totalNoLeidos;
+      const badge = document.getElementById('badgeMensajes');
+      badge.textContent = totalNoLeidos;
+      badge.style.display = totalNoLeidos > 0 ? 'inline' : 'none';
+      const badgeItem = item?.querySelector('span[style*="ef4444"]');
+      if (badgeItem) badgeItem.remove();
+
+      adminMostrarConv(uid);
+    }
+
+    // ── Mostrar mensajes de una conversación ─────────────────────
+    async function adminMostrarConv(uid) {
+      const conv    = adminConvAgrupadas[uid];
+      const usuario = conv?.usuario;
+
+      // Header
+      document.getElementById('chatAdminNombreH').textContent =
+        usuario?.nombre_completo || usuario?.username || `Usuario #${uid}`;
+      document.getElementById('chatAdminCorreoH').textContent =
+        usuario?.correo || '';
+
+      // Traer mensajes frescos de DB (para ver los más recientes)
+      const mensajes = await chatCargarMensajes(uid);
+      // Actualizar en cache
+      if (adminConvAgrupadas[uid]) adminConvAgrupadas[uid].mensajes = [...mensajes];
+
+      const contenedor = document.getElementById('chatAdminMensajes');
+      const inputArea  = document.getElementById('chatAdminInputArea');
+
+      if (!mensajes.length) {
+        contenedor.innerHTML = '<div style="text-align:center;padding:40px;color:var(--texto-suave);font-size:0.85rem;">Sin mensajes.</div>';
+        inputArea.style.display = 'none';
+        return;
+      }
+
+      // Renderizar
+      contenedor.innerHTML = mensajes.map(m => {
+        const esAdmin  = m.remitente_rol === 'administrador';
+        const bg       = esAdmin ? 'var(--primario)' : '#fff';
+        const color    = esAdmin ? '#fff' : 'var(--texto)';
+        const align    = esAdmin ? 'flex-end' : 'flex-start';
+        const border   = esAdmin ? 'none' : '1px solid var(--borde)';
+        const nombreLabel = esAdmin ? '📚 Tú (Admin)' : (usuario?.nombre_completo?.split(' ')[0] || 'Cliente');
+
+        return `
+          <div style="display:flex;flex-direction:column;align-items:${align};gap:2px;">
+            <span style="font-size:0.7rem;color:var(--texto-suave);padding:0 6px;">${nombreLabel}</span>
+            <div style="max-width:75%;background:${bg};color:${color};padding:10px 14px;
+                        border-radius:${esAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
+                        font-size:0.87rem;line-height:1.5;border:${border};
+                        box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+              ${escapeHtmlChat(m.contenido)}
+            </div>
+            <span style="font-size:0.67rem;color:var(--texto-suave);padding:0 6px;">
+              ${chatFormatearFechaHora(m.creado_en)}
+              ${m.leido && m.remitente_rol === 'cliente' ? ' · <span style="color:#10b981;">✓ leído</span>' : ''}
+            </span>
+          </div>`;
+      }).join('');
+
+      contenedor.scrollTop = contenedor.scrollHeight;
+
+      // Mostrar input para responder
+      inputArea.style.display = 'flex';
+      document.getElementById('chatAdminInput')?.focus();
+    }
+
+    // ── Enviar respuesta desde admin ─────────────────────────────
+    async function adminEnviarRespuesta() {
+      const input = document.getElementById('chatAdminInput');
+      if (!input || !adminConvActual) return;
+      const texto = input.value.trim();
+      if (!texto) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+
+      // El admin envía en nombre del usuario seleccionado pero con rol 'administrador'
+      const result = await chatEnviarMensaje(texto, 'administrador', adminConvActual);
+
+      if (result.error) {
+        toast('❌ Error al enviar: ' + result.error, 'error');
+        return;
+      }
+
+      // Refrescar la conversación activa
+      await adminMostrarConv(adminConvActual);
+    }
+
+    // ── Enter en input admin ─────────────────────────────────────
+    function adminChatKeyEnter(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        adminEnviarRespuesta();
+      }
+    }
+
+    // ── Filtrar lista de conversaciones ──────────────────────────
+    function filtrarMensajes() {
+      const q = (document.getElementById('searchMensajes')?.value || '').toLowerCase().trim();
+      const items = document.querySelectorAll('#listaConversaciones > div[id^="conv-item-"]');
+      items.forEach(item => {
+        const texto = item.textContent.toLowerCase();
+        item.style.display = (!q || texto.includes(q)) ? 'block' : 'none';
+      });
+    }
+
+    // ── Polling para el panel admin ───────────────────────────────
+    function adminIniciarPolling() {
+      if (adminPollInterval) clearInterval(adminPollInterval);
+      adminPollInterval = setInterval(async () => {
+        if (document.getElementById('secMensajes')?.style.display === 'none') return;
+
+        // Contar no leídos para badge del tab
+        const noLeidos = await chatContarNoLeidos();
+        const badge = document.getElementById('badgeMensajes');
+        if (badge) {
+          badge.textContent = noLeidos;
+          badge.style.display = noLeidos > 0 ? 'inline' : 'none';
+        }
+
+        // Si hay conversación abierta, refrescar silenciosamente
+        if (adminConvActual) {
+          const mensajes = await chatCargarMensajes(adminConvActual);
+          const prevLen  = adminConvAgrupadas[adminConvActual]?.mensajes?.length || 0;
+          if (mensajes.length !== prevLen) {
+            await adminMostrarConv(adminConvActual);
+          }
+        }
+      }, 5000);
     }
 
     // ── Gestión de Pedidos (HU-F2) ────────────────────────────────
@@ -941,6 +1315,16 @@
     }
 
     async function cambiarEstado(pedidoId, nuevoEstado, factura) {
+      const pedido = todosPedidos.find(p => p.id === pedidoId);
+      if (pedido && (pedido.estado_envio === 'entregado' || pedido.estado === 'entregado')) {
+        toast('⚠️ Este pedido ya fue entregado y no puede modificarse.', 'error');
+        return;
+      }
+      if (pedido && (pedido.estado === 'cancelada' || pedido.estado_envio === 'cancelada')) {
+        toast('⚠️ Este pedido fue cancelado y no puede modificarse.', 'error');
+        return;
+      }
+
       const { error } = await client
         .from('compras')
         .update({ estado: nuevoEstado, estado_envio: nuevoEstado, actualizado_en: new Date().toISOString() })

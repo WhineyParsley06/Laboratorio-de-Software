@@ -292,6 +292,7 @@
   <nav>
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html">Inicio</a>
+    <a href="sucursales.html">📍 Sucursales</a>
     <a href="tarjetas.html" class="active">Mi Monedero</a>
     <a href="perfil.html">Perfil</a>
     <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
@@ -382,7 +383,8 @@
         <div class="input-group">
           <label for="titular">Nombre del titular</label>
           <input type="text" id="titular" placeholder="Como aparece en la tarjeta"
-                 oninput="document.getElementById('previewName').textContent = this.value || 'Titular de la tarjeta'"
+                 maxlength="40"
+                 oninput="this.value=this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]/g,''); document.getElementById('previewName').textContent = this.value || 'Titular de la tarjeta'"
                  required>
         </div>
 
@@ -420,7 +422,9 @@
         <h3>✏️ Editar tarjeta</h3>
         <div class="input-group" style="margin-bottom:16px;">
           <label for="editTitular">Nombre del titular</label>
-          <input type="text" id="editTitular" placeholder="Como aparece en la tarjeta">
+          <input type="text" id="editTitular" placeholder="Como aparece en la tarjeta"
+                 maxlength="40"
+                 oninput="this.value=this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]/g,'')">
         </div>
         <div class="input-group" style="margin-bottom:20px;">
           <label>Tipo de tarjeta</label>
@@ -650,18 +654,37 @@
       const btn = document.getElementById('btnAgregar');
       setLoading(btn, true);
 
-      const numero = document.getElementById('numero').value.trim();
-      const cvv    = document.getElementById('cvv').value.trim();
-      const saldo  = parseFloat(document.getElementById('saldoInicial').value) || 0;
+      const titular = document.getElementById('titular').value.trim();
+      const numero  = document.getElementById('numero').value.trim();
+      const cvv     = document.getElementById('cvv').value.trim();
+      const saldo   = parseFloat(document.getElementById('saldoInicial').value) || 0;
 
-      if (numero.replace(/\s/g, '').length < 16) {
-        showAlert('alertTarjetas', 'El número de tarjeta debe tener 16 dígitos.', 'error');
+      if (!titular || titular.length < 2 || !/^[\p{L}\s\.'-]+$/u.test(titular)) {
+        showAlert('alertTarjetas', 'El nombre del titular debe tener al menos 2 letras y solo contener letras.', 'error');
         setLoading(btn, false);
         return;
       }
 
-      if (cvv.length < 3) {
+      if (numero.replace(/\s/g, '').length !== 16) {
+        showAlert('alertTarjetas', 'El número de tarjeta debe tener exactamente 16 dígitos.', 'error');
+        setLoading(btn, false);
+        return;
+      }
+
+      if (cvv.length < 3 || cvv.length > 4) {
         showAlert('alertTarjetas', 'El CVV debe tener 3 o 4 dígitos.', 'error');
+        setLoading(btn, false);
+        return;
+      }
+
+      if (saldo < 0) {
+        showAlert('alertTarjetas', 'El saldo inicial no puede ser negativo.', 'error');
+        setLoading(btn, false);
+        return;
+      }
+
+      if (saldo > 999999999) {
+        showAlert('alertTarjetas', 'El saldo inicial no puede superar $999.999.999.', 'error');
         setLoading(btn, false);
         return;
       }
@@ -669,7 +692,7 @@
       const { error } = await client.from('tarjetas').insert([{
         usuario_id: sesion.id,
         tipo:       document.getElementById('tipoTarjeta').value,
-        titular:    document.getElementById('titular').value.trim(),
+        titular:    titular,
         numero:     numero,
         codigo_cvv: cvv,
         saldo:      saldo
@@ -799,7 +822,11 @@
     async function guardarSaldo() {
       const nuevo = parseFloat(document.getElementById('nuevoSaldo').value);
       if (isNaN(nuevo) || nuevo < 0) {
-        showAlert('alertTarjetas', 'Ingresa un saldo válido.', 'error');
+        showAlert('alertTarjetas', 'Ingresa un saldo válido (mayor o igual a cero).', 'error');
+        return;
+      }
+      if (nuevo > 999999999) {
+        showAlert('alertTarjetas', 'El saldo no puede superar $999.999.999.', 'error');
         return;
       }
 

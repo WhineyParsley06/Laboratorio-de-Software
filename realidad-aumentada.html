@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Realidad Aumentada — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- model-viewer: WebXR / AR compatible con Android (Scene Viewer) e iOS (Quick Look) -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+
+  <style>
+    /* ══════════════════════════════════════════
+       HU-28 — Realidad Aumentada
+       Paleta heredada + interfaz de modo AR
+    ══════════════════════════════════════════ */
+
+    /* ── Hero ─────────────────────────────────── */
+    .ra-hero {
+      background: linear-gradient(135deg, var(--primario-dark) 0%, var(--primario) 55%, var(--secundario) 100%);
+      padding: 52px 20px 80px;
+      text-align: center;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .ra-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .ra-hero-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 99px; padding: 6px 16px;
+      font-size: 0.78rem; font-weight: 600;
+      letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .ra-hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.7rem, 5vw, 2.8rem);
+      font-weight: 700; margin-bottom: 12px;
+    }
+    .ra-hero p {
+      font-size: 0.97rem; opacity: 0.88; max-width: 540px; margin: 0 auto;
+    }
+    .ra-compat-badges {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 8px; margin-top: 20px;
+    }
+    .compat-badge {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px; padding: 5px 12px;
+      font-size: 0.75rem; font-weight: 500;
+    }
+
+    /* ── Tab switcher ─────────────────────────── */
+    .ra-tabs-wrapper {
+      max-width: 860px; margin: -28px auto 0;
+      padding: 0 20px; position: relative; z-index: 10;
+    }
+    .ra-tabs {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(100,40,20,0.13);
+      display: flex; overflow: hidden;
+    }
+    .ra-tab {
+      flex: 1; padding: 18px 10px;
+      border: none; background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem; font-weight: 500;
+      color: var(--texto-suave);
+      cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      transition: all var(--transicion);
+      border-right: 1px solid var(--borde);
+    }
+    .ra-tab:last-child { border-right: none; }
+    .ra-tab .tab-icon { font-size: 1.5rem; }
+    .ra-tab.active {
+      background: var(--fondo);
+      color: var(--primario);
+      font-weight: 600;
+    }
+    .ra-tab:hover:not(.active) { background: #fdf9f5; }
+
+    /* ── Contenido principal ───────────────────── */
+    .ra-main { max-width: 1100px; margin: 36px auto 60px; padding: 0 20px; }
+    .ra-panel { display: none; }
+    .ra-panel.active { display: block; }
+
+    /* ── Panel: Libros ────────────────────────── */
+    .ra-section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem; color: var(--primario-dark);
+      margin-bottom: 6px;
+    }
+    .ra-section-sub {
+      font-size: 0.87rem; color: var(--texto-suave);
+      margin-bottom: 24px;
+    }
+
+    .book-selector-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px; margin-bottom: 32px;
+    }
+    .book-selector-card {
+      background: var(--fondo-card);
+      border: 2px solid var(--borde);
+      border-radius: 12px; overflow: hidden;
+      cursor: pointer; transition: all var(--transicion);
+      display: flex; flex-direction: column;
+    }
+    .book-selector-card:hover { border-color: var(--secundario); transform: translateY(-3px); box-shadow: var(--sombra-card); }
+    .book-selector-card.selected { border-color: var(--primario); box-shadow: 0 0 0 3px var(--primario-glow); }
+    .book-selector-img {
+      width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #f0e8df;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.5rem;
+    }
+    .book-selector-img img { width: 100%; height: 100%; object-fit: cover; }
+    .book-selector-info { padding: 10px 10px 12px; flex: 1; }
+    .book-selector-info strong { display: block; font-size: 0.8rem; color: var(--primario-dark); line-height: 1.3; margin-bottom: 3px; }
+    .book-selector-info span { font-size: 0.73rem; color: var(--texto-suave); }
+
+    /* ── Visor AR de libro ────────────────────── */
+    .book-ar-viewer {
+      background: var(--fondo-card);
+      border: 1px solid var(--borde);
+      border-radius: 20px; overflow: hidden;
+      box-shadow: var(--sombra);
+    }
+    .book-ar-header {
+      padding: 18px 24px; border-bottom: 1px solid var(--borde);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .book-ar-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--primario-dark); }
+    .book-ar-author { font-size: 0.82rem; color: var(--texto-suave); }
+    .btn-ar-launch {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: var(--primario);
+      color: #fff; border: none;
+      border-radius: var(--radio-btn); padding: 10px 20px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; transition: all var(--transicion);
+    }
+    .btn-ar-launch:hover { background: var(--primario-dark); transform: translateY(-1px); }
+    .btn-ar-secondary {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: transparent; color: var(--primario);
+      border: 1.5px solid var(--primario);
+      border-radius: var(--radio-btn); padding: 9px 18px;
+      font-family: 'DM Sans', sans-serif; font-size: 0.87rem; font-weight: 500;
+      cursor: pointer; transition: all var(--transicion);
+    }
+    .btn-ar-secondary:hover { background: var(--fondo); }
+
+    /* model-viewer container */
+    .mv-wrap {
+      position: relative; background: linear-gradient(145deg, #1a0d0a 0%, #2d1208 100%);
+      min-height: 420px;
+    }
+    model-viewer {
+      width: 100%; height: 480px;
+      --progress-bar-color: var(--secundario);
+      --progress-bar-height: 3px;
+    }
+    .mv-hint {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.55); color: #fff;
+      border-radius: 20px; padding: 7px 16px; font-size: 0.78rem;
+      pointer-events: none; white-space: nowrap;
+      backdrop-filter: blur(6px);
+    }
+    .mv-controls {
+      padding: 14px 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      border-top: 1px solid var(--borde);
+      background: #fdf9f5;
+    }
+
+    /* ── Fallback 3D portada (canvas Three.js) ── */
+    #book-canvas-wrap {
+      width: 100%; height: 480px; background: linear-gradient(145deg, #1a0d0a, #2d1208);
+      position: relative; display: flex; align-items: center; justify-content: center;
+    }
+    #book3dCanvas { display: block; }
+    .canvas-overlay-hint {
+      position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.9);
+      border-radius: 16px; padding: 6px 14px; font-size: 0.76rem;
+      pointer-events: none; backdrop-filter: blur(6px);
+    }
+
+    /* ── Panel: Tienda ────────────────────────── */
+    .store-selector {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px; margin-bottom: 28px;
+    }
+    .store-card {
+      background: var(--fondo-card); border: 2px solid var(--borde);
+      border-radius: 12px; padding: 14px 16px;
+      cursor: pointer; transition: all var(--transicion);
+    }
+    .store-card:hover { border-color: var(--secundario); transform: translateY(-2px); box-shadow: var(--sombra-card); }
+    .store-card.selected { border-color: var(--primario); box-shadow: 0 0 0 3px var(--primario-glow); }
+    .store-card-icon { font-size: 1.8rem; margin-bottom: 8px; display: block; }
+    .store-card-name { font-weight: 600; font-size: 0.9rem; color: var(--primario-dark); margin-bottom: 3px; }
+    .store-card-addr { font-size: 0.78rem; color: var(--texto-suave); line-height: 1.4; }
+
+    /* Visor 3D tienda */
+    .store-ar-viewer {
+      background: var(--fondo-card); border: 1px solid var(--borde);
+      border-radius: 20px; overflow: hidden; box-shadow: var(--sombra);
+    }
+    .store-ar-header {
+      padding: 18px 24px; border-bottom: 1px solid var(--borde);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    }
+    #storeCanvasWrap {
+      width: 100%; height: 520px; background: linear-gradient(145deg, #0d1a0f, #102214);
+      position: relative;
+    }
+    #storeCanvas { display: block; width: 100%; height: 100%; }
+
+    .store-legend {
+      padding: 14px 20px; display: flex; flex-wrap: wrap; gap: 16px;
+      border-top: 1px solid var(--borde); background: #fdf9f5;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 0.8rem; color: var(--texto-suave);
+    }
+    .legend-dot {
+      width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
+    }
+
+    .store-ar-hint {
+      position: absolute; top: 14px; right: 14px;
+      background: rgba(0,0,0,0.55); color: #fff;
+      border-radius: 10px; padding: 6px 12px; font-size: 0.75rem;
+      backdrop-filter: blur(6px);
+    }
+
+    /* ── Info box ─────────────────────────────── */
+    .ra-info-box {
+      background: linear-gradient(135deg, rgba(184,50,39,0.06), rgba(224,117,32,0.06));
+      border: 1px solid rgba(184,50,39,0.15);
+      border-radius: 12px; padding: 16px 20px;
+      display: flex; gap: 12px; align-items: flex-start;
+      margin-top: 24px;
+    }
+    .ra-info-box .info-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+    .ra-info-box p { font-size: 0.84rem; color: var(--texto-suave); line-height: 1.6; }
+    .ra-info-box strong { color: var(--primario); }
+
+    /* ── Responsive ───────────────────────────── */
+    @media (max-width: 600px) {
+      model-viewer, #book-canvas-wrap { height: 320px; }
+      #storeCanvasWrap { height: 360px; }
+      .book-ar-header { flex-direction: column; align-items: flex-start; }
+      .store-ar-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navegación visitante ── -->
+<nav id="nav-visitante" style="display:none;">
+  <a href="index.html" class="nav-brand">Librería Pereira</a>
+  <a href="index.html">Inicio</a>
+  <a href="sucursales.html">📍 Sucursales</a>
+  <a href="realidad-aumentada.html" class="active">🥽 Realidad Aumentada</a>
+  <a href="login.html">Iniciar sesión</a>
+  <a href="registro.html" class="nav-cta">Registrarse</a>
+</nav>
+
+<!-- ── Navegación usuario logueado ── -->
+<nav id="nav-usuario" style="display:none;">
+  <a href="index.html" class="nav-brand">Librería Pereira</a>
+  <a href="index.html">Inicio</a>
+  <a href="sucursales.html">📍 Sucursales</a>
+  <a href="realidad-aumentada.html" class="active">🥽 AR</a>
+  <a href="tarjetas.html">💳 Monedero</a>
+  <a href="perfil.html">Mi Perfil</a>
+  <a href="admin.html" id="nav-admin" style="display:none;background:rgba(255,255,255,0.15);border-radius:6px;padding:4px 10px;">🛠️ Admin</a>
+  <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="ra-hero">
+  <div class="ra-hero-badge">🥽 HU-28 — Realidad Aumentada</div>
+  <h1>Explora en 3D & Realidad Aumentada</h1>
+  <p>Visualiza portadas de libros en tu espacio físico o recorre virtualmente nuestras sucursales antes de visitarlas.</p>
+  <div class="ra-compat-badges">
+    <span class="compat-badge">✅ Chrome</span>
+    <span class="compat-badge">✅ Safari</span>
+    <span class="compat-badge">✅ Firefox</span>
+    <span class="compat-badge">✅ Edge</span>
+    <span class="compat-badge">📱 Android (Scene Viewer)</span>
+    <span class="compat-badge">📱 iOS (Quick Look)</span>
+  </div>
+</section>
+
+<!-- ── Tabs ── -->
+<div class="ra-tabs-wrapper">
+  <div class="ra-tabs">
+    <button class="ra-tab active" onclick="switchTab('libros')">
+      <span class="tab-icon">📚</span>
+      <span>Portada de Libro</span>
+    </button>
+    <button class="ra-tab" onclick="switchTab('tienda')">
+      <span class="tab-icon">🏛️</span>
+      <span>Plano de Sucursal</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     PANEL: LIBROS
+═════════════════════════════════════════════ -->
+<main class="ra-main">
+  <div class="ra-panel active" id="panel-libros">
+    <h2 class="ra-section-title">Libros disponibles</h2>
+    <p class="ra-section-sub">Selecciona un libro para visualizarlo en 3D. En dispositivos móviles puedes colocarlo en tu entorno real.</p>
+
+    <!-- Selector de libros (cargado desde Supabase) -->
+    <div class="book-selector-grid" id="bookSelectorGrid">
+      <!-- JS poblará este grid -->
+    </div>
+
+    <!-- Visor AR -->
+    <div class="book-ar-viewer" id="bookArViewer" style="display:none;">
+      <div class="book-ar-header">
+        <div>
+          <div class="book-ar-title" id="bookArTitle">—</div>
+          <div class="book-ar-author" id="bookArAuthor">—</div>
+        </div>
+        <div style="display:flex; gap:9px; flex-wrap:wrap;">
+          <button class="btn-ar-secondary" onclick="resetCamera()">↺ Restablecer</button>
+          <button class="btn-ar-launch" id="btnArLaunch" onclick="launchAR()">🥽 Ver en AR</button>
+        </div>
+      </div>
+
+      <!-- model-viewer (compatible WebXR / Quick Look) -->
+      <div class="mv-wrap" id="mvWrap">
+        <model-viewer
+          id="bookModelViewer"
+          camera-controls
+          auto-rotate
+          shadow-intensity="1.2"
+          exposure="0.9"
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          ar-scale="auto"
+          style="width:100%;height:480px;">
+          <div class="mv-hint">🖱️ Arrastra para rotar · 🤏 Pellizca para zoom</div>
+          <button slot="ar-button" class="btn-ar-launch" style="position:absolute;bottom:16px;right:16px;">
+            🥽 Ver en tu espacio
+          </button>
+        </model-viewer>
+      </div>
+
+      <!-- Fallback canvas Three.js (si no hay modelo .glb) -->
+      <div id="book-canvas-wrap" style="display:none;">
+        <canvas id="book3dCanvas"></canvas>
+        <div class="canvas-overlay-hint">🖱️ Arrastra para rotar · Rueda para zoom</div>
+      </div>
+
+      <div class="mv-controls">
+        <button class="btn-ar-secondary" onclick="toggleAutoRotate()">⏸ Auto-rotar</button>
+        <button class="btn-ar-secondary" onclick="changeEnv('neutral')">☁️ Neutro</button>
+        <button class="btn-ar-secondary" onclick="changeEnv('warm')">🕯️ Cálido</button>
+        <button class="btn-ar-secondary" onclick="changeEnv('dark')">🌙 Oscuro</button>
+      </div>
+    </div>
+
+    <div class="ra-info-box">
+      <span class="info-icon">ℹ️</span>
+      <p><strong>¿Cómo funciona la AR?</strong> En Android, Chrome abrirá automáticamente Google Scene Viewer. En iPhone/iPad con Safari, se activará Quick Look. En computadores de escritorio verás el modelo 3D interactivo. Toca <em>"Ver en AR"</em> o el botón flotante dentro del visor.</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       PANEL: TIENDA
+  ═════════════════════════════════════════════ -->
+  <div class="ra-panel" id="panel-tienda">
+    <h2 class="ra-section-title">Distribución de sucursales</h2>
+    <p class="ra-section-sub">Selecciona una sucursal para recorrer virtualmente su plano en 3D isométrico.</p>
+
+    <div class="store-selector" id="storeSelectorGrid">
+      <!-- poblado por JS -->
+    </div>
+
+    <div class="store-ar-viewer" id="storeArViewer">
+      <div class="store-ar-header">
+        <div>
+          <div class="book-ar-title" id="storeArTitle">Sede Principal</div>
+          <div class="book-ar-author" id="storeArAddr">Cra. 8 #19-20, C.C. Victoria, Centro</div>
+        </div>
+        <button class="btn-ar-launch" onclick="launchStoreAR()">🥽 AR Inmersiva</button>
+      </div>
+
+      <div id="storeCanvasWrap">
+        <canvas id="storeCanvas"></canvas>
+        <div class="store-ar-hint">🖱️ Arrastra · Rueda zoom · Doble-clic reset</div>
+      </div>
+
+      <div class="store-legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#8B6F4E;"></span>Piso / Estructura</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#b83227;"></span>Estanterías</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#e07520;"></span>Mostrador</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#4a9e6b;"></span>Zona lectura</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#3a6fb5;"></span>Caja / Entrada</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#c8a96e;"></span>Paredes</span>
+      </div>
+    </div>
+
+    <div class="ra-info-box">
+      <span class="info-icon">🏛️</span>
+      <p><strong>Plano interactivo 3D:</strong> El visor isométrico muestra la distribución real de estanterías, mostrador, zona de lectura y accesos. En dispositivos Android compatibles con WebXR, puedes activar la vista inmersiva con el botón <em>"AR Inmersiva"</em>.</p>
+    </div>
+  </div>
+</main>
+
+<script src="js/script.js"></script>
+<script type="module">
+/* ══════════════════════════════════════════════════════════════════
+   HU-28 — Realidad Aumentada
+   Dependencias: Three.js (CDN), model-viewer (CDN), Supabase
+══════════════════════════════════════════════════════════════════ */
+
+// ── Importar Three.js desde CDN ────────────────────────────────
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/controls/OrbitControls.js';
+
+// ── Navegación (mismo patrón que el resto del proyecto) ────────
+(function setupNav() {
+  const sesion = typeof getSesion === 'function' ? getSesion() : null;
+  if (sesion) {
+    document.getElementById('nav-usuario').style.display = 'flex';
+    if (sesion.rol === 'administrador' || sesion.rol === 'root') {
+      const el = document.getElementById('nav-admin');
+      if (el) el.style.display = '';
+    }
+  } else {
+    document.getElementById('nav-visitante').style.display = 'flex';
+  }
+})();
+
+// ── Leer parámetros URL ────────────────────────────────────────
+// ?tab=tienda  → abre directo la pestaña de tienda
+// ?libro=ID    → abre directo el visor AR del libro con ese ID
+const _urlParams  = new URLSearchParams(window.location.search);
+const _tabParam   = _urlParams.get('tab');
+const _libroParam = _urlParams.get('libro');
+
+// ── Datos de Sucursales (reutilizados de HU-27) ────────────────
+const SUCURSALES = [
+  { nombre:'Sede Principal', subtitulo:'Principal', icon:'🏛️',
+    direccion:'Cra. 8 #19-20, C.C. Victoria, Centro', ciudad:'Pereira, Risaralda', layout:'grande' },
+  { nombre:'Sucursal Álamos', subtitulo:'Sucursal', icon:'🌿',
+    direccion:'Cra. 14 #26-45, Parque Arboleda, Álamos', ciudad:'Pereira, Risaralda', layout:'mediana' },
+  { nombre:'Sucursal Cuba', subtitulo:'Sucursal', icon:'🏘️',
+    direccion:'Calle 73 #14-28, Cuba', ciudad:'Pereira, Risaralda', layout:'mediana' },
+  { nombre:'Sucursal Pinares', subtitulo:'Sucursal', icon:'🌲',
+    direccion:'Calle 17 #22-10, Sector Pinares', ciudad:'Pereira, Risaralda', layout:'pequeña' },
+];
+
+// ── Tab switcher ───────────────────────────────────────────────
+window.switchTab = function(tab) {
+  document.querySelectorAll('.ra-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ra-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  document.querySelectorAll('.ra-tab')[tab === 'libros' ? 0 : 1].classList.add('active');
+  if (tab === 'tienda' && !storeSceneReady) initStoreScene();
+};
+
+// ══════════════════════════════════════════════════════════════
+//  SECCIÓN 1: LIBROS — modelo 3D dinámico con Three.js
+// ══════════════════════════════════════════════════════════════
+
+let bookScene, bookCamera, bookRenderer, bookControls, bookMesh, bookAnimId;
+let autoRotating = true;
+let selectedBook = null;
+
+// Cargar libros desde Supabase
+async function loadBooks(preseleccionarId = null) {
+  const grid = document.getElementById('bookSelectorGrid');
+  grid.innerHTML = '<p style="color:var(--texto-suave);font-size:0.88rem;">Cargando catálogo…</p>';
+  try {
+    const { data, error } = await window._sbClient.from('libros').select('id,titulo,autor,imagen_url,genero').eq('activo', true).limit(12);
+    if (error || !data?.length) throw error || new Error('sin datos');
+    renderBookGrid(data, preseleccionarId);
+  } catch (e) {
+    // Fallback con libros demo
+    renderBookGrid(DEMO_BOOKS, preseleccionarId);
+  }
+}
+
+const DEMO_BOOKS = [
+  { id:'d1', titulo:'Cien Años de Soledad', autor:'Gabriel García Márquez', imagen_url:'', genero:'Novela', color:'#8B2E2E' },
+  { id:'d2', titulo:'El Amor en los Tiempos del Cólera', autor:'Gabriel García Márquez', imagen_url:'', genero:'Romance', color:'#b83227' },
+  { id:'d3', titulo:'La Vorágine', autor:'José Eustasio Rivera', imagen_url:'', genero:'Aventura', color:'#2E6B3E' },
+  { id:'d4', titulo:'María', autor:'Jorge Isaacs', imagen_url:'', genero:'Romanticismo', color:'#4a3580' },
+  { id:'d5', titulo:'El Coronel No Tiene Quien Le Escriba', autor:'Gabriel García Márquez', imagen_url:'', genero:'Novela', color:'#7a5c1e' },
+  { id:'d6', titulo:'Delirio', autor:'Laura Restrepo', imagen_url:'', genero:'Novela', color:'#1e5e7a' },
+];
+
+const BOOK_COLORS = ['#8B2E2E','#b83227','#2E6B3E','#4a3580','#7a5c1e','#1e5e7a','#6b2e60','#2e5060'];
+
+function renderBookGrid(books, preseleccionarId = null) {
+  const grid = document.getElementById('bookSelectorGrid');
+  grid.innerHTML = '';
+  let firstCard = null;
+  books.forEach((b, i) => {
+    const color = b.color || BOOK_COLORS[i % BOOK_COLORS.length];
+    const card = document.createElement('div');
+    card.className = 'book-selector-card';
+    card.innerHTML = `
+      <div class="book-selector-img" style="background:${color}20;">
+        ${b.imagen_url
+          ? `<img src="${b.imagen_url}" alt="${b.titulo}" loading="lazy" onerror="this.parentElement.innerHTML='📖'">`
+          : `<span style="font-size:2.8rem">📖</span>`}
+      </div>
+      <div class="book-selector-info">
+        <strong>${b.titulo}</strong>
+        <span>${b.autor || '—'}</span>
+      </div>`;
+    card.addEventListener('click', () => selectBook(b, color, card));
+    grid.appendChild(card);
+    if (!firstCard) firstCard = { b, color, card };
+    // Preseleccionar si el ID coincide con el parámetro URL
+    if (preseleccionarId && String(b.id) === String(preseleccionarId)) {
+      setTimeout(() => selectBook(b, color, card), 100);
+    }
+  });
+}
+
+function selectBook(book, color, cardEl) {
+  document.querySelectorAll('.book-selector-card').forEach(c => c.classList.remove('selected'));
+  cardEl.classList.add('selected');
+  selectedBook = book;
+
+  document.getElementById('bookArViewer').style.display = 'block';
+  document.getElementById('bookArTitle').textContent = book.titulo;
+  document.getElementById('bookArAuthor').textContent = book.autor || '';
+
+  // model-viewer: si hay imagen, usar como poster; si hay .glb real usar src
+  const mv = document.getElementById('bookModelViewer');
+  const bookColor = color || '#b83227';
+
+  // Intentamos cargar modelo 3D; como no hay .glb en el proyecto,
+  // ocultamos model-viewer y mostramos el canvas Three.js:
+  const hasSrc = false; // se puede cambiar a true si se añaden .glb
+  if (hasSrc && book.modelo_url) {
+    mv.src = book.modelo_url;
+    document.getElementById('mvWrap').style.display = '';
+    document.getElementById('book-canvas-wrap').style.display = 'none';
+  } else {
+    document.getElementById('mvWrap').style.display = 'none';
+    document.getElementById('book-canvas-wrap').style.display = '';
+    initBookCanvas(book, bookColor);
+  }
+  document.getElementById('bookArViewer').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// ── Three.js — Portada 3D ──────────────────────────────────────
+function initBookCanvas(book, color) {
+  if (bookAnimId) cancelAnimationFrame(bookAnimId);
+  if (bookRenderer) { bookRenderer.dispose(); }
+
+  const wrap = document.getElementById('book-canvas-wrap');
+  const canvas = document.getElementById('book3dCanvas');
+  const W = wrap.clientWidth || 700;
+  const H = wrap.clientHeight || 480;
+
+  bookScene    = new THREE.Scene();
+  bookCamera   = new THREE.PerspectiveCamera(45, W / H, 0.1, 100);
+  bookCamera.position.set(0, 0, 3.5);
+
+  bookRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  bookRenderer.setSize(W, H);
+  bookRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  bookRenderer.shadowMap.enabled = true;
+  bookRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  bookRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  bookRenderer.toneMappingExposure = 1.1;
+
+  // Iluminación
+  const ambient = new THREE.AmbientLight(0xfdf6f0, 0.6);
+  bookScene.add(ambient);
+
+  const key = new THREE.DirectionalLight(0xfff3e0, 2.0);
+  key.position.set(3, 5, 4); key.castShadow = true;
+  bookScene.add(key);
+
+  const fill = new THREE.DirectionalLight(0xd0e8ff, 0.4);
+  fill.position.set(-3, 2, -2);
+  bookScene.add(fill);
+
+  const rim = new THREE.PointLight(color, 1.5, 10);
+  rim.position.set(-2, 3, -3);
+  bookScene.add(rim);
+
+  // Fondo partículas
+  const starsGeo = new THREE.BufferGeometry();
+  const sv = new Float32Array(600);
+  for (let i = 0; i < 600; i++) sv[i] = (Math.random() - 0.5) * 20;
+  starsGeo.setAttribute('position', new THREE.BufferAttribute(sv, 3));
+  bookScene.add(new THREE.Points(starsGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.04, transparent: true, opacity: 0.5 })));
+
+  // Geometría del libro
+  const bookGeo = new THREE.BoxGeometry(1.4, 2.0, 0.18);
+  const spineGeo = new THREE.BoxGeometry(0.18, 2.0, 0.18);
+
+  const mainColor  = new THREE.Color(color);
+  const darkColor  = mainColor.clone().multiplyScalar(0.5);
+  const lightColor = mainColor.clone().addScalar(0.25).clamp(new THREE.Color(0,0,0), new THREE.Color(1,1,1));
+
+  // Canvas texture para portada
+  const texCanvas = document.createElement('canvas');
+  texCanvas.width = 256; texCanvas.height = 384;
+  const ctx = texCanvas.getContext('2d');
+
+  // Fondo degradado
+  const grad = ctx.createLinearGradient(0, 0, 256, 384);
+  grad.addColorStop(0, color);
+  grad.addColorStop(1, `${color}88`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 256, 384);
+
+  // Patrón decorativo
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 6; c++) {
+    ctx.fillRect(c * 44, r * 50, 40, 46);
+  }
+
+  // Línea decorativa
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(14, 14, 228, 356);
+  ctx.strokeRect(20, 20, 216, 344);
+
+  // Título
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 18px serif';
+  ctx.textAlign = 'center';
+  const words = book.titulo.split(' ');
+  let line = '', y = 80;
+  words.forEach(w => {
+    const test = line + w + ' ';
+    if (ctx.measureText(test).width > 200 && line) {
+      ctx.fillText(line.trim(), 128, y); line = w + ' '; y += 24;
+    } else { line = test; }
+  });
+  ctx.fillText(line.trim(), 128, y);
+
+  // Separador
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillRect(50, y + 20, 156, 1.5);
+
+  // Autor
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = '13px sans-serif';
+  ctx.fillText(book.autor || 'Librería Pereira', 128, y + 44);
+
+  // Logo editorial (simplificado)
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath(); ctx.arc(128, 330, 24, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '10px serif'; ctx.fillText('LP', 128, 334);
+
+  const coverTex = new THREE.CanvasTexture(texCanvas);
+
+  // Materiales
+  const spineColor = mainColor.clone().multiplyScalar(0.7);
+  const materials = [
+    new THREE.MeshStandardMaterial({ color: spineColor, roughness: 0.4, metalness: 0.1 }), // right
+    new THREE.MeshStandardMaterial({ color: spineColor, roughness: 0.4, metalness: 0.1 }), // left
+    new THREE.MeshStandardMaterial({ color: lightColor, roughness: 0.6, metalness: 0.05 }), // top
+    new THREE.MeshStandardMaterial({ color: darkColor,  roughness: 0.6, metalness: 0.05 }), // bottom
+    new THREE.MeshStandardMaterial({ map: coverTex, roughness: 0.3, metalness: 0.08 }),      // front
+    new THREE.MeshStandardMaterial({ color: 0xfaf0e6, roughness: 0.8 }),                     // back (páginas)
+  ];
+
+  bookMesh = new THREE.Mesh(bookGeo, materials);
+  bookMesh.castShadow = true;
+  bookScene.add(bookMesh);
+
+  // Lomo del libro
+  const spineMat = new THREE.MeshStandardMaterial({ color: spineColor, roughness: 0.3, metalness: 0.15 });
+  const spineMesh = new THREE.Mesh(spineGeo, spineMat);
+  spineMesh.position.set(-0.79, 0, 0);
+  bookScene.add(spineMesh);
+
+  // Plataforma reflectante
+  const platGeo = new THREE.CylinderGeometry(1.4, 1.4, 0.04, 64);
+  const platMat = new THREE.MeshStandardMaterial({ color: 0x1a0d0a, roughness: 0.1, metalness: 0.8 });
+  const platform = new THREE.Mesh(platGeo, platMat);
+  platform.position.y = -1.15; platform.receiveShadow = true;
+  bookScene.add(platform);
+
+  // Orbit controls
+  bookControls = new OrbitControls(bookCamera, canvas);
+  bookControls.enableDamping = true;
+  bookControls.dampingFactor = 0.05;
+  bookControls.minDistance = 1.5;
+  bookControls.maxDistance = 7;
+  bookControls.autoRotate = autoRotating;
+  bookControls.autoRotateSpeed = 1.5;
+
+  // Resize handler
+  const ro = new ResizeObserver(() => {
+    const W2 = wrap.clientWidth; const H2 = wrap.clientHeight;
+    bookCamera.aspect = W2 / H2; bookCamera.updateProjectionMatrix();
+    bookRenderer.setSize(W2, H2);
+  });
+  ro.observe(wrap);
+
+  // Animate
+  function animate() {
+    bookAnimId = requestAnimationFrame(animate);
+    bookControls.update();
+    bookRenderer.render(bookScene, bookCamera);
+  }
+  animate();
+}
+
+window.resetCamera = function() {
+  if (!bookControls) return;
+  bookCamera.position.set(0, 0, 3.5);
+  bookControls.reset();
+};
+
+window.toggleAutoRotate = function() {
+  autoRotating = !autoRotating;
+  if (bookControls) bookControls.autoRotate = autoRotating;
+};
+
+window.changeEnv = function(env) {
+  if (!bookScene) return;
+  const c = env === 'warm' ? 0x2d1208 : env === 'dark' ? 0x050510 : 0x1a1a2e;
+  bookScene.background = new THREE.Color(c);
+};
+
+window.launchAR = function() {
+  const mv = document.getElementById('bookModelViewer');
+  if (mv.src) {
+    mv.activateAR();
+  } else {
+    alert('La vista AR inmersiva requiere un dispositivo móvil Android o iPhone con Safari. En escritorio, disfruta la vista 3D interactiva.');
+  }
+};
+
+// ══════════════════════════════════════════════════════════════
+//  SECCIÓN 2: TIENDA — Plano isométrico 3D
+// ══════════════════════════════════════════════════════════════
+
+let storeScene, storeCamera, storeRenderer, storeControls, storeAnimId;
+let storeSceneReady = false;
+let selectedStoreIndex = 0;
+
+function buildStoreSelector() {
+  const grid = document.getElementById('storeSelectorGrid');
+  SUCURSALES.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'store-card' + (i === 0 ? ' selected' : '');
+    card.innerHTML = `<span class="store-card-icon">${s.icon}</span><div class="store-card-name">${s.nombre}</div><div class="store-card-addr">${s.direccion}</div>`;
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.store-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedStoreIndex = i;
+      document.getElementById('storeArTitle').textContent = s.nombre;
+      document.getElementById('storeArAddr').textContent = s.direccion;
+      if (storeSceneReady) rebuildStoreLayout(s.layout);
+    });
+    grid.appendChild(card);
+  });
+}
+
+function initStoreScene() {
+  storeSceneReady = true;
+  const wrap  = document.getElementById('storeCanvasWrap');
+  const canvas = document.getElementById('storeCanvas');
+  const W = wrap.clientWidth || 900;
+  const H = wrap.clientHeight || 520;
+
+  storeScene  = new THREE.Scene();
+  storeScene.background = new THREE.Color(0x0d1a0f);
+  storeScene.fog = new THREE.Fog(0x0d1a0f, 18, 40);
+
+  // Cámara isométrica (perspectiva alta)
+  storeCamera = new THREE.PerspectiveCamera(35, W / H, 0.1, 100);
+  storeCamera.position.set(12, 14, 12);
+  storeCamera.lookAt(0, 0, 0);
+
+  storeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  storeRenderer.setSize(W, H);
+  storeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  storeRenderer.shadowMap.enabled = true;
+  storeRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  storeRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  storeRenderer.toneMappingExposure = 0.9;
+
+  // Luces
+  storeScene.add(new THREE.AmbientLight(0xd4f4dd, 0.5));
+  const sun = new THREE.DirectionalLight(0xfff8e8, 2.0);
+  sun.position.set(8, 14, 6); sun.castShadow = true;
+  sun.shadow.camera.left = -12; sun.shadow.camera.right = 12;
+  sun.shadow.camera.top = 12; sun.shadow.camera.bottom = -12;
+  sun.shadow.mapSize.set(1024, 1024);
+  storeScene.add(sun);
+  storeScene.add(Object.assign(new THREE.PointLight(0x4aff8a, 0.6, 20), { position: new THREE.Vector3(0, 4, 0) }));
+
+  // Orbit controls (limitados a vista isométrica)
+  storeControls = new OrbitControls(storeCamera, canvas);
+  storeControls.enableDamping = true;
+  storeControls.dampingFactor = 0.05;
+  storeControls.maxPolarAngle = Math.PI / 2.5;
+  storeControls.minDistance = 6;
+  storeControls.maxDistance = 30;
+  storeControls.target.set(0, 0, 0);
+
+  canvas.addEventListener('dblclick', () => {
+    storeCamera.position.set(12, 14, 12);
+    storeControls.target.set(0, 0, 0);
+    storeControls.update();
+  });
+
+  const ro = new ResizeObserver(() => {
+    const W2 = wrap.clientWidth; const H2 = wrap.clientHeight;
+    storeCamera.aspect = W2/H2; storeCamera.updateProjectionMatrix();
+    storeRenderer.setSize(W2, H2);
+  });
+  ro.observe(wrap);
+
+  // Construir layout inicial
+  rebuildStoreLayout('grande');
+
+  function animStore() {
+    storeAnimId = requestAnimationFrame(animStore);
+    storeControls.update();
+    storeRenderer.render(storeScene, storeCamera);
+  }
+  animStore();
+}
+
+// ── Helpers para crear objetos 3D ─────────────────────────────
+function box(w, h, d, color, rough=0.6, metal=0.05) {
+  return new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal })
+  );
+}
+
+function addBox(scene, w, h, d, color, x, y, z, rough=0.6, metal=0.05) {
+  const m = box(w, h, d, color, rough, metal);
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m); return m;
+}
+
+// ── Generar plano según tamaño de sucursal ─────────────────────
+const STORE_LAYOUTS = {
+  grande:  { size: 10, shelves: 5, zone: 'si' },
+  mediana: { size: 7,  shelves: 3, zone: 'si' },
+  pequeña: { size: 5,  shelves: 2, zone: 'no' },
+};
+
+const COLORS = {
+  floor:   0x8B7355, // piso madera
+  wall:    0xc8a96e, // paredes beige
+  shelf:   0xb83227, // estanterías rojo
+  book:    0xe07520, // libros naranja
+  counter: 0xe07520, // mostrador
+  reading: 0x4a9e6b, // zona lectura
+  entry:   0x3a6fb5, // acceso
+  ceiling: 0x6b5c50, // techo suave
+  glass:   0x88bbff, // ventana
+};
+
+let storeGroup = null;
+
+function rebuildStoreLayout(layoutKey) {
+  // Limpiar grupo anterior
+  if (storeGroup) { storeScene.remove(storeGroup); storeGroup.clear(); }
+  storeGroup = new THREE.Group();
+
+  const { size, shelves, zone } = STORE_LAYOUTS[layoutKey] || STORE_LAYOUTS['grande'];
+  const S = size; // tamaño de la tienda
+
+  // Piso
+  const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(S * 2, 0.12, S * 2),
+    new THREE.MeshStandardMaterial({ color: COLORS.floor, roughness: 0.8 })
+  );
+  floor.receiveShadow = true; storeGroup.add(floor);
+
+  // Paredes (sin techo para visibilidad)
+  const wallH = 2.2;
+  // Fondo
+  const wallB = box(S * 2, wallH, 0.15, COLORS.wall);
+  wallB.position.set(0, wallH/2, -S); storeGroup.add(wallB);
+  // Lateral izq
+  const wallL = box(0.15, wallH, S * 2, COLORS.wall);
+  wallL.position.set(-S, wallH/2, 0); storeGroup.add(wallL);
+  // Lateral der
+  const wallR = box(0.15, wallH, S * 2, COLORS.wall);
+  wallR.position.set(S, wallH/2, 0); storeGroup.add(wallR);
+
+  // Ventanas en pared del fondo
+  const winMat = new THREE.MeshStandardMaterial({ color: COLORS.glass, transparent: true, opacity: 0.35, roughness: 0.1, metalness: 0.2 });
+  const win = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.0, 0.05), winMat);
+  win.position.set(0, 1.5, -S + 0.1); storeGroup.add(win);
+
+  // Mostrador (frente al acceso)
+  const counterGroup = new THREE.Group();
+  const cBase = box(2.4, 0.95, 0.7, COLORS.counter, 0.4, 0.1);
+  cBase.position.set(0, 0.47, 0);
+  const cTop = box(2.5, 0.06, 0.8, 0xfff8f0, 0.3, 0.05);
+  cTop.position.set(0, 0.97, 0);
+  counterGroup.add(cBase); counterGroup.add(cTop);
+  counterGroup.position.set(S * 0.5, 0.06, S * 0.7);
+  storeGroup.add(counterGroup);
+
+  // Caja registradora (pequeño objeto sobre mostrador)
+  const regBox = box(0.3, 0.22, 0.25, 0x222222, 0.3, 0.5);
+  regBox.position.set(S * 0.5 + 0.6, 1.06, S * 0.7 - 0.1);
+  storeGroup.add(regBox);
+
+  // Estanterías principales
+  for (let i = 0; i < shelves; i++) {
+    const sx = -S * 0.7 + i * ((S * 1.4) / (shelves));
+    const shelfGroup = new THREE.Group();
+
+    // Estructura vertical
+    const frame = box(0.08, 2.0, 1.0, 0x4a2810, 0.7);
+    frame.position.set(0, 1.0, 0);
+    shelfGroup.add(frame);
+
+    // 3 tablillas horizontales
+    for (let sh = 0; sh < 3; sh++) {
+      const shelf = box(0.08, 0.06, 1.0, 0x6b3c20, 0.6);
+      shelf.position.set(0, 0.5 + sh * 0.55, 0);
+      shelfGroup.add(shelf);
+
+      // Libros en cada tablilla
+      const nBooks = 5 + Math.floor(Math.random() * 4);
+      for (let b = 0; b < nBooks; b++) {
+        const bH = 0.25 + Math.random() * 0.15;
+        const bW = 0.05 + Math.random() * 0.03;
+        const bColor = [COLORS.shelf, COLORS.book, 0x9b2a1f, 0xd4a017, 0x2e6b3e, 0x4a3580][Math.floor(Math.random()*6)];
+        const bookMesh = box(bW, bH, 0.09, bColor, 0.5);
+        bookMesh.position.set(0, 0.5 + sh * 0.55 + 0.03 + bH/2, -0.44 + b * (0.88 / nBooks));
+        shelfGroup.add(bookMesh);
+      }
+    }
+
+    shelfGroup.position.set(sx, 0.06, -S * 0.3);
+    storeGroup.add(shelfGroup);
+  }
+
+  // Zona de lectura (esquina)
+  if (zone === 'si') {
+    const zoneFloor = new THREE.Mesh(
+      new THREE.BoxGeometry(3.0, 0.04, 3.0),
+      new THREE.MeshStandardMaterial({ color: COLORS.reading, roughness: 0.9 })
+    );
+    zoneFloor.position.set(-S * 0.65, 0.07, S * 0.55);
+    storeGroup.add(zoneFloor);
+
+    // Mesa
+    const table = box(1.2, 0.06, 0.8, 0x6b3c20, 0.6);
+    table.position.set(-S * 0.65, 0.78, S * 0.55);
+    storeGroup.add(table);
+    const tableLeg = box(0.08, 0.72, 0.08, 0x4a2810, 0.7);
+    tableLeg.position.set(-S * 0.65, 0.36, S * 0.55);
+    storeGroup.add(tableLeg);
+
+    // Sillas (simplificadas)
+    for (let c = -1; c <= 1; c += 2) {
+      const chair = box(0.5, 0.06, 0.5, 0x3a7a50, 0.8);
+      chair.position.set(-S * 0.65 + c * 0.75, 0.46, S * 0.55);
+      storeGroup.add(chair);
+      const chairBack = box(0.5, 0.5, 0.06, 0x3a7a50, 0.8);
+      chairBack.position.set(-S * 0.65 + c * 0.75, 0.72, S * 0.55 - 0.22);
+      storeGroup.add(chairBack);
+    }
+
+    // Planta decorativa
+    const pot = box(0.18, 0.22, 0.18, 0x8B6F4E, 0.8);
+    pot.position.set(-S * 0.75, 0.17, S * 0.75);
+    storeGroup.add(pot);
+    const plant = box(0.3, 0.35, 0.3, 0x2e7a30, 0.9);
+    plant.position.set(-S * 0.75, 0.49, S * 0.75);
+    storeGroup.add(plant);
+  }
+
+  // Acceso / puerta
+  const doorFrame = box(0.15, wallH, 0.15, 0x4a2810, 0.7);
+  doorFrame.position.set(-0.65, wallH/2, S);
+  storeGroup.add(doorFrame);
+  const doorFrame2 = doorFrame.clone();
+  doorFrame2.position.set(0.65, wallH/2, S);
+  storeGroup.add(doorFrame2);
+
+  // Zona de acceso (alfombra entrada)
+  const entryMat = new THREE.MeshStandardMaterial({ color: COLORS.entry, roughness: 0.9 });
+  const entry = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.04, 0.6), entryMat);
+  entry.position.set(0, 0.08, S - 0.4);
+  storeGroup.add(entry);
+
+  // Iluminación interior (puntos de luz en el techo)
+  const lightPositions = [[-S*0.5, 3.5, -S*0.5], [0, 3.5, 0], [S*0.5, 3.5, S*0.5]];
+  lightPositions.forEach(([lx, ly, lz]) => {
+    const pl = new THREE.PointLight(0xfff3d0, 0.8, 8);
+    pl.position.set(lx, ly, lz);
+    storeGroup.add(pl);
+    // Fixture visual (pequeño cilindro)
+    const fix = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.12, 8), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8 }));
+    fix.position.set(lx, wallH - 0.06, lz);
+    storeGroup.add(fix);
+  });
+
+  storeScene.add(storeGroup);
+}
+
+window.launchStoreAR = function() {
+  if (navigator.xr) {
+    navigator.xr.isSessionSupported('immersive-ar').then(supported => {
+      if (supported) {
+        alert('Modo WebXR AR disponible en tu dispositivo. Integración en desarrollo para HU-28 extendida.');
+      } else {
+        alert('Tu navegador no soporta AR inmersiva. Disfruta el plano 3D interactivo en pantalla.');
+      }
+    });
+  } else {
+    alert('Tu dispositivo no soporta WebXR. Usa Chrome en Android para AR inmersiva.');
+  }
+};
+
+// ── Init ───────────────────────────────────────────────────────
+// Exponer supabase client para uso interno
+window._sbClient = window.supabase?.createClient(
+  'https://ruyoguzvuoerkdwpgwfs.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1eW9ndXp2dW9lcmtkd3Bnd2ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjY2MzUsImV4cCI6MjA4ODc0MjYzNX0.WQtGk8KoaDDp_b8W_IpcKVqBKHel6N7GZNdhJ5AOMKI'
+) || null;
+
+buildStoreSelector();
+
+// Si viene ?tab=tienda desde sucursales.html → abrir pestaña tienda
+if (_tabParam === 'tienda') {
+  switchTab('tienda');
+}
+
+// Cargar libros; si viene ?libro=ID → preseleccionar ese libro
+await loadBooks(_libroParam || null);
+</script>
+</body>
+</html>

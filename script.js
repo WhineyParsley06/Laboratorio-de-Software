@@ -1,663 +1,766 @@
-// ============================================
-//  LIBRERÍA PEREIRA — script.js
-//  Supabase + CAPTCHA simulado + Sesión
-// ============================================
+/* ============================================
+   LIBRERÍA PEREIRA — Sistema de Gestión
+   Paleta: Rojo ladrillo + Naranja + Crema
+   Tipografía: Playfair Display + DM Sans
+   ============================================ */
 
-const SUPABASE_URL = "https://ruyoguzvuoerkdwpgwfs.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1eW9ndXp2dW9lcmtkd3Bnd2ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjY2MzUsImV4cCI6MjA4ODc0MjYzNX0.WQtGk8KoaDDp_b8W_IpcKVqBKHel6N7GZNdhJ5AOMKI";
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-// ── UTILIDADES ────────────────────────────────────────────────────────────────
-
-function showAlert(containerId, message, type = 'error') {
-  const icons = { error: '⚠️', success: '✅', info: 'ℹ️' };
-  let el = document.getElementById(containerId);
-  if (!el) {
-    el = document.createElement('div');
-    el.id = containerId;
-    const form = document.querySelector('form');
-    if (form) form.before(el);
-  }
-  el.innerHTML = `<div class="alert alert-${type}">${icons[type]} ${message}</div>`;
-  setTimeout(() => { if (el) el.innerHTML = ''; }, 5000);
+:root {
+  --primario:      #b83227;
+  --primario-dark: #8e2118;
+  --primario-glow: rgba(184, 50, 39, 0.18);
+  --secundario:    #e07520;
+  --secundario-dk: #c05e10;
+  --acento:        #f5c842;
+  --fondo:         #faf6f1;
+  --fondo-card:    #ffffff;
+  --fondo-input:   #fdf9f5;
+  --texto:         #1e1a17;
+  --texto-suave:   #6b5e55;
+  --borde:         #e8ddd4;
+  --borde-focus:   #e07520;
+  --sombra:        0 8px 32px rgba(100,40,20,0.10);
+  --sombra-card:   0 2px 12px rgba(100,40,20,0.08);
+  --radio:         14px;
+  --radio-btn:     10px;
+  --transicion:    0.25s cubic-bezier(.4,0,.2,1);
 }
 
-function setLoading(btn, loading) {
-  if (loading) {
-    btn.disabled = true;
-    btn.dataset.original = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner"></span> Procesando...';
-  } else {
-    btn.disabled = false;
-    btn.innerHTML = btn.dataset.original || btn.innerHTML;
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--fondo);
+  color: var(--texto);
+  min-height: 100vh;
+  line-height: 1.6;
+  /* Subtle warm grain texture */
+  background-image:
+    radial-gradient(ellipse 80% 60% at 70% -10%, rgba(224,117,32,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 10% 100%, rgba(184,50,39,0.05) 0%, transparent 50%);
 }
 
-// ── CAPTCHA SIMULADO ──────────────────────────────────────────────────────────
+/* ── SCROLLBAR ───────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--fondo); }
+::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--secundario); }
 
-function initCaptcha(boxId) {
-  const box = document.getElementById(boxId);
-  if (!box) return;
-  let verified = false;
-
-  box.addEventListener('click', () => {
-    if (verified) return;
-    const checkbox = box.querySelector('.captcha-checkbox');
-    box.classList.add('loading');
-    checkbox.textContent = '⟳';
-    setTimeout(() => {
-      box.classList.remove('loading');
-      box.classList.add('verified');
-      checkbox.textContent = '✓';
-      box.dataset.verified = 'true';
-      verified = true;
-    }, 1200 + Math.random() * 800);
-  });
+/* ── NAVEGACIÓN ──────────────────────────── */
+nav {
+  background: linear-gradient(135deg, var(--primario) 0%, #9b2a1f 100%);
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 20px rgba(184,50,39,0.25);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  min-height: 64px;
 }
 
-function isCaptchaVerified(boxId) {
-  const box = document.getElementById(boxId);
-  return box && box.dataset.verified === 'true';
+.nav-brand {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.95);
+  letter-spacing: 0.02em;
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
 }
 
-// ── VALIDACIÓN CONTRASEÑA FUERTE ──────────────────────────────────────────────
-
-function initPasswordStrength(inputId, barId, hintId) {
-  const input = document.getElementById(inputId);
-  const bar   = document.getElementById(barId);
-  const hint  = document.getElementById(hintId);
-  if (!input || !bar) return;
-
-  input.addEventListener('input', () => {
-    const val   = input.value;
-    const score = getPasswordScore(val);
-    const configs = [
-      { width: '0%',   color: '#e5e7eb', text: '' },
-      { width: '25%',  color: '#ef4444', text: '🔴 Muy débil — agrega mayúsculas, números y símbolos' },
-      { width: '50%',  color: '#f59e0b', text: '🟡 Débil — sigue mejorando' },
-      { width: '75%',  color: '#3b82f6', text: '🔵 Aceptable — casi lista' },
-      { width: '100%', color: '#22c55e', text: '🟢 Contraseña fuerte ✓' },
-    ];
-    const cfg = configs[score];
-    bar.style.width      = cfg.width;
-    bar.style.background = cfg.color;
-    if (hint) hint.textContent = cfg.text;
-  });
+.nav-brand::before {
+  content: '📚';
+  font-size: 1.1rem;
 }
 
-function getPasswordScore(pass) {
-  if (!pass) return 0;
-  let score = 0;
-  if (pass.length >= 8)        score++;
-  if (/[A-Z]/.test(pass))      score++;
-  if (/[0-9]/.test(pass))      score++;
-  if (/[^A-Za-z0-9]/.test(pass)) score++;
-  return score;
+nav a {
+  color: rgba(255,255,255,0.82);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 7px 16px;
+  border-radius: 8px;
+  transition: background var(--transicion), color var(--transicion);
+  letter-spacing: 0.01em;
 }
 
-function isPasswordStrong(pass) {
-  return pass.length >= 8 &&
-    /[A-Z]/.test(pass) &&
-    /[0-9]/.test(pass) &&
-    /[^A-Za-z0-9]/.test(pass);
+nav a:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
 }
 
-// ── SESIÓN — BLOQUEO TRAS INACTIVIDAD ────────────────────────────────────────
-
-let sessionTimer = null;
-const SESSION_TIMEOUT = 60; 
-
-function initSessionTimer() {
-  const bar = document.getElementById('sessionBar');
-  if (!bar) return;
-
-  let remaining = SESSION_TIMEOUT;
-
-  function resetTimer() {
-    remaining = SESSION_TIMEOUT;
-    bar.classList.remove('warn');
-    updateBar();
-  }
-
-  function updateBar() {
-    const el = bar.querySelector('#sessionCount');
-    if (el) el.textContent = remaining + 's';
-    if (remaining <= 30) bar.classList.add('warn');
-    else bar.classList.remove('warn');
-  }
-
-  function tick() {
-    remaining--;
-    updateBar();
-    if (remaining <= 0) {
-      clearInterval(sessionTimer);
-      forceLogout();
-    }
-  }
-
-  ['mousemove','keydown','click','scroll','touchstart'].forEach(ev =>
-    document.addEventListener(ev, resetTimer, { passive: true })
-  );
-
-  sessionTimer = setInterval(tick, 1000);
-  updateBar();
+nav a.active {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  font-weight: 600;
 }
 
-function forceLogout() {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = `
-    <div class="modal" style="text-align:center;">
-      <div style="font-size:2.5rem;margin-bottom:12px;">⏱️</div>
-      <h3>Sesión expirada</h3>
-      <p>Tu sesión se cerró automáticamente por inactividad.</p>
-      <button onclick="window.location.href='login.html'"
-              style="margin-top:4px;">
-        Iniciar sesión nuevamente
-      </button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  sessionStorage.removeItem('sesion');
+nav a.nav-cta {
+  background: var(--secundario);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(224,117,32,0.35);
 }
 
-// ── LOGOUT CON CONFIRMACIÓN ───────────────────────────────────────────────────
-
-function logout() {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.id = 'logoutModal';
-  overlay.innerHTML = `
-    <div class="modal">
-      <div style="font-size:2rem;margin-bottom:12px;text-align:center;">👋</div>
-      <h3 style="text-align:center;">¿Cerrar sesión?</h3>
-      <p style="text-align:center;">Deberás iniciar sesión nuevamente para acceder al sistema.</p>
-      <div class="modal-actions">
-        <button onclick="document.getElementById('logoutModal').remove()"
-                style="background:transparent;color:var(--texto-suave);border:1.5px solid var(--borde);box-shadow:none;width:auto;flex:1;">
-          Cancelar
-        </button>
-        <button onclick="confirmarLogout()"
-                style="background:var(--primario);box-shadow:none;width:auto;flex:1;">
-          Sí, cerrar sesión
-        </button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
+nav a.nav-cta:hover {
+  background: var(--secundario-dk);
+  box-shadow: 0 4px 14px rgba(224,117,32,0.4);
 }
 
-function confirmarLogout() {
-  sessionStorage.removeItem('sesion');
-  window.location.href = 'login.html';
+/* ── HERO BANNER (index) ─────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--primario-dark) 0%, var(--primario) 50%, var(--secundario) 100%);
+  color: #fff;
+  padding: 72px 2rem 80px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
 }
 
-// ── PROTEGER PÁGINAS ──────────────────────────────────────────────────────────
-
-function requireSession() {
-  const sesion = getSesion();
-  if (!sesion) {
-    window.location.href = 'login.html';
-    return null;
-  }
-  return sesion;
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 1;
 }
 
-function getSesion() {
-  try { return JSON.parse(sessionStorage.getItem('sesion')); }
-  catch { return null; }
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 900;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.2);
+  position: relative;
 }
 
-// ── REGISTRO (HU #1) ─────────────────────────────────────────────────────────
-
-async function simularRegistro(event) {
-  event.preventDefault();
-
-  if (!isCaptchaVerified('captchaReg')) {
-    showAlert('alertReg', 'Por favor verifica el CAPTCHA antes de continuar.', 'error');
-    return;
-  }
-
-  const password = document.getElementById('password').value;
-  if (!isPasswordStrong(password)) {
-    showAlert('alertReg', 'La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial.', 'error');
-    return;
-  }
-
-  const confirmPass = document.getElementById('confirmPassword')?.value;
-  if (confirmPass !== undefined && password !== confirmPass) {
-    showAlert('alertReg', 'Las contraseñas no coinciden.', 'error');
-    return;
-  }
-
-  const nombre    = document.getElementById('nombre').value.trim();
-  const apellidos = document.getElementById('apellidos')?.value.trim() || '';
-  const nombreCompleto = (nombre + ' ' + apellidos).trim();
-
-  const btn = event.submitter || document.querySelector('button[type="submit"]');
-  setLoading(btn, true);
-
-  const datosUsuario = {
-    id_dni:           document.getElementById('dni').value.trim(),
-    nombre:           nombre,
-    nombre_completo:  nombreCompleto,
-    apellidos:        apellidos,
-    correo:           document.getElementById('correo').value.trim().toLowerCase(),
-    fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
-    departamento:     document.getElementById('dep_residencia')?.value || '',
-    ciudad:           document.getElementById('ciudad_residencia')?.value || '',
-    genero:           document.getElementById('genero')?.value || '',
-    telefono:         document.getElementById('telefono')?.value.trim() || '',
-    direccion:        document.getElementById('direccion').value.trim() || 'Pereira, Colombia',
-    username:         document.getElementById('usuario').value.trim(),
-    password:         password,
-    rol:              'cliente',
-    suscripcion_noticias: true,
-    notif_catalogo:   true,
-    notif_cumple:     true,
-  };
-
-  const { data: insertData, error } = await client
-    .from('usuarios')
-    .insert([datosUsuario])
-    .select('id')
-    .single();
-
-  if (error) {
-    setLoading(btn, false);
-    const msg = error.message.includes('duplicate') || error.message.includes('unique')
-      ? 'Este correo o usuario ya está registrado.'
-      : 'Error al registrar: ' + error.message;
-    showAlert('alertReg', msg, 'error');
-    return;
-  }
-
-  // Llamar Edge Function para enviar correo de verificación
-  showAlert('alertReg', '✅ Cuenta creada. Enviando correo de verificación...', 'success');
-
-  await fetch(`${SUPABASE_URL}/functions/v1/send-verification-email`, {
-    method:  'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'apikey':        SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-    },
-    body: JSON.stringify({ usuario_id: insertData.id }),
-  });
-
-  setLoading(btn, false);
-
-  // Guardar correo en sessionStorage para usarlo en verificar.html
-  sessionStorage.setItem('pendiente_verificacion', JSON.stringify({
-    id:     insertData.id,
-    correo: datosUsuario.correo,
-    nombre: datosUsuario.nombre_completo,
-  }));
-
-  setTimeout(() => { window.location.href = 'verificar.html'; }, 1200);
+.hero p {
+  font-size: 1.05rem;
+  opacity: 0.88;
+  max-width: 520px;
+  margin: 0 auto 28px;
+  position: relative;
 }
 
-// ── LOGIN (HU #2) ─────────────────────────────────────────────────────────────
-
-async function simularLogin(event) {
-  event.preventDefault();
-
-  if (!isCaptchaVerified('captchaLogin')) {
-    showAlert('alertLogin', 'Por favor verifica el CAPTCHA antes de continuar.', 'error');
-    return;
-  }
-
-  const btn      = event.submitter || document.querySelector('button[type="submit"]');
-  const userInput = document.getElementById('userLogin').value.trim();
-  const pass      = document.getElementById('passLogin').value;
-
-  setLoading(btn, true);
-
-  const isEmail   = userInput.includes('@');
-  const campo     = isEmail ? 'correo' : 'username';
-  // Solo convertir a minúsculas si es correo — el username se guarda tal cual
-  const valorBuscar = isEmail ? userInput.toLowerCase() : userInput;
-
-  const { data, error } = await client
-    .from('usuarios')
-    .select('*')
-    .eq(campo, valorBuscar)
-    .single();
-
-  setLoading(btn, false);
-
-  if (error || !data) {
-    showAlert('alertLogin', 'Usuario o correo no encontrado.', 'error');
-    return;
-  }
-
-  if (data.password !== pass) {
-    showAlert('alertLogin', 'Contraseña incorrecta.', 'error');
-    return;
-  }
-
-  // Verificar que la cuenta esté verificada
-  if (!data.verificado) {
-    // Reenviar correo de verificación y redirigir
-    sessionStorage.setItem('pendiente_verificacion', JSON.stringify({
-      id:     data.id,
-      correo: data.correo,
-      nombre: data.nombre_completo,
-    }));
-    await fetch(`${SUPABASE_URL}/functions/v1/send-verification-email`, {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'apikey':        SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-      },
-      body: JSON.stringify({ usuario_id: data.id }),
-    });
-    showAlert('alertLogin',
-      '⚠️ Tu cuenta no está verificada. Te reenviamos el código al correo.',
-      'error'
-    );
-    setTimeout(() => { window.location.href = 'verificar.html'; }, 2000);
-    return;
-  }
-
-  sessionStorage.setItem('sesion', JSON.stringify({
-    id:              data.id,
-    nombre_completo: data.nombre_completo,
-    correo:          data.correo,
-    username:        data.username,
-    rol:             data.rol,
-    id_dni:          data.id_dni,
-  }));
-
-  const destino = data.rol === 'root' ? 'root.html'
-    : data.rol === 'administrador' ? 'admin.html'
-    : 'index.html';
-  showAlert('alertLogin', `¡Bienvenido, ${data.nombre_completo}! Redirigiendo...`, 'success');
-  setTimeout(() => { window.location.href = destino; }, 1200);
+/* ── CONTENEDOR PRINCIPAL ────────────────── */
+.container {
+  max-width: 560px;
+  margin: 48px auto;
+  background: var(--fondo-card);
+  padding: 44px 48px;
+  border-radius: 20px;
+  box-shadow: var(--sombra);
+  border: 1px solid var(--borde);
+  position: relative;
+  overflow: hidden;
 }
 
-// ============================================================
-//  ITERACIÓN 3 — Carrito, Compras, Reservas, Historial
-// ============================================================
-
-// ── CARRITO (en sessionStorage) ──────────────────────────────
-
-function getCarrito() {
-  try { return JSON.parse(sessionStorage.getItem('carrito') || '[]'); }
-  catch { return []; }
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primario), var(--secundario));
 }
 
-function saveCarrito(carrito) {
-  sessionStorage.setItem('carrito', JSON.stringify(carrito));
-  actualizarBadgeCarrito();
+.container-wide {
+  max-width: 740px;
 }
 
-function actualizarBadgeCarrito() {
-  const carrito = getCarrito();
-  const total = carrito.reduce((s, i) => s + i.cantidad, 0);
-  document.querySelectorAll('.carrito-badge').forEach(b => {
-    b.textContent = total > 0 ? total : '';
-    b.style.display = total > 0 ? 'inline-flex' : 'none';
-  });
+.container-xl {
+  max-width: 960px;
 }
 
-function agregarAlCarrito(libro) {
-  // libro: { id, titulo, autor, precio, imagen_url, stock }
-  const sesion = getSesion();
-  if (!sesion) { window.location.href = 'login.html'; return; }
-
-  const carrito = getCarrito();
-  const idx = carrito.findIndex(i => i.id === libro.id);
-
-  if (idx >= 0) {
-    if (carrito[idx].cantidad >= libro.stock) {
-      alert('No hay más stock disponible para este título.');
-      return;
-    }
-    carrito[idx].cantidad++;
-  } else {
-    if (libro.stock < 1) { alert('Este libro está agotado.'); return; }
-    carrito.push({ ...libro, cantidad: 1 });
-  }
-  saveCarrito(carrito);
-  mostrarToastCarrito(libro.titulo);
+/* ── CABECERA DE FORMULARIO ──────────────── */
+.form-header {
+  text-align: center;
+  margin-bottom: 32px;
 }
 
-function mostrarToastCarrito(titulo) {
-  let toast = document.getElementById('toastCarrito');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'toastCarrito';
-    toast.style.cssText = 'position:fixed;bottom:80px;right:20px;background:var(--primario);color:#fff;padding:10px 18px;border-radius:10px;font-size:0.85rem;font-weight:600;z-index:9999;opacity:0;transition:opacity 0.3s;box-shadow:0 4px 16px rgba(184,50,39,0.3);';
-    document.body.appendChild(toast);
-  }
-  toast.textContent = `📚 "${titulo.slice(0,30)}..." añadido al carrito`;
-  toast.style.opacity = '1';
-  setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+.form-header .icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--primario), var(--secundario));
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 16px;
+  box-shadow: 0 4px 14px var(--primario-glow);
 }
 
-// ── RESERVAS ──────────────────────────────────────────────────
-
-async function crearReserva(items) {
-  // items: [{ libro_id, cantidad }]
-  const sesion = getSesion();
-  if (!sesion) return { error: 'Sin sesión' };
-
-  // Verificar límites HU-20: max 5 libros diferentes, max 3 del mismo
-  const diferentesLibros = items.length;
-  const excedeCantidad   = items.some(i => i.cantidad > 3);
-  if (diferentesLibros > 5) return { error: 'Máximo 5 libros diferentes por reserva.' };
-  if (excedeCantidad)       return { error: 'Máximo 3 ejemplares del mismo título por reserva.' };
-
-  const expira = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
-  const { data, error } = await client
-    .from('reservas')
-    .insert([{
-      usuario_id: sesion.id,
-      items:      JSON.stringify(items),
-      expira_en:  expira,
-      estado:     'activa',
-    }])
-    .select('id')
-    .single();
-
-  if (error) return { error: error.message };
-
-  // Descontar stock temporalmente (marcar como reservado)
-  for (const item of items) {
-    await client.rpc('decrementar_stock', { libro_id: item.libro_id, cantidad: item.cantidad });
-  }
-
-  return { reserva_id: data.id };
+h2 {
+  font-family: 'Playfair Display', serif;
+  color: var(--primario);
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 6px;
 }
 
-async function cancelarReserva(reservaId) {
-  const { data: res, error } = await client
-    .from('reservas')
-    .select('items')
-    .eq('id', reservaId)
-    .single();
-
-  if (error || !res) return { error: 'Reserva no encontrada.' };
-
-  const items = JSON.parse(res.items);
-
-  // Devolver stock
-  for (const item of items) {
-    await client.rpc('incrementar_stock', { libro_id: item.libro_id, cantidad: item.cantidad });
-  }
-
-  const { error: err2 } = await client
-    .from('reservas')
-    .update({ estado: 'cancelada' })
-    .eq('id', reservaId);
-
-  return err2 ? { error: err2.message } : { ok: true };
+.subtitle {
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+  margin-bottom: 0;
 }
 
-// ── COMPRAS ───────────────────────────────────────────────────
-
-async function procesarCompra({ items, tarjeta_id, direccion_envio, costo_envio = 8500, tiempo_entrega = '3 a 5 días hábiles' }) {
-  const sesion = getSesion();
-  if (!sesion) return { error: 'Sin sesión' };
-
-  // Calcular total
-  let subtotal = 0;
-  for (const item of items) {
-    subtotal += item.precio * item.cantidad;
-  }
-  const total = subtotal + costo_envio;
-
-  // Verificar saldo de tarjeta
-  const { data: tarjeta, error: errT } = await client
-    .from('tarjetas')
-    .select('saldo, nombre_titular')
-    .eq('id', tarjeta_id)
-    .eq('usuario_id', sesion.id)
-    .single();
-
-  if (errT || !tarjeta) return { error: 'Tarjeta no encontrada.' };
-  if (tarjeta.saldo < total) return { error: `Saldo insuficiente. Necesitas $${total.toLocaleString('es-CO')} y tienes $${tarjeta.saldo.toLocaleString('es-CO')}.` };
-
-  // Descontar saldo
-  const { error: errSaldo } = await client
-    .from('tarjetas')
-    .update({ saldo: tarjeta.saldo - total })
-    .eq('id', tarjeta_id);
-
-  if (errSaldo) return { error: 'Error al procesar el pago: ' + errSaldo.message };
-
-  // Crear registro de compra
-  const numero_factura = 'FAC-' + Date.now();
-  const { data: compra, error: errC } = await client
-    .from('compras')
-    .insert([{
-      usuario_id:      sesion.id,
-      tarjeta_id,
-      items:           JSON.stringify(items),
-      subtotal,
-      costo_envio,
-      total,
-      direccion_envio,
-      numero_factura,
-      estado:          'en_preparacion',
-      tiempo_entrega,
-    }])
-    .select('id')
-    .single();
-
-  if (errC) return { error: 'Error al registrar la compra: ' + errC.message };
-
-  // Descontar stock real
-  for (const item of items) {
-    await client.rpc('decrementar_stock', { libro_id: item.id, cantidad: item.cantidad });
-  }
-
-  return {
-    ok: true,
-    compra_id:     compra.id,
-    numero_factura,
-    subtotal,
-    costo_envio,
-    total,
-    tiempo_entrega,
-    titular:       tarjeta.nombre_titular,
-    direccion_envio,
-    items,
-  };
+/* ── GRUPOS DE INPUT ─────────────────────── */
+.input-group {
+  margin-bottom: 20px;
 }
 
-async function cancelarCompra(compraId) {
-  const { data: compra, error } = await client
-    .from('compras')
-    .select('items, total, tarjeta_id, estado')
-    .eq('id', compraId)
-    .single();
-
-  if (error || !compra) return { error: 'Compra no encontrada.' };
-  if (compra.estado === 'entregado') return { error: 'No se puede cancelar una compra ya entregada.' };
-  if (compra.estado === 'cancelada') return { error: 'Esta compra ya fue cancelada.' };
-
-  // Reembolsar a tarjeta
-  const { data: tarjeta } = await client.from('tarjetas').select('saldo').eq('id', compra.tarjeta_id).single();
-  if (tarjeta) {
-    await client.from('tarjetas').update({ saldo: tarjeta.saldo + compra.total }).eq('id', compra.tarjeta_id);
-  }
-
-  // Devolver stock
-  const items = JSON.parse(compra.items);
-  for (const item of items) {
-    await client.rpc('incrementar_stock', { libro_id: item.id, cantidad: item.cantidad });
-  }
-
-  const { error: err2 } = await client
-    .from('compras')
-    .update({ estado: 'cancelada' })
-    .eq('id', compraId);
-
-  return err2 ? { error: err2.message } : { ok: true };
+.input-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-// ── GENERAR FACTURA HTML (para imprimir / descargar) ──────────
-
-function generarFacturaHTML(datos) {
-  const fecha = new Date().toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
-  const filas = datos.items.map(i =>
-    `<tr>
-      <td style="padding:8px 12px;">${i.titulo}</td>
-      <td style="padding:8px 12px;text-align:center;">${i.cantidad}</td>
-      <td style="padding:8px 12px;text-align:right;">$${(i.precio * i.cantidad).toLocaleString('es-CO')}</td>
-    </tr>`
-  ).join('');
-
-  return `
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-<title>Factura ${datos.numero_factura}</title>
-<style>
-  body { font-family: Arial, sans-serif; max-width: 680px; margin: 40px auto; color: #1e1a17; }
-  .head { background: #b83227; color: #fff; padding: 24px 32px; border-radius: 12px 12px 0 0; }
-  .head h1 { margin:0; font-size:1.4rem; }
-  .head p  { margin:4px 0 0; opacity:.8; font-size:.85rem; }
-  .body { border: 1px solid #e8ddd4; border-top:none; padding: 28px 32px; border-radius: 0 0 12px 12px; }
-  table { width:100%; border-collapse:collapse; margin-bottom:20px; }
-  thead { background:#faf6f1; }
-  th { padding:10px 12px; text-align:left; font-size:.78rem; text-transform:uppercase; color:#6b5e55; }
-  td { border-top: 1px solid #f0e8de; font-size:.9rem; }
-  .totals td { border:none; font-size:.9rem; }
-  .grand { font-size:1.1rem; font-weight:700; color:#b83227; }
-  .info { background:#faf6f1; border-radius:10px; padding:16px 20px; margin-bottom:20px; font-size:.88rem; line-height:1.7; }
-  .footer { text-align:center; font-size:.75rem; color:#6b5e55; margin-top:24px; }
-</style></head><body>
-<div class="head">
-  <h1>📚 Librería Pereira</h1>
-  <p>Factura de venta electrónica · ${datos.numero_factura}</p>
-</div>
-<div class="body">
-  <div class="info">
-    <strong>Fecha:</strong> ${fecha}<br>
-    <strong>Titular:</strong> ${datos.titular}<br>
-    <strong>Dirección de entrega:</strong> ${datos.direccion_envio}<br>
-    <strong>Tiempo estimado de entrega:</strong> ${datos.tiempo_entrega}
-  </div>
-  <table>
-    <thead><tr><th>Libro</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Subtotal</th></tr></thead>
-    <tbody>${filas}</tbody>
-  </table>
-  <table class="totals">
-    <tr><td>Subtotal</td><td style="text-align:right;">$${datos.subtotal.toLocaleString('es-CO')}</td></tr>
-    <tr><td>Costo de envío</td><td style="text-align:right;">$${datos.costo_envio.toLocaleString('es-CO')}</td></tr>
-    <tr class="grand"><td>TOTAL</td><td style="text-align:right;">$${datos.total.toLocaleString('es-CO')}</td></tr>
-  </table>
-  <p class="footer">Librería Pereira &copy; 2026 · Ley 1581 de 2012 · Política de devoluciones: 8 días hábiles</p>
-</div>
-</body></html>`;
+.input-row .input-group {
+  flex: 1;
+  min-width: 180px;
 }
 
-function imprimirFactura(datos) {
-  const win = window.open('', '_blank');
-  win.document.write(generarFacturaHTML(datos));
-  win.document.close();
-  win.print();
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="tel"],
+select,
+textarea {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--fondo-input);
+  border: 1.5px solid var(--borde);
+  border-radius: var(--radio);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  color: var(--texto);
+  transition: border-color var(--transicion), box-shadow var(--transicion), background var(--transicion);
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--borde-focus);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(224,117,32,0.12);
+}
+
+input::placeholder { color: #bbb; }
+
+/* Password strength indicator */
+.pass-strength {
+  height: 3px;
+  border-radius: 99px;
+  margin-top: 6px;
+  background: var(--borde);
+  overflow: hidden;
+  transition: all var(--transicion);
+}
+.pass-strength-bar {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease, background 0.4s ease;
+  width: 0%;
+}
+
+.pass-hint {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  color: var(--texto-suave);
+  min-height: 18px;
+}
+
+/* ── CAPTCHA ─────────────────────────────── */
+.captcha-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--fondo-input);
+  border: 1.5px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: border-color var(--transicion), box-shadow var(--transicion);
+  user-select: none;
+}
+
+.captcha-box:hover { border-color: var(--borde-focus); }
+
+.captcha-box.verified {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.captcha-checkbox {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--borde);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transicion);
+  background: #fff;
+}
+
+.captcha-box.verified .captcha-checkbox {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+  font-size: 13px;
+}
+
+.captcha-box.loading .captcha-checkbox {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.captcha-label { font-size: 0.88rem; color: var(--texto-suave); flex: 1; }
+.captcha-logo { font-size: 1.2rem; opacity: 0.4; }
+
+/* ── BOTONES ─────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 24px;
+  border: none;
+  border-radius: var(--radio-btn);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all var(--transicion);
+  text-decoration: none;
+}
+
+.btn-primary {
+  width: 100%;
+  background: linear-gradient(135deg, var(--primario) 0%, var(--secundario) 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(184,50,39,0.30);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent);
+  opacity: 0;
+  transition: opacity var(--transicion);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(184,50,39,0.35);
+}
+
+.btn-primary:hover::after { opacity: 1; }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--primario);
+  border: 1.5px solid var(--primario);
+}
+
+.btn-secondary:hover {
+  background: var(--primario-glow);
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(220,38,38,0.25);
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+/* Legacy button for compatibility */
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 24px;
+  background: linear-gradient(135deg, var(--primario) 0%, var(--secundario) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radio-btn);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(184,50,39,0.28);
+  transition: all var(--transicion);
+  letter-spacing: 0.01em;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(184,50,39,0.35);
+}
+
+button:active { transform: translateY(0); }
+
+/* ── DIVIDER ─────────────────────────────── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--texto-suave);
+  font-size: 0.8rem;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--borde);
+}
+
+/* ── LINKS ───────────────────────────────── */
+a { color: var(--secundario); text-decoration: none; transition: color var(--transicion); }
+a:hover { color: var(--primario); }
+
+.link-muted { color: var(--texto-suave); font-size: 0.88rem; }
+.link-muted a { color: var(--secundario); font-weight: 500; }
+
+/* ── CHECKBOX CUSTOM ─────────────────────── */
+.check-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--texto-suave);
+  cursor: pointer;
+  line-height: 1.5;
+  font-weight: normal;
+}
+
+.check-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primario);
+  flex-shrink: 0;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+/* ── TOGGLE SWITCH ───────────────────────── */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle input { opacity: 0; width: 0; height: 0; }
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--borde);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--transicion);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+.toggle input:checked + .toggle-slider { background: var(--primario); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+/* ── BADGES ──────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badge-red { background: rgba(184,50,39,0.1); color: var(--primario); }
+.badge-orange { background: rgba(224,117,32,0.12); color: var(--secundario-dk); }
+.badge-green { background: rgba(34,197,94,0.1); color: #16a34a; }
+
+/* ── CARD / PERFIL ───────────────────────── */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(135deg, var(--primario-dark), var(--primario));
+  color: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 8px 24px var(--primario-glow);
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  border: 3px solid rgba(255,255,255,0.3);
+}
+
+.profile-info h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  margin-bottom: 2px;
+}
+
+.profile-info p {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* ── SECTION TABS ────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--fondo);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 28px;
+  border: 1px solid var(--borde);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 9px 16px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transicion);
+  box-shadow: none;
+  width: auto;
+}
+
+.tab-btn.active {
+  background: #fff;
+  color: var(--primario);
+  font-weight: 600;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+}
+
+/* ── ALERT / TOAST ───────────────────────── */
+.alert {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.alert-error { background: #fef2f2; color: #dc2626; border-left: 3px solid #dc2626; }
+.alert-success { background: #f0fdf4; color: #16a34a; border-left: 3px solid #22c55e; }
+.alert-info { background: #eff6ff; color: #2563eb; border-left: 3px solid #3b82f6; }
+
+/* ── MODAL ───────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30,10,5,0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: #fff;
+  border-radius: 20px;
+  padding: 36px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+  animation: modalIn 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  color: var(--primario);
+  margin-bottom: 10px;
+}
+
+.modal p { color: var(--texto-suave); font-size: 0.9rem; margin-bottom: 24px; }
+
+.modal-actions { display: flex; gap: 12px; }
+.modal-actions button, .modal-actions .btn { flex: 1; width: auto; }
+
+/* ── FOOTER ──────────────────────────────── */
+footer {
+  text-align: center;
+  padding: 32px 2rem;
+  color: var(--texto-suave);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--borde);
+  margin-top: 48px;
+}
+
+footer strong { color: var(--primario); }
+
+/* ── LOADING SPINNER ─────────────────────── */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+/* ── SESSION TIMER ───────────────────────── */
+.session-bar {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+  box-shadow: var(--sombra-card);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 50;
+  transition: all var(--transicion);
+}
+
+.session-bar.warn {
+  border-color: #f59e0b;
+  color: #d97706;
+  background: #fffbeb;
+}
+
+.session-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+
+.session-bar.warn .session-dot {
+  background: #f59e0b;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ── RESPONSIVE ──────────────────────────── */
+@media (max-width: 600px) {
+  .container { padding: 28px 20px; margin: 20px 12px; border-radius: 16px; }
+  nav { padding: 0 1rem; gap: 4px; }
+  .nav-brand { font-size: 1rem; }
+  nav a { padding: 6px 10px; font-size: 0.8rem; }
+  .input-row { flex-direction: column; gap: 0; }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

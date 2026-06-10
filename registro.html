@@ -79,7 +79,8 @@
       <div class="input-row">
         <div class="input-group" style="flex:1;">
           <label for="dni">Cédula / DNI *</label>
-          <input type="text" inputmode="numeric" pattern="[0-9]*" id="dni" placeholder="123456789" required oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <input type="text" inputmode="numeric" id="dni" placeholder="123456789" required
+                 maxlength="12" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
           <span class="field-error" id="err-dni"></span>
         </div>
         <div class="input-group" style="flex:1;">
@@ -98,7 +99,8 @@
       <div class="input-row">
         <div class="input-group" style="flex:1;">
           <label for="fecha_nacimiento">Fecha de nacimiento *</label>
-          <input type="date" id="fecha_nacimiento" required>
+          <input type="date" id="fecha_nacimiento" required
+                 max="">
           <span class="field-error" id="err-fecha_nacimiento"></span>
         </div>
         <div class="input-group" style="flex:1;">
@@ -136,7 +138,8 @@
         </div>
         <div class="input-group" style="flex:1;">
           <label for="telefono">Teléfono</label>
-          <input type="tel" id="telefono" placeholder="300 123 4567" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <input type="tel" id="telefono" placeholder="3001234567"
+                 maxlength="10" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
           <span class="field-error" id="err-telefono"></span>
         </div>
       </div>
@@ -209,6 +212,13 @@
   <script>
     initCaptcha('captchaReg');
     initPasswordStrength('password', 'strengthBar', 'passHint');
+
+    // Establecer fecha máxima de nacimiento (hoy) para impedir fechas futuras
+    (function () {
+      const hoyStr = new Date().toISOString().split('T')[0];
+      const campoFecha = document.getElementById('fecha_nacimiento');
+      if (campoFecha) campoFecha.max = hoyStr;
+    })();
 
     // ── Utilidades de validación inline ────────────────────────────
     function setError(id, msg) {
@@ -331,13 +341,13 @@
         valid = false;
       } else { setError('genero', ''); }
 
-      // Fecha de nacimiento
       const fechaVal = v('fecha_nacimiento');
       if (!fechaVal) {
         setError('fecha_nacimiento', 'La fecha de nacimiento es obligatoria.');
         valid = false;
       } else {
-        const nacimiento = new Date(fechaVal);
+        // Añadir hora del mediodía para evitar desfase de zona horaria
+        const nacimiento = new Date(fechaVal + 'T12:00:00');
         const edad = Math.floor((today - nacimiento) / (365.25 * 24 * 60 * 60 * 1000));
         if (edad < 13) {
           setError('fecha_nacimiento', 'Debes tener al menos 13 años para registrarte.');
@@ -372,8 +382,8 @@
 
       // Teléfono (opcional, pero si se llena debe ser válido)
       const telVal = v('telefono');
-      if (telVal && !/^[\d\s\+\-\(\)]{7,15}$/.test(telVal)) {
-        setError('telefono', 'Ingresa un número de teléfono válido.');
+      if (telVal && !/^\d{10}$/.test(telVal)) {
+        setError('telefono', 'Ingresa un número de teléfono válido (10 dígitos, ej: 3001234567).');
         valid = false;
       } else { setError('telefono', ''); }
 
@@ -471,17 +481,19 @@
 
       if (error) {
         setLoading(btn, false);
-        const isDuplicate = error.message.includes('duplicate') || error.message.includes('unique');
+        const isDuplicate = error.code === '23505' ||
+          error.message.includes('duplicate') || error.message.includes('unique');
         if (isDuplicate) {
-          // Intentar detectar qué campo está duplicado
-          if (error.message.includes('correo')) {
+          // error.details de Supabase dice exactamente: Key (correo)=(...) already exists.
+          // Es más confiable que el mensaje genérico de Postgres
+          const campo = (error.details || error.message || '').toLowerCase();
+          if (campo.includes('correo') || campo.includes('email')) {
             setError('correo', 'Este correo ya está registrado.');
-          } else if (error.message.includes('username') || error.message.includes('usuario')) {
+          } else if (campo.includes('username')) {
             setError('usuario', 'Este nombre de usuario ya está en uso.');
-          } else if (error.message.includes('dni') || error.message.includes('id_dni')) {
+          } else if (campo.includes('id_dni') || campo.includes('dni')) {
             setError('dni', 'Esta cédula ya está registrada.');
           } else {
-            // No se puede determinar cuál — mostrar ambos como posibles
             setError('correo', 'Este correo o usuario ya está registrado.');
             setError('usuario', 'Este correo o usuario ya está registrado.');
           }

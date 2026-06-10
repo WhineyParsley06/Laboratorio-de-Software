@@ -118,6 +118,8 @@
   <nav id="nav-visitante">
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html" class="active">Inicio</a>
+    <a href="sucursales.html">📍 Sucursales</a>
+    <a href="realidad-aumentada.html">🥽 Realidad Aumentada</a>
     <a href="login.html">Iniciar sesión</a>
     <a href="registro.html" class="nav-cta">Registrarse</a>
   </nav>
@@ -128,6 +130,8 @@
   <nav id="nav-usuario">
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html" class="active">Inicio</a>
+    <a href="sucursales.html">📍 Sucursales</a>
+    <a href="realidad-aumentada.html">🥽 AR</a>
     <a href="tarjetas.html">💳 Monedero</a>
     <a href="perfil.html">Mi Perfil</a>
     <a href="admin.html" id="nav-admin" style="display:none;background:rgba(255,255,255,0.15);border-radius:6px;padding:4px 10px;">🛠️ Admin</a>
@@ -191,7 +195,6 @@
       <a href="tarjetas.html">💳 Mi monedero</a>
       <a href="perfil.html">👤 Mi perfil</a>
       <a href="noticias.html">📰 Noticias</a>
-      <a href="mensajes.html">💬 Mensajes</a>
     </div>
 
     <!-- Tarjeta de perfil en contenedor centrado -->
@@ -293,6 +296,10 @@
       window.location.href = 'root.html';
     }
 
+    // ── Manejar enlace directo a detalle (?libro=ID) ──────────────
+    const _urlParams  = new URLSearchParams(window.location.search);
+    const _libroParam = _urlParams.get('libro');
+
     if (sesion) {
       // ── MODO USUARIO LOGUEADO ──────────────────────────────────
       document.getElementById('nav-usuario').style.display    = 'flex';
@@ -316,7 +323,13 @@
 
       initSessionTimer();
       document.getElementById('seccion-catalogo').style.display = 'block';
-      cargarHomeCatalogo();
+
+      if (_libroParam) {
+        // Abrir directamente el detalle del libro (sin await en top-level)
+        cargarHomeCatalogo().then(() => verDetalleLibro(_libroParam));
+      } else {
+        cargarHomeCatalogo();
+      }
 
       // Mostrar enlace admin si corresponde
       if (sesion.rol === 'administrador') {
@@ -341,8 +354,7 @@
     async function cargarHomeCatalogo() {
       const { data, error } = await client
         .from('libros')
-        .select('id, titulo, autor, genero, precio, imagen_url')
-        .eq('agotado', false)
+        .select('id, titulo, autor, genero, precio, imagen_url, agotado')
         .order('titulo', { ascending: true });
 
       if (error || !data) return;
@@ -359,14 +371,23 @@
         return;
       }
       grid.innerHTML = lista.map(l => `
-        <a href="#" onclick="verDetalleLibro('${l.id}'); return false;"
+        <a href="#" onclick="${l.agotado ? 'return false;' : `verDetalleLibro('${l.id}'); return false;`}"
            style="text-decoration:none; color:inherit; background:#fff; border-radius:12px;
                   border:1px solid var(--borde); overflow:hidden; display:flex; flex-direction:column;
-                  transition:transform 0.2s, box-shadow 0.2s;"
-           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--sombra)'"
-           onmouseout="this.style.transform='';this.style.boxShadow=''">
-          <img src="${l.imagen_url || 'https://via.placeholder.com/300x450?text=Sin+Portada'}"
-               style="width:100%; aspect-ratio:2/3; object-fit:cover; background:#eee;">
+                  transition:transform 0.2s, box-shadow 0.2s; position:relative;
+                  ${l.agotado ? 'opacity:0.82; cursor:default;' : ''}"
+           ${l.agotado ? '' : `onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--sombra)'"
+           onmouseout="this.style.transform='';this.style.boxShadow=''"`}>
+          <div style="position:relative;">
+            ${l.imagen_url
+              ? `<img src="${l.imagen_url}" style="width:100%; aspect-ratio:2/3; object-fit:cover; background:#eee;">`
+              : `<div style="width:100%;aspect-ratio:2/3;background:linear-gradient(145deg,#fdf0ec,#f5e0d8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--primario);"><svg xmlns='http://www.w3.org/2000/svg' width='52' height='52' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round' opacity='0.55'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg><span style="font-size:0.7rem;font-weight:600;opacity:0.6;letter-spacing:0.04em;">SIN PORTADA</span></div>`
+            }
+            ${l.agotado ? `
+              <div style="position:absolute;inset:0;background:rgba(0,0,0,0.38);display:flex;align-items:center;justify-content:center;">
+                <span style="background:#dc2626;color:#fff;font-size:0.8rem;font-weight:800;letter-spacing:0.12em;padding:6px 16px;border-radius:6px;transform:rotate(-8deg);box-shadow:0 2px 8px rgba(0,0,0,0.3);">AGOTADO</span>
+              </div>` : ''}
+          </div>
           <div style="padding:12px; flex-grow:1;">
             <span style="font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--primario);">
               ${l.genero || 'General'}
@@ -375,8 +396,8 @@
               ${l.titulo}
             </p>
             <p style="font-size:0.78rem; color:var(--texto-suave); margin-bottom:8px;">${l.autor}</p>
-            <p style="font-size:1rem; font-weight:800; color:var(--primario-dark);">
-              $${parseFloat(l.precio).toLocaleString('es-CO')}
+            <p style="font-size:1rem; font-weight:800; color:${l.agotado ? '#dc2626' : 'var(--primario-dark)'};">
+              ${l.agotado ? '<span style="font-size:0.78rem;letter-spacing:0.08em;">AGOTADO</span>' : '$' + parseFloat(l.precio).toLocaleString('es-CO')}
             </p>
           </div>
         </a>
@@ -516,6 +537,11 @@
             </div>
 
             <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+              ${l.agotado ? `
+                <div style="padding:14px 22px; background:#fef2f2; border:1.5px solid #fca5a5; border-radius:10px;
+                             color:#dc2626; font-weight:700; font-size:0.95rem;">
+                  😔 Este libro está agotado por el momento
+                </div>` : `
               <button
                 onclick="agregarAlCarrito(libroActual)"
                 style="padding:14px 28px; background:var(--primario); color:#fff; border:none;
@@ -531,7 +557,15 @@
                        transition:all 0.2s;"
                 onmouseover="this.style.background='#fdf6f0'" onmouseout="this.style.background='#fff'">
                 🔖 Reservar
-              </button>
+              </button>`}
+              <a href="realidad-aumentada.html?libro=${l.id}"
+                 style="display:inline-flex; align-items:center; gap:7px;
+                        padding:13px 22px; background:linear-gradient(135deg,var(--primario-dark),var(--secundario));
+                        color:#fff; border-radius:10px; font-weight:700; font-size:0.95rem;
+                        text-decoration:none; transition:opacity 0.2s;"
+                 onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+                🥽 Ver en AR
+              </a>
             </div>
           </div>
         </div>
@@ -572,7 +606,7 @@
       }
 
       grid.innerHTML = data.map(libro => `
-        <a href="catalogo.html?id=${libro.id}" style="text-decoration:none;">
+        <a href="#" onclick="verDetalleLibro('${libro.id}'); return false;" style="text-decoration:none;">
           <div class="novedad-card">
             <div class="novedad-icon">📖</div>
             <div>
@@ -587,5 +621,149 @@
       `).join('');
     }
   </script>
+
+  <!-- ═══════════════ CHATBOT FLOTANTE ═══════════════ -->
+  <style>
+    #chat-fab {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #a0673a 0%, #6b3f22 100%);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(107,63,34,0.55);
+      font-size: 1.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #chat-fab:hover { transform: scale(1.1); box-shadow: 0 8px 28px rgba(107,63,34,0.7); }
+
+    #chat-fab-label {
+      position: fixed;
+      bottom: 38px;
+      right: 100px;
+      background: #1a1008;
+      color: #f0d9b5;
+      font-size: 0.82rem;
+      padding: 6px 14px;
+      border-radius: 20px;
+      white-space: nowrap;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.3s;
+      z-index: 9997;
+    }
+    #chat-fab-label.hidden { opacity: 0; }
+
+    #chat-panel {
+      position: fixed;
+      bottom: 100px;
+      right: 28px;
+      width: 400px;
+      height: calc(100vh - 130px);
+      max-height: 660px;
+      min-height: 460px;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 16px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.07);
+      z-index: 9998;
+      display: none;
+      opacity: 0;
+      transform: translateY(16px) scale(0.97);
+      transition: opacity 0.25s ease, transform 0.28s cubic-bezier(.22,.68,0,1.15);
+    }
+    #chat-panel.open {
+      display: block;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    #chat-panel iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    #chat-badge {
+      position: absolute;
+      top: -2px; right: -2px;
+      width: 14px; height: 14px;
+      background: #e74c3c;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      display: none;
+    }
+
+    /* Mover barra de sesión cuando el chat está abierto */
+    .session-bar { transition: right 0.28s ease, bottom 0.28s ease !important; }
+    body.chat-open .session-bar { right: 450px !important; }
+
+    @media (max-width: 480px) {
+      #chat-panel { width: calc(100vw - 20px); height: 72vh; right: 10px; bottom: 90px; border-radius: 16px; }
+      #chat-fab   { bottom: 18px; right: 18px; }
+      #chat-fab-label { display: none; }
+    }
+  </style>
+
+  <!-- Etiqueta flotante -->
+  <div id="chat-fab-label">💬 Habla con Bibliófilo</div>
+
+  <!-- Botón flotante -->
+  <button id="chat-fab" onclick="toggleChat()" title="Abrir asistente">
+    <span id="chat-fab-icon">📖</span>
+    <span id="chat-badge"></span>
+  </button>
+
+  <!-- Panel del chatbot -->
+  <div id="chat-panel">
+    <iframe id="chat-iframe" src="" allow="clipboard-write"></iframe>
+  </div>
+
+  <script>
+    (function() {
+      let chatOpen = false;
+      let loaded   = false;
+      const label  = document.getElementById('chat-fab-label');
+
+      // Ocultar etiqueta tras 4s
+      setTimeout(() => label.classList.add('hidden'), 4000);
+
+      window.toggleChat = function() {
+        chatOpen = !chatOpen;
+        const panel = document.getElementById('chat-panel');
+        const icon  = document.getElementById('chat-fab-icon');
+        const badge = document.getElementById('chat-badge');
+
+        label.classList.add('hidden');
+
+        if (chatOpen) {
+          panel.style.display = 'block';
+          // Forzar reflow para que la transición funcione
+          panel.getBoundingClientRect();
+          panel.classList.add('open');
+          document.body.classList.add('chat-open');
+          icon.textContent = '✕';
+          badge.style.display = 'none';
+          if (!loaded) {
+            document.getElementById('chat-iframe').src = 'chatbot.html';
+            loaded = true;
+          }
+        } else {
+          panel.classList.remove('open');
+          document.body.classList.remove('chat-open');
+          icon.textContent = '📖';
+          setTimeout(() => { panel.style.display = 'none'; }, 280);
+        }
+      };
+    })();
+  </script>
+  <!-- ══════════════════════════════════════════════════ -->
 </body>
 </html>

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sucursales — Librería Pereira</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/style.css">
+
+  <link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    /* ── Page header ───────────────────────────────── */
+    .sucursales-hero {
+      background: linear-gradient(135deg, var(--primario-dark) 0%, var(--primario) 60%, var(--secundario) 100%);
+      padding: 48px 24px 72px;
+      text-align: center;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .sucursales-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 80% 10%, rgba(255,255,255,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 80% at 5% 90%, rgba(0,0,0,0.08) 0%, transparent 50%);
+    }
+    .sucursales-hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .sucursales-hero p {
+      font-size: 1rem;
+      opacity: 0.88;
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.6;
+      position: relative;
+    }
+
+    /* ── Main layout ────────────────────────────────── */
+    .sucursales-layout {
+      max-width: 1200px;
+      margin: -32px auto 60px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      align-items: start;
+      position: relative;
+      z-index: 10;
+    }
+    @media (max-width: 900px) {
+      .sucursales-layout {
+        grid-template-columns: 1fr;
+        margin-top: -20px;
+      }
+    }
+
+    /* ── Branch cards panel ─────────────────────────── */
+    .branch-panel {
+      background: var(--fondo-card);
+      border: 1px solid var(--borde);
+      border-radius: 18px;
+      box-shadow: var(--sombra);
+      overflow: hidden;
+    }
+    .branch-panel-title {
+      background: linear-gradient(135deg, var(--primario), var(--primario-dark));
+      color: #fff;
+      padding: 18px 22px;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .branch-card {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--borde);
+      cursor: pointer;
+      transition: background var(--transicion), border-left-color var(--transicion);
+      border-left: 4px solid transparent;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .branch-card:last-child { border-bottom: none; }
+    .branch-card:hover,
+    .branch-card.activa {
+      background: #fdf6f0;
+      border-left-color: var(--secundario);
+    }
+    .branch-card.activa { background: #fdf0e8; }
+
+    .branch-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--primario), var(--secundario));
+    }
+    .branch-icon.sede-principal {
+      background: linear-gradient(135deg, var(--primario-dark), var(--primario));
+    }
+    .branch-info { flex: 1; min-width: 0; }
+    .branch-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.97rem;
+      font-weight: 700;
+      color: var(--primario-dark);
+      margin-bottom: 2px;
+    }
+    .branch-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--primario), var(--secundario));
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .branch-address {
+      font-size: 0.8rem;
+      color: var(--texto-suave);
+      line-height: 1.45;
+      margin-bottom: 5px;
+    }
+    .branch-meta {
+      font-size: 0.77rem;
+      color: var(--texto-suave);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+    }
+    .branch-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── Map container ─────────────────────────────── */
+    .map-wrapper {
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--sombra);
+      border: 1px solid var(--borde);
+      position: sticky;
+      top: 80px;
+    }
+    #map {
+      width: 100%;
+      height: 560px;
+      display: block;
+    }
+
+    @media (max-width: 900px) {
+      #map {
+        height: 420px;
+      }
+
+      .map-wrapper {
+        position: static;
+      }
+    }
+
+    /* ── Map fallback (shown while map loads) ───────── */
+    .map-placeholder {
+      width: 100%;
+      height: 560px;
+      background: linear-gradient(135deg, #f5ede6, #fdf0e8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--texto-suave);
+      font-size: 0.9rem;
+    }
+    .map-placeholder .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--borde);
+      border-top-color: var(--primario);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Info footer ────────────────────────────────── */
+    .info-strip {
+      background: var(--fondo-card);
+      border-top: 1px solid var(--borde);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--texto-suave);
+    }
+    .info-strip a {
+      color: var(--primario);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .info-strip a:hover { text-decoration: underline; }
+
+    /* ── Leaflet popup overrides ─────────────────────── */
+    .iw-card {
+      font-family: 'DM Sans', sans-serif;
+      padding: 14px 16px;
+      min-width: 220px;
+      max-width: 260px;
+    }
+    .iw-card h4 {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.95rem;
+      color: #8e2118;
+      margin-bottom: 4px;
+    }
+    .iw-card .iw-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #e07520;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .iw-card p {
+      font-size: 0.78rem;
+      color: #6b5e55;
+      margin: 3px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .iw-card p span.ico { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════
+       NAV VISITANTE  (HU-27: accesible a todos)
+  ══════════════════════════════════════════ -->
+  <nav id="navVisitante" style="display:none;">
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="catalogo.html">Catálogo</a>
+    <a href="sucursales.html" class="active">📍 Sucursales</a>
+    <a href="realidad-aumentada.html">🥽 Realidad Aumentada</a>
+    <a href="login.html">Iniciar sesión</a>
+    <a href="registro.html" class="nav-cta">Registrarse</a>
+  </nav>
+
+  <!-- ══════════════════════════════════════════
+       NAV USUARIO LOGUEADO
+  ══════════════════════════════════════════ -->
+  <nav id="navUsuario" style="display:none;">
+    <a href="index.html" class="nav-brand">Librería Pereira</a>
+    <a href="index.html">Inicio</a>
+    <a href="sucursales.html" class="active">📍 Sucursales</a>
+    <a href="realidad-aumentada.html">🥽 AR</a>
+    <a href="carrito.html">🛒 Carrito</a>
+    <a href="historial.html">📋 Mis compras</a>
+    <a href="perfil.html">Mi Perfil</a>
+    <a href="admin.html" id="nav-admin-suc" style="display:none;background:rgba(255,255,255,0.15);border-radius:6px;padding:4px 10px;">🛠️ Admin</a>
+    <a href="#" onclick="logout(); return false;" class="nav-cta">Cerrar sesión</a>
+  </nav>
+
+  <!-- ══════════════════════════════════════════
+       HERO
+  ══════════════════════════════════════════ -->
+  <div class="sucursales-hero">
+    <h1>📍 Nuestras Sucursales en Pereira</h1>
+    <p>Visítanos en cualquiera de nuestros puntos físicos en la ciudad. ¡Te esperamos!</p>
+    <a href="realidad-aumentada.html?tab=tienda"
+       style="display:inline-flex; align-items:center; gap:8px; margin-top:18px;
+              padding:12px 26px; background:rgba(255,255,255,0.15); color:#fff;
+              border:1.5px solid rgba(255,255,255,0.4); border-radius:10px;
+              font-weight:600; font-size:0.92rem; text-decoration:none;
+              transition:background 0.2s;"
+       onmouseover="this.style.background='rgba(255,255,255,0.25)'"
+       onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+      🥽 Recorrer sucursal en Realidad Aumentada
+    </a>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════════════ -->
+  <div class="sucursales-layout">
+
+    <!-- ── Panel de sucursales ── -->
+    <aside class="branch-panel">
+      <div class="branch-panel-title">
+        <span>🏬</span> Puntos de atención
+      </div>
+
+      <!-- Sede Principal -->
+      <div class="branch-card activa" onclick="enfocarSucursal(0)" id="card-0">
+        <div class="branch-icon sede-principal">🏛️</div>
+        <div class="branch-info">
+          <div class="branch-name">Sede Principal</div>
+          <span class="branch-badge">Principal</span>
+          <div class="branch-address">Cra. 8 #19-20, C.C. Victoria<br>Centro, Pereira, Risaralda</div>
+          <div class="branch-meta">
+            <span><span class="ico">🕐</span> Lun–Sáb 8 a.m.–8 p.m.</span>
+            <span><span class="ico">☎️</span> (606) 335-4210</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sucursal Álamos -->
+      <div class="branch-card" onclick="enfocarSucursal(1)" id="card-1">
+        <div class="branch-icon">📚</div>
+        <div class="branch-info">
+          <div class="branch-name">Sucursal Álamos</div>
+          <span class="branch-badge" style="background:linear-gradient(90deg,var(--secundario),#c05e10);">Sucursal</span>
+          <div class="branch-address">Cra. 14 #26-45, Parque Arboleda<br>Álamos, Pereira, Risaralda</div>
+          <div class="branch-meta">
+            <span><span class="ico">🕐</span> Lun–Dom 9 a.m.–9 p.m.</span>
+            <span><span class="ico">☎️</span> (606) 335-4211</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sucursal Cuba -->
+      <div class="branch-card" onclick="enfocarSucursal(2)" id="card-2">
+        <div class="branch-icon">📚</div>
+        <div class="branch-info">
+          <div class="branch-name">Sucursal Cuba</div>
+          <span class="branch-badge" style="background:linear-gradient(90deg,var(--secundario),#c05e10);">Sucursal</span>
+          <div class="branch-address">Calle 73 #14-28<br>Cuba, Pereira, Risaralda</div>
+          <div class="branch-meta">
+            <span><span class="ico">🕐</span> Lun–Sáb 8 a.m.–7 p.m.</span>
+            <span><span class="ico">☎️</span> (606) 335-4212</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sucursal Pinares -->
+      <div class="branch-card" onclick="enfocarSucursal(3)" id="card-3">
+        <div class="branch-icon">📚</div>
+        <div class="branch-info">
+          <div class="branch-name">Sucursal Pinares</div>
+          <span class="branch-badge" style="background:linear-gradient(90deg,var(--secundario),#c05e10);">Sucursal</span>
+          <div class="branch-address">Calle 17 #22-10, Sector Pinares<br>Pereira, Risaralda</div>
+          <div class="branch-meta">
+            <span><span class="ico">🕐</span> Lun–Sáb 9 a.m.–7 p.m.</span>
+            <span><span class="ico">☎️</span> (606) 335-4213</span>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ── Mapa Leaflet ── -->
+    <div>
+      <div class="map-wrapper">
+        <!-- Fallback mientras carga el mapa -->
+        <div id="mapPlaceholder" class="map-placeholder">
+          <div class="spinner"></div>
+          <span>Cargando mapa…</span>
+        </div>
+        <!-- Contenedor real del mapa -->
+        <div id="map"></div>
+        <div class="info-strip">
+          <span>📌</span>
+          Haz clic en cualquier marcador para ver los detalles de la sucursal.
+          <a href="https://maps.google.com/?q=Pereira+Risaralda" target="_blank" rel="noopener">
+            Ver en Google Maps ↗
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.sucursales-layout -->
+
+  <!-- ══════════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════════ -->
+  <footer>
+    <strong>Librería Pereira</strong> &copy; 2026 · Ley 1581 de 2012
+  </footer>
+
+  <!-- ══════════════════════════════════════════
+       SCRIPTS
+  ══════════════════════════════════════════ -->
+  <script src="js/script.js"></script>
+  <script>
+    // ── Datos de sucursales (HU-27) ─────────────────────────────────────────
+    const SUCURSALES = [
+      {
+        nombre:    'Sede Principal',
+        subtitulo: 'Principal',
+        direccion: 'Cra. 8 #19-20, C.C. Victoria, Centro',
+        ciudad:    'Pereira, Risaralda',
+        horario:   'Lun–Sáb: 8 a.m.–8 p.m. | Dom: Cerrado',
+        telefono:  '(606) 335-4210',
+        lat:       4.8133,
+        lng:      -75.6961,
+      },
+      {
+        nombre:    'Sucursal Álamos',
+        subtitulo: 'Sucursal',
+        direccion: 'Cra. 14 #26-45, Parque Arboleda, Álamos',
+        ciudad:    'Pereira, Risaralda',
+        horario:   'Lun–Dom: 9 a.m.–9 p.m.',
+        telefono:  '(606) 335-4211',
+        lat:       4.8005,
+        lng:      -75.7060,
+      },
+      {
+        nombre:    'Sucursal Cuba',
+        subtitulo: 'Sucursal',
+        direccion: 'Calle 73 #14-28, Cuba',
+        ciudad:    'Pereira, Risaralda',
+        horario:   'Lun–Sáb: 8 a.m.–7 p.m. | Dom: Cerrado',
+        telefono:  '(606) 335-4212',
+        lat:       4.7800,
+        lng:      -75.7090,
+      },
+      {
+        nombre:    'Sucursal Pinares',
+        subtitulo: 'Sucursal',
+        direccion: 'Calle 17 #22-10, Sector Pinares',
+        ciudad:    'Pereira, Risaralda',
+        horario:   'Lun–Sáb: 9 a.m.–7 p.m. | Dom: Cerrado',
+        telefono:  '(606) 335-4213',
+        lat:       4.8250,
+        lng:      -75.6800,
+      },
+    ];
+
+    let map;
+    let markers     = [];
+    let activeIndex = 0;
+
+    // ── Inicialización del mapa (Leaflet + OpenStreetMap) ────────────────────
+    function initMap() {
+
+      const placeholder = document.getElementById('mapPlaceholder');
+
+      if (placeholder) {
+        placeholder.style.display = 'none';
+      }
+
+      map = L.map('map').setView([4.8070, -75.6960], 13);
+
+      L.tileLayer(
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+          attribution: '&copy; OpenStreetMap'
+        }
+      ).addTo(map);
+
+      SUCURSALES.forEach((s, i) => {
+
+        const marker = L.marker([s.lat, s.lng]).addTo(map);
+
+        marker.bindPopup(`
+          <div class="iw-card">
+            <h4>${s.nombre}</h4>
+            <span class="iw-badge">${s.subtitulo}</span>
+            <p>📌 ${s.direccion}<br>${s.ciudad}</p>
+            <p>🕐 ${s.horario}</p>
+            <p>☎️ ${s.telefono}</p>
+          </div>
+        `);
+
+        marker.on('click', () => {
+          setCardActiva(i);
+        });
+
+        markers.push(marker);
+      });
+
+      if (markers.length > 0) {
+        markers[0].openPopup();
+      }
+    }
+
+    function cerrarTodosInfoWindows() {
+      // No-op: Leaflet popups se cierran automáticamente al abrir otro
+    }
+
+    function setCardActiva(index) {
+      SUCURSALES.forEach((_, i) => {
+        const card = document.getElementById('card-' + i);
+        if (card) card.classList.toggle('activa', i === index);
+      });
+      activeIndex = index;
+    }
+
+    // Llamado desde los cards laterales
+    function enfocarSucursal(index) {
+
+      if (!map || !markers[index]) return;
+
+      setCardActiva(index);
+
+      map.setView(
+        [SUCURSALES[index].lat, SUCURSALES[index].lng],
+        15
+      );
+
+      markers[index].openPopup();
+    }
+
+    // ── Manejo de sesión / nav (HU-27: accesible visitantes y usuarios) ──────
+    const sesion = getSesion();
+    if (sesion) {
+      document.getElementById('navUsuario').style.display = 'flex';
+      if (sesion.rol === 'administrador' || sesion.rol === 'root') {
+        const navAdmin = document.getElementById('nav-admin-suc');
+        if (navAdmin) navAdmin.style.display = 'inline-flex';
+      }
+    } else {
+      document.getElementById('navVisitante').style.display = 'flex';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initMap();
+    });
+  </script>
+</body>
+</html>

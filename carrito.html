@@ -217,6 +217,7 @@
   <nav>
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html">Inicio</a>
+    <a href="sucursales.html">📍 Sucursales</a>
     <a href="carrito.html" class="active">🛒 Carrito <span class="carrito-badge" id="badgeNav" style="background:var(--secundario);color:#fff;border-radius:99px;font-size:0.7rem;font-weight:700;padding:1px 7px;display:none;"></span></a>
     <a href="historial.html">📋 Mis compras</a>
     <a href="perfil.html">Mi Perfil</a>
@@ -276,7 +277,7 @@
         </div>
         <div class="resumen-row">
           <span>Costo de envío</span>
-          <span>$8.500</span>
+          <span id="resumenCostoEnvio">$8.500</span>
         </div>
         <div class="resumen-row total">
           <span>Total</span>
@@ -436,6 +437,12 @@
       document.getElementById('resumenSubtotal').textContent = '$' + subtotal.toLocaleString('es-CO');
       document.getElementById('resumenTotal').textContent    = '$' + total.toLocaleString('es-CO');
 
+      // Actualizar el span de costo de envío dinámicamente
+      const costoEnvioSpan = document.getElementById('resumenCostoEnvio');
+      if (costoEnvioSpan) {
+        costoEnvioSpan.textContent = modoActual === 'tienda' ? 'Gratis' : '$8.500';
+      }
+
       const resItems = document.getElementById('resumenItems');
       resItems.innerHTML = carrito.map(i =>
         `<div class="resumen-row" style="font-size:0.8rem;">
@@ -457,6 +464,12 @@
       const { data } = await client.from('libros').select('stock').eq('id', id).single();
       if (data && nueva > data.stock) {
         showAlert('alertCarrito', 'No hay suficiente stock disponible.', 'error');
+        return;
+      }
+
+      // Límite de 3 unidades del mismo ejemplar en modo reserva
+      if (modoActual === 'reserva' && nueva > 3) {
+        showAlert('alertCarrito', 'En modo reserva solo puedes apartar máximo 3 ejemplares del mismo título.', 'error');
         return;
       }
 
@@ -634,7 +647,57 @@
         }
 
       } else {
-        // reserva
+        // reserva — validación previa en cliente (espejo de crearReserva en script.js)
+        const carrito = getCarrito();
+
+        // 1. Límite de 3 ejemplares del mismo título en el carrito
+        const excede3 = carrito.find(i => i.cantidad > 3);
+        if (excede3) {
+          showAlert('alertCarrito', `No puedes reservar más de 3 ejemplares del mismo título ("${excede3.titulo}").`, 'error');
+          setLoading(btn, false);
+          return;
+        }
+
+        // 2. Consultar reservas activas del usuario para sumar al carrito actual
+        const sesion = getSesion();
+        if (sesion) {
+          const { data: reservasActivas } = await client
+            .from('reservas')
+            .select('libro_id, cantidad')
+            .eq('usuario_id', sesion.id)
+            .eq('estado', 'activa')
+            .gt('expira_en', new Date().toISOString());
+
+          const reservadoMap = {};
+          for (const r of (reservasActivas || [])) {
+            reservadoMap[r.libro_id] = (reservadoMap[r.libro_id] || 0) + r.cantidad;
+          }
+
+          const librosYaReservados = new Set(Object.keys(reservadoMap));
+          const librosNuevos = carrito.filter(i => !librosYaReservados.has(String(i.id)));
+          const totalDistintos = librosYaReservados.size + librosNuevos.length;
+
+          if (totalDistintos > 5) {
+            const librosDisponibles = 5 - librosYaReservados.size;
+            showAlert('alertCarrito',
+              `Ya tienes ${librosYaReservados.size} libro(s) reservado(s). Solo puedes agregar ${librosDisponibles > 0 ? librosDisponibles + ' más' : 'ninguno más'} (máx. 5 diferentes en total).`,
+              'error');
+            setLoading(btn, false);
+            return;
+          }
+
+          for (const item of carrito) {
+            const yaReservado = reservadoMap[item.id] || 0;
+            if (yaReservado + item.cantidad > 3) {
+              showAlert('alertCarrito',
+                `Ya tienes ${yaReservado} ejemplar(es) de "${item.titulo}" reservado(s). Solo puedes agregar ${3 - yaReservado} más (máx. 3 por título).`,
+                'error');
+              setLoading(btn, false);
+              return;
+            }
+          }
+        }
+
         const items = carrito.map(i => ({ libro_id: i.id, cantidad: i.cantidad, titulo: i.titulo }));
         resultado = await crearReserva(items);
 

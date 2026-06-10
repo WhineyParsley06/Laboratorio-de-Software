@@ -153,6 +153,7 @@
     <div id="nav-links">
       <a href="index.html">Inicio</a>
       <a href="catalogo.html" class="active">Catálogo</a>
+      <a href="sucursales.html">📍 Sucursales</a>
       </div>
   </nav>
 
@@ -246,7 +247,10 @@
       grid.innerHTML = lista.map(l => `
         <a ${l.agotado ? '' : 'href="catalogo.html?id=' + l.id + '"'} class="book-card${l.agotado ? ' agotado-card' : ''}">
           <div style="position:relative;">
-            <img src="${l.imagen_url || 'https://via.placeholder.com/300x450?text=Sin+Portada'}" class="book-img" alt="${l.titulo}">
+            ${l.imagen_url
+              ? `<img src="${l.imagen_url}" class="book-img" alt="${l.titulo}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+              : ''}
+            <div class="book-img" style="background:linear-gradient(145deg,#fdf0ec,#f5e0d8);display:${l.imagen_url ? 'none' : 'flex'};flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--primario);"><svg xmlns='http://www.w3.org/2000/svg' width='52' height='52' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg><span style="font-size:0.7rem;font-weight:600;opacity:0.55;letter-spacing:0.04em;">SIN PORTADA</span></div>
             ${l.agotado ? '<div class="agotado-overlay"><span class="agotado-label">AGOTADO</span></div>' : ''}
           </div>
           <div class="book-info">
@@ -309,7 +313,7 @@
         const matchesBusqueda = (
           l.titulo.toLowerCase().includes(busqueda) || 
           l.autor.toLowerCase().includes(busqueda) ||
-          (l.isbn && l.isbn.includes(busqueda))
+          (l.codigo_unico && l.codigo_unico.includes(busqueda))
         );
         return matchesGenero && matchesBusqueda;
       });
@@ -342,7 +346,10 @@
 
       document.getElementById('detalleContenido').innerHTML = `
         <div class="detail-container">
-          <img src="${l.imagen_url || 'https://via.placeholder.com/400x600?text=Sin+Portada'}" class="detail-img">
+          ${l.imagen_url
+            ? `<img src="${l.imagen_url}" class="detail-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            : ''}
+          <div class="detail-img" style="background:linear-gradient(145deg,#fdf0ec,#f5e0d8);display:${l.imagen_url ? 'none' : 'flex'};flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--primario);"><svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'><path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/><path d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/></svg><span style="font-size:0.8rem;font-weight:600;opacity:0.55;letter-spacing:0.06em;">SIN PORTADA</span></div>
           <div class="detail-content">
             <span class="book-tag">${l.genero || 'General'}</span>
             <h2>${l.titulo}</h2>
@@ -350,7 +357,7 @@
             
             <div class="detail-meta">
               <span><strong>Editorial:</strong> ${l.editorial || 'N/A'}</span>
-              <span><strong>ISBN:</strong> ${l.isbn || 'N/A'}</span>
+              <span><strong>Código:</strong> ${l.codigo_unico || 'N/A'}</span>
               <span><strong>Idioma:</strong> ${l.idioma || 'Español'}</span>
               <span><strong>Páginas:</strong> ${l.numero_paginas || '—'}</span>
             </div>

@@ -214,6 +214,7 @@
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html">Inicio</a>
     <a href="noticias.html" class="active">Novedades</a>
+    <a href="sucursales.html">📍 Sucursales</a>
     <a href="login.html">Iniciar sesión</a>
     <a href="registro.html" class="nav-cta">Registrarse</a>
   </nav>
@@ -223,6 +224,7 @@
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html">Inicio</a>
     <a href="noticias.html" class="active">Novedades</a>
+    <a href="sucursales.html">📍 Sucursales</a>
     <a href="carrito.html">🛒 Carrito <span class="carrito-badge" id="badgeNav" style="background:var(--secundario);color:#fff;border-radius:99px;font-size:0.7rem;font-weight:700;padding:1px 7px;display:none;"></span></a>
     <a href="historial.html">📋 Mis compras</a>
     <a href="perfil.html">Mi Perfil</a>
@@ -507,6 +509,11 @@
 
     // ── Init ──
     cargarLibros();
+
+    // ── HU-26: Inicializar widget de chat (solo usuarios registrados) ──
+    if (sesion && sesion.rol === 'cliente') {
+      chatInicializarWidget();
+    }
   </script>
 </body>
 </html>

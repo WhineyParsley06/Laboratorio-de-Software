@@ -162,6 +162,161 @@
     }
     .btn-cancelar:hover { background: #fef2f2; transform: none; }
 
+    /* ── HU-24: Devoluciones ── */
+    .btn-devolucion {
+      background: none;
+      border: 1.5px solid #7c3aed;
+      box-shadow: none;
+      color: #7c3aed;
+      font-size: 0.82rem;
+      width: auto;
+      padding: 7px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all var(--transicion);
+    }
+    .btn-devolucion:hover { background: #f5f3ff; transform: none; }
+
+    /* Modal devolución */
+    .dev-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(30,26,23,0.55);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .dev-overlay.open { display: flex; }
+    .dev-modal {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(100,40,20,0.18);
+      width: 100%;
+      max-width: 520px;
+      padding: 32px 28px;
+      position: relative;
+      animation: devFadeIn 0.22s ease;
+    }
+    @keyframes devFadeIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0)   scale(1);    }
+    }
+    .dev-modal h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      color: var(--primario-dark);
+      margin-bottom: 6px;
+    }
+    .dev-modal .dev-sub {
+      font-size: 0.83rem;
+      color: var(--texto-suave);
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+    .dev-field { margin-bottom: 16px; }
+    .dev-field label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--texto);
+      margin-bottom: 6px;
+    }
+    .dev-field select,
+    .dev-field textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--borde);
+      border-radius: 10px;
+      background: var(--fondo-input);
+      color: var(--texto);
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color var(--transicion);
+      resize: vertical;
+    }
+    .dev-field select:focus,
+    .dev-field textarea:focus { border-color: #7c3aed; }
+    .dev-plazo-aviso {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 9px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: #92400e;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .dev-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+    .btn-dev-cancel {
+      background: none; border: 1.5px solid var(--borde); color: var(--texto-suave);
+      font-size: 0.85rem; padding: 9px 20px; border-radius: 9px; cursor: pointer;
+      font-weight: 600; box-shadow: none; width: auto; transition: all var(--transicion);
+    }
+    .btn-dev-cancel:hover { border-color: var(--texto-suave); }
+    .btn-dev-submit {
+      background: #7c3aed; color: #fff; border: none;
+      font-size: 0.85rem; padding: 9px 22px; border-radius: 9px; cursor: pointer;
+      font-weight: 700; box-shadow: none; width: auto; transition: all var(--transicion);
+    }
+    .btn-dev-submit:hover { background: #6d28d9; }
+    .btn-dev-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* Resultado QR */
+    .dev-qr-result {
+      text-align: center;
+      padding: 12px 0 4px;
+    }
+    .dev-qr-result .qr-icon {
+      font-size: 4rem;
+      margin-bottom: 10px;
+      display: block;
+      animation: qrPulse 1.4s ease-in-out infinite;
+    }
+    @keyframes qrPulse {
+      0%,100% { transform: scale(1); }
+      50%      { transform: scale(1.07); }
+    }
+    .dev-qr-canvas {
+      margin: 14px auto 18px;
+      display: block;
+      border-radius: 14px;
+      border: 3px solid #7c3aed;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.18);
+    }
+    .dev-qr-token {
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      background: #f5f3ff;
+      color: #4c1d95;
+      padding: 8px 16px;
+      border-radius: 8px;
+      letter-spacing: 0.04em;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+    .dev-reembolso-ok {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 10px;
+      padding: 12px 18px;
+      margin: 14px 0 6px;
+      font-size: 0.88rem;
+      color: #166534;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dev-reembolso-ok strong { font-size: 1rem; }
+
+    /* badge devuelta */
+    .estado-devuelta { background: #f5f3ff; color: #6d28d9; }
+
     .btn-factura {
       background: none;
       border: 1.5px solid var(--borde);
@@ -190,6 +345,7 @@
   <nav>
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html">Inicio</a>
+    <a href="sucursales.html">📍 Sucursales</a>
     <a href="carrito.html">🛒 Carrito <span class="carrito-badge" id="badgeNav" style="background:var(--secundario);color:#fff;border-radius:99px;font-size:0.7rem;font-weight:700;padding:1px 7px;display:none;"></span></a>
     <a href="historial.html" class="active">📋 Mis compras</a>
     <a href="perfil.html">Mi Perfil</a>
@@ -208,8 +364,9 @@
     <div id="alertHist"></div>
 
     <div class="hist-tabs">
-      <button class="hist-tab active" id="tabCompras"  onclick="cambiarTab('compras')">💳 Compras</button>
-      <button class="hist-tab"        id="tabReservas" onclick="cambiarTab('reservas')">🔖 Reservas</button>
+      <button class="hist-tab active" id="tabCompras"      onclick="cambiarTab('compras')">💳 Compras</button>
+      <button class="hist-tab"        id="tabReservas"     onclick="cambiarTab('reservas')">🔖 Reservas</button>
+      <button class="hist-tab"        id="tabDevoluciones" onclick="cambiarTab('devoluciones')">↩️ Devoluciones</button>
     </div>
 
     <div id="panelCompras">
@@ -219,12 +376,91 @@
     <div id="panelReservas" style="display:none;">
       <div id="listaReservas"><div style="text-align:center;padding:40px;color:var(--texto-suave);">Cargando...</div></div>
     </div>
-  </div>
+
+    <!-- HU-24: Panel Devoluciones -->
+    <div id="panelDevoluciones" style="display:none;">
+      <div id="listaDevoluciones"><div style="text-align:center;padding:40px;color:var(--texto-suave);">Cargando...</div></div>
+    </div>
+  </div><!-- /.hist-wrap -->
+
+  <!-- ── HU-24: Modal de solicitud de devolución ── -->
+  <div class="dev-overlay" id="devOverlay" onclick="cerrarModalDev(event)">
+    <div class="dev-modal" id="devModal">
+      <div id="devFormView">
+        <h2>↩️ Solicitar Devolución</h2>
+        <p class="dev-sub" id="devSubtitulo">Selecciona la razón de tu devolución. Solo aplica para compras entregadas dentro de los últimos 8 días.</p>
+
+        <div class="dev-plazo-aviso">
+          ⏰ <span>El plazo máximo para devolver es de <strong>8 días calendario</strong> desde que recibiste el producto.</span>
+        </div>
+
+        <div class="dev-field">
+          <label for="devCausal">Causal de devolución *</label>
+          <select id="devCausal">
+            <option value="">— Selecciona una causal —</option>
+            <option value="mal_estado">📦 Producto en mal estado</option>
+            <option value="expectativas">😞 No llenó las expectativas</option>
+            <option value="tiempo">⏱️ El pedido llegó en tiempo superior al estipulado</option>
+          </select>
+        </div>
+
+        <div class="dev-field">
+          <label for="devComentario">Comentario adicional (opcional)</label>
+          <textarea id="devComentario" rows="3" maxlength="500"
+            placeholder="Cuéntanos con más detalle qué ocurrió..."></textarea>
+        </div>
+
+        <div id="devAlerta" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:9px;padding:10px 14px;font-size:0.83rem;color:#dc2626;margin-bottom:14px;"></div>
+
+        <div class="dev-actions">
+          <button class="btn-dev-cancel" onclick="cerrarModalDevBtn()">Cancelar</button>
+          <button class="btn-dev-submit" id="btnEnviarDev" onclick="enviarDevolucion()">
+            Solicitar devolución →
+          </button>
+        </div>
+      </div><!-- /#devFormView -->
+
+      <div id="devResultView" style="display:none;">
+        <div class="dev-qr-result">
+          <span class="qr-icon">✅</span>
+          <h2 style="font-family:'Playfair Display',serif;color:#166534;margin-bottom:6px;">¡Devolución aprobada!</h2>
+          <p style="font-size:0.85rem;color:var(--texto-suave);margin-bottom:16px;">
+            Presenta este código QR en la librería o compártelo con el transportista al momento de la recogida.
+          </p>
+
+          <!-- Canvas QR generado por QRious -->
+          <canvas id="devQrCanvas" class="dev-qr-canvas" width="200" height="200"></canvas>
+          <br>
+          <span class="dev-qr-token" id="devQrToken"></span>
+
+          <div class="dev-reembolso-ok" id="devReembolsoInfo">
+            💰 <div>
+              Reembolso aplicado al monedero:
+              <strong id="devReembolsoMonto"></strong><br>
+              <span style="font-size:0.78rem;">Nuevo saldo: <strong id="devNuevoSaldo"></strong></span>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;font-size:0.78rem;color:var(--texto-suave);">
+            Guarda o toma captura de este código QR antes de cerrar.
+          </div>
+
+          <div class="dev-actions" style="justify-content:center;margin-top:22px;">
+            <button class="btn-dev-submit" onclick="cerrarModalDevBtn()" style="background:var(--primario);">
+              Listo, cerrar
+            </button>
+          </div>
+        </div>
+      </div><!-- /#devResultView -->
+    </div><!-- /.dev-modal -->
+  </div><!-- /.dev-overlay -->
 
   <footer>
     <strong>Librería Pereira</strong> &copy; 2026 · Ley 1581 de 2012
   </footer>
 
+  <!-- QRious: generación de QR sin dependencias del servidor -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script src="js/script.js"></script>
   <script>
     const sesion = requireSession();
@@ -236,10 +472,12 @@
 
     function cambiarTab(tab) {
       tabActual = tab;
-      document.getElementById('tabCompras').classList.toggle('active', tab === 'compras');
-      document.getElementById('tabReservas').classList.toggle('active', tab === 'reservas');
-      document.getElementById('panelCompras').style.display  = tab === 'compras'  ? 'block' : 'none';
-      document.getElementById('panelReservas').style.display = tab === 'reservas' ? 'block' : 'none';
+      document.getElementById('tabCompras').classList.toggle('active',      tab === 'compras');
+      document.getElementById('tabReservas').classList.toggle('active',     tab === 'reservas');
+      document.getElementById('tabDevoluciones').classList.toggle('active', tab === 'devoluciones');
+      document.getElementById('panelCompras').style.display      = tab === 'compras'      ? 'block' : 'none';
+      document.getElementById('panelReservas').style.display     = tab === 'reservas'     ? 'block' : 'none';
+      document.getElementById('panelDevoluciones').style.display = tab === 'devoluciones' ? 'block' : 'none';
     }
 
     // ── Cargar compras ──
@@ -295,6 +533,7 @@
           enviado:        'estado-enviado',
           entregado:      'estado-entregado',
           cancelada:      'estado-cancelada',
+          devuelta:       'estado-devuelta',
         }[estadoReal] || 'estado-preparacion';
 
         const estadoLabel = {
@@ -302,6 +541,7 @@
           enviado:        '🚚 Enviado',
           entregado:      '✅ Entregado',
           cancelada:      '❌ Cancelada',
+          devuelta:       '↩️ Devuelta',
         }[estadoReal] || estadoReal;
 
         // Timeline visual
@@ -331,9 +571,14 @@
         const esNuevoEstado = estadoReal !== 'en_preparacion';
         const mostrarBadgeNuevo = esReciente && esNuevoEstado && estadoReal !== 'cancelada';
 
-        const puedesCancelar = estadoReal === 'en_preparacion' || estadoReal === 'enviado';
+        const puedesCancelar = estadoReal === 'en_preparacion';
         const subtotal = items.reduce((s, i) => s + parseFloat(i.precio_unit) * i.cantidad, 0);
         const numero_factura = 'FAC-' + c.id.slice(0,8).toUpperCase();
+
+        // HU-24: botón devolución — solo para compras entregadas dentro del plazo de 8 días
+        const fechaEntregaRef = new Date(c.actualizado_en || c.creado_en);
+        const diasDesdeEntrega = (Date.now() - fechaEntregaRef.getTime()) / (1000 * 60 * 60 * 24);
+        const puedeDevolverse = estadoReal === 'entregado' && diasDesdeEntrega <= 8;
 
         return `
           <div class="registro-card">
@@ -369,6 +614,7 @@
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn-factura" onclick="reimprimir('${c.id}')">🖨️ Factura</button>
                 ${puedesCancelar ? `<button class="btn-cancelar" onclick="solicitarCancelacion('${c.id}')">❌ Cancelar pedido</button>` : ''}
+                ${puedeDevolverse ? `<button class="btn-devolucion" onclick="abrirModalDev('${c.id}')">↩️ Devolver</button>` : ''}
               </div>
             </div>
           </div>`;
@@ -490,7 +736,7 @@
       if (!confirm('¿Cancelar esta reserva? Los libros volverán al catálogo.')) return;
       const resultado = await cancelarReserva(reservaId);
       if (resultado.error) {
-        showAlert('alertHist', resultado.error, 'error');
+        showAlert('alertHist', '⚠️ ' + resultado.error, 'error');
       } else {
         showAlert('alertHist', '✅ Reserva cancelada. Stock liberado.', 'success');
         cargarReservas();
@@ -536,9 +782,173 @@
       });
     }
 
+
+    // ── HU-24: Cargar devoluciones ──
+    async function cargarDevoluciones() {
+      const lista = document.getElementById('listaDevoluciones');
+
+      // Intentar cargar desde tabla 'devoluciones'; puede no existir aún en el proyecto
+      const { data, error } = await client
+        .from('devoluciones')
+        .select('id, compra_id, causal, comentario, estado, qr_token, reembolso_total, creado_en')
+        .eq('usuario_id', sesion.id)
+        .order('creado_en', { ascending: false });
+
+      if (error) {
+        lista.innerHTML = `
+          <div class="vacio-state">
+            <span class="icon">↩️</span>
+            <h3>Sin devoluciones registradas</h3>
+            <p>Aquí aparecerán tus solicitudes de devolución.<br>
+               Puedes iniciar una desde la pestaña <strong>💳 Compras</strong> para pedidos entregados.</p>
+          </div>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        lista.innerHTML = `
+          <div class="vacio-state">
+            <span class="icon">↩️</span>
+            <h3>Sin devoluciones aún</h3>
+            <p>Cuando solicites una devolución aparecerá aquí con su código QR.</p>
+          </div>`;
+        return;
+      }
+
+      const causalesLabel = {
+        mal_estado:   '📦 Producto en mal estado',
+        expectativas: '😞 No llenó las expectativas',
+        tiempo:       '⏱️ Pedido tardío',
+      };
+
+      lista.innerHTML = data.map(d => {
+        const fecha = new Date(d.creado_en).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
+        return `
+          <div class="registro-card">
+            <div class="reg-head">
+              <div>
+                <div class="reg-id">Devolución #${d.id ? d.id.slice(0,8).toUpperCase() : '—'}</div>
+                <div class="reg-fecha">${fecha}</div>
+                <div style="margin-top:8px;">
+                  <span class="estado-badge estado-devuelta">↩️ ${d.estado === 'aprobada' ? 'Aprobada' : d.estado}</span>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div class="reg-total" style="color:#166534;">+$${parseFloat(d.reembolso_total).toLocaleString('es-CO')}</div>
+                <div style="font-size:0.75rem;color:var(--texto-suave);">Reembolsado</div>
+              </div>
+            </div>
+            <div style="margin:10px 0;font-size:0.85rem;color:var(--texto-suave);">
+              <strong style="color:var(--texto);">Causal:</strong> ${causalesLabel[d.causal] || d.causal}
+              ${d.comentario ? `<br><strong style="color:var(--texto);">Comentario:</strong> ${d.comentario}` : ''}
+            </div>
+            <div style="background:#f5f3ff;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:14px;">
+              <div style="font-size:2rem;">🔳</div>
+              <div>
+                <div style="font-size:0.75rem;color:var(--texto-suave);margin-bottom:2px;">Token QR</div>
+                <div style="font-family:'Courier New',monospace;font-weight:700;color:#4c1d95;font-size:0.9rem;">${d.qr_token}</div>
+              </div>
+              <button onclick="mostrarQRExistente('${d.qr_token}')"
+                style="margin-left:auto;background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;box-shadow:none;width:auto;">
+                Ver QR
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── HU-24: Control del modal ──
+    let devCompraId = null;
+
+    function abrirModalDev(compraId) {
+      devCompraId = compraId;
+      document.getElementById('devCausal').value = '';
+      document.getElementById('devComentario').value = '';
+      document.getElementById('devAlerta').style.display = 'none';
+      document.getElementById('devFormView').style.display = 'block';
+      document.getElementById('devResultView').style.display = 'none';
+      document.getElementById('btnEnviarDev').disabled = false;
+      document.getElementById('devOverlay').classList.add('open');
+    }
+
+    function cerrarModalDevBtn() {
+      document.getElementById('devOverlay').classList.remove('open');
+      devCompraId = null;
+      cargarCompras();
+      cargarDevoluciones();
+    }
+
+    function cerrarModalDev(e) {
+      if (e.target === document.getElementById('devOverlay')) cerrarModalDevBtn();
+    }
+
+    function mostrarQRExistente(token) {
+      document.getElementById('devFormView').style.display = 'none';
+      document.getElementById('devResultView').style.display = 'block';
+      document.getElementById('devQrToken').textContent = token;
+      document.getElementById('devReembolsoInfo').style.display = 'none';
+      new QRious({
+        element: document.getElementById('devQrCanvas'),
+        value:   token,
+        size:    200,
+        level:   'H',
+        foreground: '#4c1d95',
+        background: '#f5f3ff',
+      });
+      document.getElementById('devOverlay').classList.add('open');
+    }
+
+    async function enviarDevolucion() {
+      const causal = document.getElementById('devCausal').value;
+      const comentario = document.getElementById('devComentario').value;
+      const alertBox = document.getElementById('devAlerta');
+
+      if (!causal) {
+        alertBox.textContent = 'Por favor selecciona una causal de devolución.';
+        alertBox.style.display = 'block';
+        return;
+      }
+
+      const btn = document.getElementById('btnEnviarDev');
+      btn.disabled = true;
+      btn.textContent = 'Procesando...';
+      alertBox.style.display = 'none';
+
+      const resultado = await procesarDevolucion({ compraId: devCompraId, causal, comentario });
+
+      if (resultado.error) {
+        alertBox.textContent = resultado.error;
+        alertBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Solicitar devolución →';
+        return;
+      }
+
+      // Mostrar resultado con QR
+      document.getElementById('devFormView').style.display = 'none';
+      document.getElementById('devResultView').style.display = 'block';
+      document.getElementById('devQrToken').textContent = resultado.qrToken;
+      document.getElementById('devReembolsoMonto').textContent =
+        '$' + resultado.reembolso.toLocaleString('es-CO');
+      document.getElementById('devNuevoSaldo').textContent =
+        '$' + resultado.nuevaSaldo.toLocaleString('es-CO');
+      document.getElementById('devReembolsoInfo').style.display = 'flex';
+
+      // Generar el QR con QRious
+      new QRious({
+        element:    document.getElementById('devQrCanvas'),
+        value:      resultado.qrToken,
+        size:       200,
+        level:      'H',
+        foreground: '#4c1d95',
+        background: '#f5f3ff',
+      });
+    }
+
     // ── Init ──
     cargarCompras();
     cargarReservas();
+    cargarDevoluciones();
   </script>
 </body>
 </html>

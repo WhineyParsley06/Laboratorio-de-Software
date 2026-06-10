@@ -85,6 +85,7 @@
   <nav>
     <a href="index.html" class="nav-brand">Librería Pereira</a>
     <a href="index.html">Inicio</a>
+    <a href="sucursales.html">📍 Sucursales</a>
     <a href="tarjetas.html">💳 Monedero</a>
     <a href="perfil.html" class="active">Mi Perfil</a>
     <a href="admin.html" id="nav-admin-perfil" style="display:none;background:rgba(255,255,255,0.15);border-radius:6px;padding:4px 10px;">🛠️ Admin</a>
@@ -135,11 +136,13 @@
         <div class="input-row">
           <div class="input-group" style="flex:1;">
             <label for="pNombre">Nombre(s)</label>
-            <input type="text" id="pNombre" placeholder="Juan">
+            <input type="text" id="pNombre" placeholder="Juan"
+                   oninput="this.value=this.value.replace(/[^\p{L} ]/gu,'')">
           </div>
           <div class="input-group" style="flex:1;">
             <label for="pApellidos">Apellidos</label>
-            <input type="text" id="pApellidos" placeholder="Pérez García">
+            <input type="text" id="pApellidos" placeholder="Pérez García"
+                   oninput="this.value=this.value.replace(/[^\p{L} ]/gu,'')">
           </div>
         </div>
 
@@ -147,6 +150,7 @@
           <div class="input-group" style="flex:1;">
             <label for="pFecha">Fecha de nacimiento</label>
             <input type="date" id="pFecha">
+            <span id="pFechaHint" style="font-size:0.78rem; color:var(--texto-suave); margin-top:4px; display:block;"></span>
           </div>
           <div class="input-group" style="flex:1;">
             <label for="pDepResidencia">Departamento de residencia</label>
@@ -181,7 +185,8 @@
           </div>
           <div class="input-group" style="flex:1;">
             <label for="pTelefono">Teléfono</label>
-            <input type="tel" id="pTelefono" placeholder="300 123 4567" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <input type="tel" id="pTelefono" placeholder="3001234567"
+                   maxlength="10" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
           </div>
         </div>
 
@@ -376,15 +381,15 @@
       renderVista(data);
 
       // Formulario editar
-      document.getElementById('pNombre').value    = data.nombre_completo?.split(' ').slice(0, -2).join(' ') || data.nombre_completo || '';
+      document.getElementById('pNombre').value    = data.nombre || '';
       document.getElementById('pApellidos').value = data.apellidos || '';
       document.getElementById('pCorreo').value    = data.correo || '';
       document.getElementById('pFecha').value     = data.fecha_nacimiento || '';
       // Restaurar departamento y ciudad de residencia
-      if (data.dep_residencia) {
+      if (data.departamento) {
         const selDep = document.getElementById('pDepResidencia');
-        selDep.value = data.dep_residencia;
-        cargarCiudadesPerfil(data.ciudad_residencia);
+        selDep.value = data.departamento;
+        cargarCiudadesPerfil(data.ciudad);
       }
       document.getElementById('pDireccion').value = data.direccion || '';
       document.getElementById('pTelefono').value  = data.telefono || '';
@@ -410,8 +415,8 @@
         { label: 'Correo',               value: d.correo },
         { label: 'Teléfono',             value: d.telefono || '—' },
         { label: 'Fecha de nacimiento',  value: d.fecha_nacimiento ? new Date(d.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' }) : '—' },
-        { label: 'Departamento de residencia', value: d.dep_residencia || '—' },
-        { label: 'Ciudad de residencia', value: d.ciudad_residencia || '—' },
+        { label: 'Departamento de residencia', value: d.departamento || '—' },
+        { label: 'Ciudad de residencia',       value: d.ciudad || '—' },
         { label: 'Género',               value: GENERO_LABEL[d.genero] || '—' },
         { label: 'Dirección de envío',   value: d.direccion || '—' },
         { label: 'Rol en el sistema',    value: d.rol },
@@ -460,13 +465,32 @@
       const apellidos = document.getElementById('pApellidos').value.trim();
       const nombreCompleto = (nombre + ' ' + apellidos).trim();
 
+      // Validar fecha de nacimiento
+      const fechaVal = document.getElementById('pFecha').value;
+      if (fechaVal) {
+        const hoy      = new Date();
+        const nacido   = new Date(fechaVal + 'T12:00:00');
+        const edadAnios = (hoy - nacido) / (365.25 * 24 * 60 * 60 * 1000);
+        if (edadAnios < 18) {
+          showAlert('alertPerfil', 'Debes tener al menos 18 años para registrar esta fecha de nacimiento.', 'error');
+          setLoading(btn, false);
+          return;
+        }
+        if (edadAnios > 120) {
+          showAlert('alertPerfil', 'La fecha de nacimiento no puede ser hace más de 120 años.', 'error');
+          setLoading(btn, false);
+          return;
+        }
+      }
+
       const { error } = await client.from('usuarios').update({
         nombre_completo:  nombreCompleto,
+        nombre:           nombre,
         apellidos:        apellidos,
         correo:           document.getElementById('pCorreo').value.trim(),
         fecha_nacimiento: document.getElementById('pFecha').value,
-        dep_residencia:   document.getElementById('pDepResidencia').value,
-        ciudad_residencia: document.getElementById('pCiudadResidencia').value,
+        departamento:     document.getElementById('pDepResidencia').value,
+        ciudad:           document.getElementById('pCiudadResidencia').value,
         genero:           document.getElementById('pGenero').value,
         telefono:         document.getElementById('pTelefono').value.trim(),
         direccion:        document.getElementById('pDireccion').value.trim(),
@@ -677,6 +701,23 @@
 
     // Llamar cargarDatos() DESPUÉS de que los selects estén listos
     cargarDatos();
+
+    // ── Límites dinámicos del campo fecha de nacimiento ──────────
+    (function() {
+      const hoy   = new Date();
+      // Mínimo: el usuario debe tener al menos 18 años
+      const minFecha = new Date(hoy.getFullYear() - 120, hoy.getMonth(), hoy.getDate());
+      // Máximo: no puede haber nacido hace menos de 18 años
+      const maxFecha = new Date(hoy.getFullYear() - 18,  hoy.getMonth(), hoy.getDate());
+
+      const toISO = d => d.toISOString().split('T')[0];
+      const input = document.getElementById('pFecha');
+      input.min = toISO(minFecha);
+      input.max = toISO(maxFecha);
+
+      document.getElementById('pFechaHint').textContent =
+        `Debes tener entre 18 y 120 años (máx. ${toISO(maxFecha)})`;
+    })();
   </script>
 </body>
 </html>
